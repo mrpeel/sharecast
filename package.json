@@ -1,0 +1,9 @@
+{
+  "devDependencies": {
+    "eslint": "^3.11.1",
+    "eslint-config-google": "^0.7.1",
+    "google-finance": "^0.1.9",
+    "node-fetch": "^1.6.3",
+    "yahoo-finance": "^0.2.16"
+  }
+}
