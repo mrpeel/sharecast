@@ -2,5 +2,12 @@
     "env": {
         "es6": true
     },
+    "max-len": [2, {
+          "code": 80,
+          "tabWidth": 2,
+          "ignoreUrls": true,
+          "ignoreComments": true,
+          "ignoreStrings": true,
+        }],
     "extends": "eslint-config-google"
 }

@@ -1,10 +1,14 @@
 
 const fetch = require('node-fetch');
+const json2csv = require('json2csv');
+const fs = require('fs');
+
 
 let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
 let suffixUrl = ']&restype=company&ei=zQOFWIDVN4OV0ATSkrHYDw';
 
 let fields = {
+  'last_price': 'last_price%20%3E%3D%200%29%20%26%20%28last_price%20%3C%3D%2030400%29',
   'average_200day_price': 'average_200day_price%20%3E%3D%20-1000%29%20%26%20%28average_200day_price%20%3C%3D%20199000%29',
   'price_change_52week': 'price_change_52week%20%3E%3D%20-9947%29%20%26%20%28price_change_52week%20%3C%3D%201420100%29',
   'average_200day_price': 'average_200day_price%20%3E%3D%200%29%20%26%20%28average_200day_price%20%3C%3D%2019900%29',
@@ -53,46 +57,110 @@ let fields = {
   'eps_growth_rate_10years': 'eps_growth_rate_10years%20%3E%3D%20-5000%29%20%26%20%28eps_growth_rate_10years%20%3C%3D%2012600%29',
 };
 
+
 let companyResults = {};
 let fetchRequests = [];
 let textResponses = [];
 // let preppedUrl = queryUrl.replace('##field_name##', 'earnings_per_share');
 
-// fetch(baseUrl + numUrl + preppedUrl + urlFinalParams)
-Object.keys(fields).forEach(function(lookupField) {
-  fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
-});
+let checkForNumber = function(value) {
+  let finalChar = String(value).slice(-1);
+  let leadingVal = String(value).slice(0, String(value).length - 1);
+  let charsToMatch = {
+    'k': 1000,
+    'K': 1000,
+    'm': 1000000,
+    'M': 1000000,
+    'b': 1000000000,
+    'B': 1000000000,
+  };
+  let possibleChars = Object.keys(charsToMatch);
 
-Promise.all(fetchRequests)
-  .then(function(responses) {
-    responses.forEach(function(response) {
-      textResponses.push(response.text());
+  // Check if final character is thousands, millions or billions
+  if (!isNaN(leadingVal) && possibleChars.indexOf(finalChar) > -1) {
+    // if it is, multiple value to get normal number
+    return leadingVal * charsToMatch[finalChar];
+  } else {
+    return value;
+  }
+};
+
+let writeToCsv = function(csvData, csvFields) {
+  let csvOutput = json2csv({
+    data: csvData,
+    fields: csvFields,
+  });
+
+  let today = new Date();
+
+  fs.writeFile('./data/company-metrics-' + today.getFullYear() + '-' +
+    ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
+    ('0' + today.getDate()).slice(-2) + '.csv', csvOutput, function(err) {
+      if (err)
+        throw err;
+      console.log('File saved');
     });
+};
 
-    Promise.all(textResponses)
-      .then(function(responseBodies) {
-        responseBodies.forEach(function(responseBody) {
-          let convertedResponse = responseBody
-            .replace(/\\x22/g, '&quot;')
-            .replace(/\\x27/g, '&#039;')
-            .replace(/\\x26/g, '&amp;')
-            .replace(/\\x2F/g, '&#47;')
-            .replace(/\\x3E/g, '&gt;')
-            .replace(/\\x3C/g, '&lt;');
 
-          let jsonResults = JSON.parse(convertedResponse);
+let retrieveCompanies = function() {
+  let csvFields = ['symbol', 'name'];
+  let csvData = [];
 
-          jsonResults.searchresults.forEach(function(result) {
-            if (!companyResults[result.ticker]) {
-              companyResults[result.ticker] = {};
-            }
-            let companyVals = companyResults[result.ticker];
-            companyVals.name = result.title;
-            companyVals[result.columns[0].field] = result.columns[0].value;
-          });
-        });
-        console.log(companyResults);
+  Object.keys(fields).forEach(function(lookupField) {
+    fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
+  });
+
+  Promise.all(fetchRequests)
+    .then(function(responses) {
+      responses.forEach(function(response) {
+        textResponses.push(response.text());
       });
-  }).catch(function(err) {
-  console.log(err);
-});
+
+      Promise.all(textResponses)
+        .then(function(responseBodies) {
+          responseBodies.forEach(function(responseBody) {
+            let convertedResponse = responseBody
+              .replace(/\\x22/g, '&quot;')
+              .replace(/\\x27/g, '&#039;')
+              .replace(/\\x26/g, '&amp;')
+              .replace(/\\x2F/g, '&#47;')
+              .replace(/\\x3E/g, '&gt;')
+              .replace(/\\x3C/g, '&lt;');
+
+            let jsonResults = JSON.parse(convertedResponse);
+
+            jsonResults.searchresults.forEach(function(result) {
+              if (!companyResults[result.ticker]) {
+                companyResults[result.ticker] = {};
+              }
+              let companyVals = companyResults[result.ticker];
+              companyVals.name = result.title;
+              companyVals[result.columns[0].field] = checkForNumber(
+                result.columns[0].value);
+            });
+          });
+
+          // Work through all values and build csv data
+          Object.keys(companyResults).forEach(function(company) {
+            let companyData = {};
+            companyData.symbol = company;
+            // Loop through company and add each value
+            Object.keys(companyResults[company]).forEach(function(companyVal) {
+              if (csvFields.indexOf(companyVal) === -1) {
+                csvFields.push(companyVal);
+              }
+              companyData[companyVal] = companyResults[company][companyVal];
+            });
+            csvData.push(companyData);
+          });
+          console.log(csvData);
+          writeToCsv(csvData, csvFields);
+        });
+    }).catch(function(err) {
+    console.log(err);
+  });
+};
+
+
+retrieveCompanies();
