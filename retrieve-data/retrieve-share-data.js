@@ -1,4 +1,9 @@
 const yahooFinance = require('yahoo-finance');
+const retrieval = require('./retrieval.json');
+const utils = require('./utils.json');
+const json2csv = require('json2csv');
+const fs = require('fs');
+
 // const googleFinance = require('google-finance');
 // const exchange = 'AX';
 const fields = {
@@ -13,7 +18,7 @@ const fields = {
   c1: 'change',
   // c: 'change-and-percent-change',
   p2: 'change-in-percent',
-  // d1: 'last-trade-date',
+  d1: 'last-trade-date',
   // d2: 'trade-date',
   // t1: 'last-trade-time',
   // c3: 'commission',
@@ -97,7 +102,7 @@ const indiceFields = {
   p2: 'change-in-percent',
   g: 'day-low',
   h: 'day-high',
-  // l: 'last-trade-with-time',
+  l: 'last-trade-with-time',
   l1: 'last-trade-price-only',
   w1: 'day-value-change',
   m: 'day-range',
@@ -179,42 +184,14 @@ let outputResults = function(results) {
       console.log('Multiple results');
       results.forEach(function(indResult) {
         Object.keys(indResult).forEach(function(result) {
-          console.log(result + ': ' + checkForNumber(indResult[result]));
+          console.log(result + ': ' + utils.checkForNumber(indResult[result]));
         });
       });
     } else {
       Object.keys(results).forEach(function(result) {
-        console.log(result + ': ' + checkForNumber(results[result]));
+        console.log(result + ': ' + utils.checkForNumber(results[result]));
       });
     }
-  }
-};
-
-let checkForNumber = function(value) {
-  let finalChar = String(value).slice(-1);
-  let leadingVal = String(value).slice(0, String(value).length - 1);
-  let charsToMatch = {
-    'k': 1000,
-    'K': 1000,
-    'm': 1000000,
-    'M': 1000000,
-    'b': 1000000000,
-    'B': 1000000000,
-  };
-
-  let possibleChars = Object.keys(charsToMatch);
-
-  /* console.log('Final char: ' + finalChar);
-  console.log('Leading val: ' + leadingVal);
-  console.log('Possible chars: ' + possibleChars);
-  console.log('isNan: ' + isNaN(leadingVal)); */
-
-  // Check if final character is thousands, millions or billions
-  if (!isNaN(leadingVal) && possibleChars.indexOf(finalChar) > -1) {
-    // if it is, multiple value to get normal number
-    return leadingVal * charsToMatch[finalChar];
-  } else {
-    return value;
   }
 };
 

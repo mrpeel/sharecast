@@ -8,6 +8,7 @@
           "ignoreUrls": true,
           "ignoreComments": true,
           "ignoreStrings": true,
+          "ignorePattern": "'.*': '.*',",
         }],
     "extends": "eslint-config-google"
 }

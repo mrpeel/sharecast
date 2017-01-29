@@ -1,5 +1,6 @@
 
 const fetch = require('node-fetch');
+const utils = require('./utils.json');
 const json2csv = require('json2csv');
 const fs = require('fs');
 
@@ -8,6 +9,7 @@ let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=
 let suffixUrl = ']&restype=company&ei=zQOFWIDVN4OV0ATSkrHYDw';
 
 let fields = {
+  'earnings_per_share': 'earnings_per_share%20%3E%3D%20-8121%29%20%26%20%28earnings_per_share%20%3C%3D%203679%29',
   'last_price': 'last_price%20%3E%3D%200%29%20%26%20%28last_price%20%3C%3D%2030400%29',
   'average_200day_price': 'average_200day_price%20%3E%3D%20-1000%29%20%26%20%28average_200day_price%20%3C%3D%20199000%29',
   'price_change_52week': 'price_change_52week%20%3E%3D%20-9947%29%20%26%20%28price_change_52week%20%3C%3D%201420100%29',
@@ -55,6 +57,8 @@ let fields = {
   'revenue_growth_rate_10years': 'revenue_growth_rate_10years%20%3E%3D%20-6768%29%20%26%20%28revenue_growth_rate_10years%20%3C%3D%2024900%29',
   'eps_growth_rate_5years': 'eps_growth_rate_5years%20%3E%3D%20-7502%29%20%26%20%28eps_growth_rate_5years%20%3C%3D%2027200%29',
   'eps_growth_rate_10years': 'eps_growth_rate_10years%20%3E%3D%20-5000%29%20%26%20%28eps_growth_rate_10years%20%3C%3D%2012600%29',
+  'volume': 'volume%20%3E%3D%200%29%20%26%20%28volume%20%3C%3D%2015212000000%29',
+  'average_volume': 'average_volume%20%3E%3D%200%29%20%26%20%28average_volume%20%3C%3D%2014683000000%29',
 };
 
 
@@ -62,45 +66,6 @@ let companyResults = {};
 let fetchRequests = [];
 let textResponses = [];
 // let preppedUrl = queryUrl.replace('##field_name##', 'earnings_per_share');
-
-let checkForNumber = function(value) {
-  let finalChar = String(value).slice(-1);
-  let leadingVal = String(value).slice(0, String(value).length - 1);
-  let charsToMatch = {
-    'k': 1000,
-    'K': 1000,
-    'm': 1000000,
-    'M': 1000000,
-    'b': 1000000000,
-    'B': 1000000000,
-  };
-  let possibleChars = Object.keys(charsToMatch);
-
-  // Check if final character is thousands, millions or billions
-  if (!isNaN(leadingVal) && possibleChars.indexOf(finalChar) > -1) {
-    // if it is, multiple value to get normal number
-    return leadingVal * charsToMatch[finalChar];
-  } else {
-    return value;
-  }
-};
-
-let writeToCsv = function(csvData, csvFields) {
-  let csvOutput = json2csv({
-    data: csvData,
-    fields: csvFields,
-  });
-
-  let today = new Date();
-
-  fs.writeFile('./data/company-metrics-' + today.getFullYear() + '-' +
-    ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
-    ('0' + today.getDate()).slice(-2) + '.csv', csvOutput, function(err) {
-      if (err)
-        throw err;
-      console.log('File saved');
-    });
-};
 
 
 let retrieveCompanies = function() {
@@ -136,8 +101,14 @@ let retrieveCompanies = function() {
               }
               let companyVals = companyResults[result.ticker];
               companyVals.name = result.title;
-              companyVals[result.columns[0].field] = checkForNumber(
-                result.columns[0].value);
+
+              // Check for empty values which are listed as '-'
+              if (result.columns[0].value === '-') {
+                companyVals[result.columns[0].field] = '';
+              } else {
+                companyVals[result.columns[0].field] = utils.checkForNumber(
+                  result.columns[0].value);
+              }
             });
           });
 
@@ -155,7 +126,7 @@ let retrieveCompanies = function() {
             csvData.push(companyData);
           });
           console.log(csvData);
-          writeToCsv(csvData, csvFields);
+          utils.writeToCsv(csvData, csvFields, 'company-metrics');
         });
     }).catch(function(err) {
     console.log(err);
