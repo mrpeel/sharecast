@@ -1,11 +1,6 @@
 const yahooFinance = require('yahoo-finance');
-const retrieval = require('./retrieval.json');
-const utils = require('./utils.json');
-const json2csv = require('json2csv');
-const fs = require('fs');
+const utils = require('./utils');
 
-// const googleFinance = require('google-finance');
-// const exchange = 'AX';
 const fields = {
   // b: 'bid',
   // a: 'ask',
@@ -35,7 +30,7 @@ const fields = {
   // m4: '200-day-moving-average',
   w1: 'day-value-change',
   p1: 'price-paid',
-  m: 'day-range',
+  // m: 'day-range',
   g1: 'holdings-gain-percent',
   g3: 'annualized-gain',
   g4: 'holdings-gain',
@@ -48,8 +43,8 @@ const fields = {
   // w: '52-week-range',
   j1: 'market-capitalization',
   f6: 'float-shares',
-  n: 'name',
-  n4: 'notes',
+  // n: 'name',
+  // n4: 'notes',
   s1: 'shares-owned',
   x: 'stock-exchange',
   j2: 'shares-outstanding',
@@ -79,7 +74,7 @@ const fields = {
   s6: 'revenue',
 };
 
-const realTimeFields = {
+/* const realTimeFields = {
   c6: 'change-realtime',
   k2: 'change-percent-realtime',
   c8: 'after-hours-change-realtime',
@@ -92,9 +87,10 @@ const realTimeFields = {
   r2: 'PE-ratio-realtime',
   i5: 'order-book-realtime',
   v7: 'holdings-value-realtime',
-};
+}; */
 
 const indiceFields = {
+  d1: 'last-trade-date',
   p: 'previous-close',
   o: 'open',
   c1: 'change',
@@ -102,8 +98,6 @@ const indiceFields = {
   p2: 'change-in-percent',
   g: 'day-low',
   h: 'day-high',
-  l: 'last-trade-with-time',
-  l1: 'last-trade-price-only',
   w1: 'day-value-change',
   m: 'day-range',
   k: '52-week-high',
@@ -112,22 +106,46 @@ const indiceFields = {
   k4: 'change-from-52-week-high',
   j6: 'percent-change-from-52-week-low',
   k5: 'percent-change-from-52-week-high',
-  w: '52-week-range',
   n: 'name',
   x: 'stock-exchange',
   j2: 'shares-outstanding',
-  v: 'volume',
-  a2: 'average-daily-volume',
 };
 
-const shareIndices = {
-  '^AXJO': 'ASX',
-  '^AORD': 'AllOrdinaries',
+let symbolLookup = {};
+let indexLookup = {};
+let companyLookup = {};
+let indices = [];
+let companies = [];
+
+/* Retrieve index values */
+const lastResultDate = utils.getLastRetrievalDate();
+const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
+const companyFieldsToRetrieve = utils.createFieldArray(fields);
+let symbolGroups = [];
+let shareRetrievals = [];
+let csvFields = [];
+let csvData = [];
+let maxResultDate = '';
+
+let setupSymbols = function() {
+  let indexValues = utils.getIndices();
+  let companyValues = utils.getCompanies();
+
+  indexValues.forEach(function(indexValue) {
+    indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+    symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+  });
+
+  indices = utils.createFieldArray(indexLookup);
+
+  companyValues.forEach(function(companyValue) {
+    companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+    symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+  });
+
+  companies = utils.createFieldArray(companyLookup);
 };
 
-let createFieldArray = function(fieldObject) {
-  return Object.keys(fieldObject);
-};
 
 let retrieveSnapshot = function(symbol, fields) {
   return new Promise(function(resolve, reject) {
@@ -177,46 +195,99 @@ let retrieveHistory = function(symbol, fields, startDate, endDate, interval) {
 };
 
 
-let outputResults = function(results) {
+let processResults = function(results) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
-      console.log('Multiple results');
+      // Multiple  symbols returned
       results.forEach(function(indResult) {
-        Object.keys(indResult).forEach(function(result) {
-          console.log(result + ': ' + utils.checkForNumber(indResult[result]));
-        });
+        processResult(indResult);
       });
     } else {
-      Object.keys(results).forEach(function(result) {
-        console.log(result + ': ' + utils.checkForNumber(results[result]));
-      });
+      // Single symbol returned
+      processResult(results);
     }
   }
 };
 
+let processResult = function(result) {
+  // Retrieve last trade date to check whether to output this value
+  result.lastTradeDate = utils.returnDateAsString(result.lastTradeDate);
+  if (result.lastTradeDate > lastResultDate) {
+    if (result.lastTradeDate > maxResultDate) {
+      maxResultDate = result.lastTradeDate;
+    }
 
-let indicesToRetrieve = createFieldArray(shareIndices);
-let indiceFieldsToRetrieve = createFieldArray(indiceFields);
+    // Convert yahoo symbol to generic symbol
+    result.symbol = symbolLookup[result.symbol];
 
-retrieveSnapshot(indicesToRetrieve, indiceFieldsToRetrieve)
+    Object.keys(result).forEach(function(field) {
+      // Check the field is in the csv list
+      if (csvFields.indexOf(field) === -1) {
+        csvFields.push(field);
+      }
+
+      // Reset number here required
+      result[field] = utils.checkForNumber(result[field]);
+    });
+    // Add result to csv data
+    csvData.push(result);
+  }
+};
+
+setupSymbols();
+
+retrieveSnapshot(indices, indiceFieldsToRetrieve)
   .then(function(results) {
-    console.log('----------  Indices  ----------');
-    outputResults(results);
-    return true;
+    return processResults(results);
   })
   .then(function() {
-    let fieldsToRetrieve = createFieldArray(fields);
-    return retrieveSnapshot('DUE.AX', fieldsToRetrieve);
-  })
-  .then(function(results) {
-    console.log('----------  Normal shares  ----------');
-    outputResults(results);
+    if (csvData.length > 0) {
+      utils.writeToCsv(csvData, csvFields, 'indices', maxResultDate);
+    } else {
+      console.log('No new index data to save');
+    }
+
+    return true;
+  }).then(function() {
+  // Reset fields for companies
+  csvFields = [];
+  csvData = [];
+
+  // Split companies into groups of 10 so each request contains 10
+  for (companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 10) {
+    symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
+  }
+
+  symbolGroups.forEach(function(symbolGroup) {
+    shareRetrievals.push(retrieveSnapshot(symbolGroup,
+      companyFieldsToRetrieve));
   });
 
-let fieldsToRetrieve = createFieldArray(fields);
-retrieveHistory('DUE.AX', fieldsToRetrieve, '2016-01-01', '2016-01-10', 'd')
-  .then(function(results) {
-    console.log('----------  History results  ----------');
-    outputResults(results);
+  // When all returns are back, process the results
+  Promise.all(shareRetrievals).then(function(results) {
+    results.forEach(function(result) {
+      processResults(result);
+    });
+
+    if (csvData.length > 0) {
+      utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
+    } else {
+      console.log('No new company data to save');
+    }
+  }).catch(function(err) {
+    console.log(err);
   });
+})
+  .catch(function(err) {
+    console.log(err);
+  });
+
+
+  /* let fieldsToRetrieve = utils.createFieldArray(fields);
+  retrieveHistory('DUE.AX', fieldsToRetrieve, '2016-01-01', '2016-01-10', 'd')
+    .then(function(results) {
+      console.log('----------  History results  ----------');
+      outputResults(results);
+    }); */

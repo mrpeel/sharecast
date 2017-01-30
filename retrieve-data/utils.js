@@ -1,5 +1,35 @@
+const json2csv = require('json2csv');
+const fs = require('fs');
+const symbols = require('./symbols.json');
+const lastRetrieval = require('./last-retrieval.json');
+
+
 module.exports = {
-  writeToCsv: function(csvData, csvFields, filePrefix) {
+  getLastRetrievalDate: function() {
+    return lastRetrieval['retrieval-date'];
+  },
+  getCompanies: function() {
+    return symbols.companies;
+  },
+  getIndices: function() {
+    return symbols.indices;
+  },
+  returnDateAsString: function(dateValue) {
+    let checkDate = new Date(dateValue);
+
+    return checkDate.getFullYear() + '-' +
+      ('0' + (checkDate.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + checkDate.getDate()).slice(-2);
+  },
+  createFieldArray: function(fieldObject) {
+    return Object.keys(fieldObject);
+  },
+  writeToCsv: function(csvData, csvFields, filePrefix, dateString) {
+    // If no date string supplied, use today's date
+    dateString = dateString || today.getFullYear() + '-' +
+      ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
+      ('0' + today.getDate()).slice(-2);
+
     let csvOutput = json2csv({
       data: csvData,
       fields: csvFields,
@@ -7,9 +37,8 @@ module.exports = {
 
     let today = new Date();
 
-    fs.writeFile('./data/' + filePrefix + '-' + today.getFullYear() + '-' +
-      ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
-      ('0' + today.getDate()).slice(-2) + '.csv', csvOutput, function(err) {
+    fs.writeFile('../data/' + filePrefix + '-' + dateString + '.csv',
+      csvOutput, function(err) {
         if (err)
           throw err;
         console.log('File saved');

@@ -1,9 +1,6 @@
 
 const fetch = require('node-fetch');
 const utils = require('./utils.json');
-const json2csv = require('json2csv');
-const fs = require('fs');
-
 
 let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
 let suffixUrl = ']&restype=company&ei=zQOFWIDVN4OV0ATSkrHYDw';
