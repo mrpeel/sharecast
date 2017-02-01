@@ -26,6 +26,8 @@ module.exports = {
   },
   writeToCsv: function(csvData, csvFields, filePrefix, dateString) {
     // If no date string supplied, use today's date
+    let today = new Date();
+
     dateString = dateString || today.getFullYear() + '-' +
       ('0' + (today.getMonth() + 1)).slice(-2) + '-' +
       ('0' + today.getDate()).slice(-2);
@@ -35,14 +37,22 @@ module.exports = {
       fields: csvFields,
     });
 
-    let today = new Date();
-
     fs.writeFile('../data/' + filePrefix + '-' + dateString + '.csv',
       csvOutput, function(err) {
         if (err)
           throw err;
         console.log('File saved');
       });
+  },
+  writeJSONfile: function(jsonObject, fileName) {
+    fs.writeFile(fileName, JSON.stringify(jsonObject), function(err) {
+      if (err)
+        throw err;
+      console.log('JSON File saved');
+    });
+  },
+  doesDataFileExist: function(fileName) {
+    return fs.existsSync('../data/' + fileName);
   },
   checkForNumber: function(value) {
     let finalChar = String(value).slice(-1);

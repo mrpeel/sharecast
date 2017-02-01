@@ -8,7 +8,7 @@ const fields = {
   o: 'open',
   y: 'dividend-yield',
   d: 'dividend-per-share',
-  r1: 'dividend-pay-date',
+  // r1: 'dividend-pay-date',
   q: 'ex-dividend-date',
   c1: 'change',
   // c: 'change-and-percent-change',
@@ -21,19 +21,19 @@ const fields = {
   h: 'day-high',
   // l: 'last-trade-with-time',
   l1: 'last-trade-price-only',
-  t8: '1-yr-target-price',
+  // t8: '1-yr-target-price',
   // m5: 'change-from-200-day-moving-average',
   // m6: 'percent-change-from-200-day-moving-average',
   // m7: 'change-from-50-day-moving-average',
   // m8: 'percent-change-from-50-day-moving-average',
   // m3: '50-day-moving-average',
   // m4: '200-day-moving-average',
-  w1: 'day-value-change',
-  p1: 'price-paid',
+  // w1: 'day-value-change',
+  // p1: 'price-paid',
   // m: 'day-range',
-  g1: 'holdings-gain-percent',
-  g3: 'annualized-gain',
-  g4: 'holdings-gain',
+  // g1: 'holdings-gain-percent',
+  // g3: 'annualized-gain',
+  // g4: 'holdings-gain',
   k: '52-week-high',
   j: '52-week-low',
   // j5: 'change-from-52-week-low',
@@ -55,8 +55,8 @@ const fields = {
   // a2: 'average-daily-volume',
   e: 'earnings-per-share',
   e7: 'EPS-estimate-current-year',
-  e8: 'EPS-estimate-next-year',
-  e9: 'EPS-estimate-next-quarter',
+  // e8: 'EPS-estimate-next-year',
+  // e9: 'EPS-estimate-next-quarter',
   b4: 'book-value',
   j4: 'EBITDA',
   p5: 'price-per-sales',
@@ -66,11 +66,11 @@ const fields = {
   r6: 'price-per-EPS-estimate-current-year',
   r7: 'price-per-EPS-estimate-next-year',
   s7: 'short-ratio',
-  t7: 'ticker-trend',
+  // t7: 'ticker-trend',
   // t6: 'trade-links',
   // l2: 'high-limit',
   // l3: 'low-limit',
-  v1: 'holdings-value',
+  // v1: 'holdings-value',
   s6: 'revenue',
 };
 
@@ -98,7 +98,7 @@ const indiceFields = {
   p2: 'change-in-percent',
   g: 'day-low',
   h: 'day-high',
-  w1: 'day-value-change',
+  // w1: 'day-value-change',
   m: 'day-range',
   k: '52-week-high',
   j: '52-week-low',
@@ -167,34 +167,6 @@ let retrieveSnapshot = function(symbol, fields) {
   });
 };
 
-/* period: 'd'  // 'd' (daily), 'w' (weekly), 'm' (monthly),
-'v' (dividends only)
-*/
-let retrieveHistory = function(symbol, fields, startDate, endDate, interval) {
-  return new Promise(function(resolve, reject) {
-    let historyOptions = {
-      fields: fields,
-      from: startDate,
-      to: endDate,
-      period: interval,
-    };
-
-    // Check if one or many symbols
-    if (Array.isArray(symbol)) {
-      historyOptions.symbols = symbol;
-    } else {
-      historyOptions.symbol = symbol;
-    }
-
-    yahooFinance.historical(historyOptions).then(function(result) {
-      resolve(result);
-    }).catch(function(err) {
-      reject(err);
-    });
-  });
-};
-
-
 let processResults = function(results) {
   if (results) {
     // Check if multi-dimensional
@@ -237,6 +209,7 @@ let processResult = function(result) {
 
 setupSymbols();
 
+
 retrieveSnapshot(indices, indiceFieldsToRetrieve)
   .then(function(results) {
     return processResults(results);
@@ -273,6 +246,12 @@ retrieveSnapshot(indices, indiceFieldsToRetrieve)
 
     if (csvData.length > 0) {
       utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
+
+      // Re-write JSON file with last retrieval date
+      lastRetrievalDate = {
+        'retrieval-date': maxResultDate,
+      };
+      utils.writeJSONfile(lastRetrievalDate, 'last-retrieval.json');
     } else {
       console.log('No new company data to save');
     }
@@ -283,11 +262,3 @@ retrieveSnapshot(indices, indiceFieldsToRetrieve)
   .catch(function(err) {
     console.log(err);
   });
-
-
-  /* let fieldsToRetrieve = utils.createFieldArray(fields);
-  retrieveHistory('DUE.AX', fieldsToRetrieve, '2016-01-01', '2016-01-10', 'd')
-    .then(function(results) {
-      console.log('----------  History results  ----------');
-      outputResults(results);
-    }); */
