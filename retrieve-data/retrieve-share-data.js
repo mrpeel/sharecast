@@ -5,7 +5,7 @@ const fields = {
   // b: 'bid',
   // a: 'ask',
   p: 'previous-close',
-  o: 'open',
+  // o: 'open',
   y: 'dividend-yield',
   d: 'dividend-per-share',
   // r1: 'dividend-pay-date',
@@ -92,14 +92,14 @@ const fields = {
 const indiceFields = {
   d1: 'last-trade-date',
   p: 'previous-close',
-  o: 'open',
+  // o: 'open',
   c1: 'change',
-  c: 'change-and-percent-change',
+  // c: 'change-and-percent-change',
   p2: 'change-in-percent',
   g: 'day-low',
   h: 'day-high',
   // w1: 'day-value-change',
-  m: 'day-range',
+  // m: 'day-range',
   k: '52-week-high',
   j: '52-week-low',
   j5: 'change-from-52-week-low',
@@ -107,8 +107,8 @@ const indiceFields = {
   j6: 'percent-change-from-52-week-low',
   k5: 'percent-change-from-52-week-high',
   n: 'name',
-  x: 'stock-exchange',
-  j2: 'shares-outstanding',
+// x: 'stock-exchange',
+// j2: 'shares-outstanding',
 };
 
 let symbolLookup = {};

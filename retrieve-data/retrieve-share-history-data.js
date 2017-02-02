@@ -153,6 +153,29 @@ let retrieveHistory = function(symbol, fields, startDate, endDate, interval) {
   });
 };
 
+let retrieveDividendHistory = function(symbol, startDate, endDate) {
+  return new Promise(function(resolve, reject) {
+    let historyOptions = {
+      from: startDate,
+      to: endDate,
+      period: 'v',
+    };
+
+    // Check if one or many symbols
+    if (Array.isArray(symbol)) {
+      historyOptions.symbols = symbol;
+    } else {
+      historyOptions.symbol = symbol;
+    }
+
+    yahooFinance.historical(historyOptions).then(function(result) {
+      resolve(result);
+    }).catch(function(err) {
+      reject(err);
+    });
+  });
+};
+
 
 let processHistoryResults = function(results) {
   if (results) {
@@ -192,6 +215,41 @@ let dateString = today.getFullYear() + '-' +
 ('0' + today.getDate()).slice(-2);
 
 
+// Retrieve dividend history
+for (companyCounter = 0; companyCounter < companies.length;
+  companyCounter += 10) {
+  // symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
+  let companySymbols = companies.slice(companyCounter, companyCounter + 10);
+  let internalCounter = companyCounter;
+
+  if (!utils.doesDataFileExist('companies-dividend-history-' + internalCounter
+      + '-' + dateString + '.csv')) {
+    setTimeout(function() {
+      console.log('Processing companyCounter: ' + internalCounter);
+      retrieveDividendHistory(companySymbols, '2012-01-01', '2017-01-29')
+        .then(function(results) {
+          // Reset fields for companies
+          csvFields = [];
+          csvData = [];
+
+          processHistoryResults(results);
+
+          if (csvData.length > 0) {
+            utils.writeToCsv(csvData, csvFields, 'companies-dividend-history-' +
+              internalCounter);
+          } else {
+            console.log('No history data to save');
+          }
+        }).catch(function(err) {
+        console.log(err);
+      });
+    }, internalCounter * 20);
+  } else {
+    console.log('Skipping companyCounter: ' + internalCounter);
+  }
+}
+
+/*
 // Split companies into groups of 10 so each request contains 10
 for (companyCounter = 0; companyCounter < companies.length;
   companyCounter += 10) {
