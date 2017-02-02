@@ -1,8 +1,11 @@
 {
     "env": {
-        "es6": true
+        "node": true
     },
-    "max-len": [2, {
+    "parserOptions": {
+        "ecmaVersion": 7,
+      },    
+      "max-len": [2, {
           "code": 80,
           "tabWidth": 2,
           "ignoreUrls": true,

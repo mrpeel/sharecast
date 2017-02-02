@@ -118,7 +118,7 @@ let indices = [];
 let companies = [];
 
 /* Retrieve index values */
-const lastResultDate = utils.getLastRetrievalDate();
+let lastResultDate;
 const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
 const companyFieldsToRetrieve = utils.createFieldArray(fields);
 let symbolGroups = [];
@@ -131,14 +131,14 @@ let setupSymbols = function() {
   let indexValues = utils.getIndices();
   let companyValues = utils.getCompanies();
 
-  indexValues.forEach(function(indexValue) {
+  indexValues.forEach((indexValue) => {
     indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
     symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
   });
 
   indices = utils.createFieldArray(indexLookup);
 
-  companyValues.forEach(function(companyValue) {
+  companyValues.forEach((companyValue) => {
     companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
     symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
   });
@@ -159,9 +159,9 @@ let retrieveSnapshot = function(symbol, fields) {
     } else {
       snapshotOptions.symbol = symbol;
     }
-    yahooFinance.snapshot(snapshotOptions).then(function(result) {
+    yahooFinance.snapshot(snapshotOptions).then((result) => {
       resolve(result);
-    }).catch(function(err) {
+    }).catch((err) => {
       reject(err);
     });
   });
@@ -172,7 +172,7 @@ let processResults = function(results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
       // Multiple  symbols returned
-      results.forEach(function(indResult) {
+      results.forEach((indResult) => {
         processResult(indResult);
       });
     } else {
@@ -193,7 +193,7 @@ let processResult = function(result) {
     // Convert yahoo symbol to generic symbol
     result.symbol = symbolLookup[result.symbol];
 
-    Object.keys(result).forEach(function(field) {
+    Object.keys(result).forEach((field) => {
       // Check the field is in the csv list
       if (csvFields.indexOf(field) === -1) {
         csvFields.push(field);
@@ -209,9 +209,13 @@ let processResult = function(result) {
 
 setupSymbols();
 
-
-retrieveSnapshot(indices, indiceFieldsToRetrieve)
-  .then(function(results) {
+utils.getLastRetrievalDate()
+  .then((dateVal) => {
+    // console.log(dateVal);
+    lastResultDate = dateVal;
+    return retrieveSnapshot(indices, indiceFieldsToRetrieve);
+  })
+  .then((results) => {
     return processResults(results);
   })
   .then(function() {
@@ -233,32 +237,29 @@ retrieveSnapshot(indices, indiceFieldsToRetrieve)
     symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
   }
 
-  symbolGroups.forEach(function(symbolGroup) {
+  symbolGroups.forEach((symbolGroup) => {
     shareRetrievals.push(retrieveSnapshot(symbolGroup,
       companyFieldsToRetrieve));
   });
 
   // When all returns are back, process the results
-  Promise.all(shareRetrievals).then(function(results) {
-    results.forEach(function(result) {
+  Promise.all(shareRetrievals).then((results) => {
+    results.forEach((result) => {
       processResults(result);
     });
 
     if (csvData.length > 0) {
       utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
 
-      // Re-write JSON file with last retrieval date
-      lastRetrievalDate = {
-        'retrieval-date': maxResultDate,
-      };
-      utils.writeJSONfile(lastRetrievalDate, 'last-retrieval.json');
+      // Re-set last retrieval date
+      utils.setLastRetrievalDate(maxResultDate);
     } else {
       console.log('No new company data to save');
     }
-  }).catch(function(err) {
+  }).catch((err) => {
     console.log(err);
   });
 })
-  .catch(function(err) {
+  .catch((err) => {
     console.log(err);
   });

@@ -46,6 +46,10 @@ Temporary Items
 # =========================
 data
 
+# User name and password
+# =========================
+credentials
+
 
 # Node modules
 # =========================

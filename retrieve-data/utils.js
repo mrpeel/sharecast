@@ -1,12 +1,72 @@
 const json2csv = require('json2csv');
 const fs = require('fs');
 const symbols = require('./symbols.json');
-const lastRetrieval = require('./last-retrieval.json');
-
+const dbConn = require('./mysql-connection');
+const credentials = require('../credentials/credentials.json');
+const host = 'localhost';
+const db = 'sharecast';
+const username = credentials.username;
+const password = credentials.password;
 
 module.exports = {
   getLastRetrievalDate: function() {
-    return lastRetrieval['retrieval-date'];
+    return new Promise(function(resolve, reject) {
+      let connection;
+      let retrievalDate;
+      dbConn.connectToDb(host, username, password, db)
+        .then((conn) => {
+          connection = conn;
+
+          return dbConn.queryDb(connection, 'SELECT last_retrieval_date ' +
+            'FROM `sharecast`.`last_retrieval_date` ' +
+            'LIMIT 1;');
+        })
+        .then((rows) => {
+          // console.log(rows);
+          if (rows.length > 0) {
+            retrievalDate = rows[0]['last_retrieval_date'];
+          } else {
+            retrievalDate = '';
+          }
+          dbConn.closeConnection(connection);
+          resolve(retrievalDate);
+        })
+        .catch((err) => {
+          console.log(err);
+          dbConn.closeConnection(connection);
+          reject(err);
+        });
+    });
+  },
+  setLastRetrievalDate(retrievalDate) {
+    let connection;
+
+    if (!retrievalDate) {
+      console.log('Parameter retrievalDate not supplied');
+      return;
+    }
+
+    dbConn.connectToDb(host, username, password, db)
+      .then((conn) => {
+        connection = conn;
+
+        return dbConn.queryDb(connection, 'DELETE  ' +
+          'FROM `sharecast`.`last_retrieval_date`;');
+      })
+      .then((result) => {
+        // console.log(result);
+        return dbConn.queryDb(connection, 'INSERT INTO ' +
+          '`sharecast`.`last_retrieval_date`  VALUES(' +
+          '\'' + retrievalDate + '\'); ');
+      })
+      .then((result) => {
+        // console.log(result);
+        dbConn.closeConnection(connection);
+      })
+      .catch((err) => {
+        console.log(err);
+        dbConn.closeConnection(connection);
+      });
   },
   getCompanies: function() {
     return symbols.companies;

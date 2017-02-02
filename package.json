@@ -5,7 +5,9 @@
     "eslint-config-google": "^0.7.1",
     "google-finance": "^0.1.9",
     "json2csv": "^3.7.3",
+    "mysql": "^2.13.0",
     "node-fetch": "^1.6.3",
+    "promise-mysql": "^3.0.0",
     "yahoo-finance": "^0.2.16"
   }
 }

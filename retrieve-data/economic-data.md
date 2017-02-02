@@ -23,17 +23,15 @@ APIs
 ====
 
 Aus GDP quarterly:
-https://www.quandl.com/api/v1/datasets/AUSBS/5206001_KEY_AGGREGATES_A2304402X.json?column=1
+** https://www.quandl.com/api/v1/datasets/AUSBS/5206001_KEY_AGGREGATES_A2304402X.json?column=1 **
 
 Aus GDP per capita:
 https://www.quandl.com/api/v1/datasets/AUSBS/5206001_KEY_AGGREGATES_A2304404C.json?column=1
 
 
-Australia CPI (inflation):
+Australia CPI (inflation) quarterly:
 https://www.quandl.com/api/v1/datasets/AUSBS/640101_A2325847F.json?column=1
 
-Annual GDP:
-https://www.quandl.com/api/v1/datasets/ODA/AUS_NGDPD.json?column=1
 
 
 Yahoo sector data

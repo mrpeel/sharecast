@@ -44,7 +44,7 @@ let fields = {
   'return_on_equity_year': 'return_on_equity_year%20%3E%3D%20-5666000%29%20%26%20%28return_on_equity_year%20%3C%3D%20172100%29',
   'beta': 'beta%20%3E%3D%20-894%29%20%26%20%28beta%20%3C%3D%20927%29',
   'shares_floating': 'shares_floating%20%3E%3D%200%29%20%26%20%28shares_floating%20%3C%3D%202671500%29',
-  'percent_institutional_held': 'percent_institutional_held%20%3E%3D%200%29%20%26%20%28percent_institutional_held%20%3C%3D%20100%29',
+  // 'percent_institutional_held': 'percent_institutional_held%20%3E%3D%200%29%20%26%20%28percent_institutional_held%20%3C%3D%20100%29',
   'gross_margin_trailing_12months': 'gross_margin_trailing_12months%20%3E%3D%20-6216500%29%20%26%20%28gross_margin_trailing_12months%20%3C%3D%2052000%29',
   'ebitd_margin_trailing_12months': 'ebitd_margin_trailing_12months%20%3E%3D%20-1403000000%29%20%26%20%28ebitd_margin_trailing_12months%20%3C%3D%2043043600%29',
   'operating_margin_trailing_12months': 'operating_margin_trailing_12months%20%3E%3D%20-6061000000%29%20%26%20%28operating_margin_trailing_12months%20%3C%3D%20934000000%29',
