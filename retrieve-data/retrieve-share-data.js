@@ -1,5 +1,7 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
+const asyncify = require('asyncawait/async');
+const awaitify = require('asyncawait/await');
 
 const fields = {
   // b: 'bid',
@@ -127,24 +129,29 @@ let csvFields = [];
 let csvData = [];
 let maxResultDate = '';
 
-let setupSymbols = function() {
-  let indexValues = utils.getIndices();
-  let companyValues = utils.getCompanies();
+let setupSymbols = asyncify(function() {
+  try {
+    let indexValues = awaitify(utils.getIndices());
+    let companyValues = awaitify(utils.getCompanies());
 
-  indexValues.forEach((indexValue) => {
-    indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
-    symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
-  });
+    indexValues.forEach((indexValue) => {
+      console.log(indexValue);
+      indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+    });
 
-  indices = utils.createFieldArray(indexLookup);
+    indices = utils.createFieldArray(indexLookup);
 
-  companyValues.forEach((companyValue) => {
-    companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-    symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-  });
+    companyValues.forEach((companyValue) => {
+      companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+      symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+    });
 
-  companies = utils.createFieldArray(companyLookup);
-};
+    companies = utils.createFieldArray(companyLookup);
+  } catch (err) {
+    console.log(err);
+  }
+});
 
 
 let retrieveSnapshot = function(symbol, fields) {
@@ -207,59 +214,59 @@ let processResult = function(result) {
   }
 };
 
-setupSymbols();
+let executeRetrieval = asyncify(function() {
+  awaitify(setupSymbols());
+  lastResultDate = awaitify(utils.getLastRetrievalDate());
 
-utils.getLastRetrievalDate()
-  .then((dateVal) => {
-    // console.log(dateVal);
-    lastResultDate = dateVal;
-    return retrieveSnapshot(indices, indiceFieldsToRetrieve);
-  })
-  .then((results) => {
-    return processResults(results);
-  })
-  .then(function() {
-    if (csvData.length > 0) {
-      utils.writeToCsv(csvData, csvFields, 'indices', maxResultDate);
-    } else {
-      console.log('No new index data to save');
+  retrieveSnapshot(indices, indiceFieldsToRetrieve)
+    .then((results) => {
+      return processResults(results);
+    })
+    .then(function() {
+      if (csvData.length > 0) {
+        utils.writeToCsv(csvData, csvFields, 'indices', maxResultDate);
+      } else {
+        console.log('No new index data to save');
+      }
+
+      return true;
+    }).then(function() {
+    // Reset fields for companies
+    csvFields = [];
+    csvData = [];
+
+    // Split companies into groups of 10 so each request contains 10
+    for (companyCounter = 0; companyCounter < companies.length;
+      companyCounter += 10) {
+      symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
     }
 
-    return true;
-  }).then(function() {
-  // Reset fields for companies
-  csvFields = [];
-  csvData = [];
-
-  // Split companies into groups of 10 so each request contains 10
-  for (companyCounter = 0; companyCounter < companies.length;
-    companyCounter += 10) {
-    symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
-  }
-
-  symbolGroups.forEach((symbolGroup) => {
-    shareRetrievals.push(retrieveSnapshot(symbolGroup,
-      companyFieldsToRetrieve));
-  });
-
-  // When all returns are back, process the results
-  Promise.all(shareRetrievals).then((results) => {
-    results.forEach((result) => {
-      processResults(result);
+    symbolGroups.forEach((symbolGroup) => {
+      shareRetrievals.push(retrieveSnapshot(symbolGroup,
+        companyFieldsToRetrieve));
     });
 
-    if (csvData.length > 0) {
-      utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
+    // When all returns are back, process the results
+    Promise.all(shareRetrievals).then((results) => {
+      results.forEach((result) => {
+        processResults(result);
+      });
 
-      // Re-set last retrieval date
-      utils.setLastRetrievalDate(maxResultDate);
-    } else {
-      console.log('No new company data to save');
-    }
-  }).catch((err) => {
-    console.log(err);
-  });
-})
-  .catch((err) => {
-    console.log(err);
-  });
+      if (csvData.length > 0) {
+        utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
+
+        // Re-set last retrieval date
+        utils.setLastRetrievalDate(maxResultDate);
+      } else {
+        console.log('No new company data to save');
+      }
+    }).catch((err) => {
+      console.log(err);
+    });
+  })
+    .catch((err) => {
+      console.log(err);
+    });
+});
+
+executeRetrieval();

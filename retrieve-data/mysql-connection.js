@@ -24,7 +24,7 @@ module.exports = {
         });
     });
   },
-  queryDb: function(connection, query) {
+  selectQuery: function(connection, query) {
     return new Promise(function(resolve, reject) {
       if (!connection || !query) {
         reject('Missing parameter, connection: ' + connection || '' +
@@ -32,8 +32,46 @@ module.exports = {
         return;
       }
 
+      if (query.indexOf('SELECT') !== 0) {
+        reject('selectQuery call does not start with \'SELECT\'');
+        return;
+      }
+
+      console.log('Select query: ' + query);
+
       connection.query(query)
         .then((rows) => {
+          console.log(rows.length + ' rows returned');
+          resolve(rows);
+        })
+        .catch((err) => {
+          reject(err);
+        });
+    });
+  },
+  executeQuery: function(connection, query) {
+    return new Promise(function(resolve, reject) {
+      if (!connection || !query) {
+        reject('Missing parameter, connection: ' + connection || '' +
+          ', query: ' + query || '');
+      // return;
+      }
+
+      if (query.indexOf('UPDATE') !== 0 && query.indexOf('INSERT') !== 0 &&
+        query.indexOf('DELETE') !== 0) {
+        reject('executeQuery call does not start with one of: \'INSERT\', ' +
+          '\'UPDATE\', \'DELETE\'');
+        return;
+      }
+      console.log('Execute query: ' + query);
+
+      connection.query(query)
+        .then((rows) => {
+          if (rows.affectedRows !== undefined) {
+            console.log(rows.affectedRows + ' rows affected');
+          } else {
+            console.log(rows);
+          }
           resolve(rows);
         })
         .catch((err) => {

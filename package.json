@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "asyncawait": "^1.0.6",
     "csvtojson": "^1.1.3",
     "eslint": "^3.11.1",
     "eslint-config-google": "^0.7.1",
