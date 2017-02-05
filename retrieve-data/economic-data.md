@@ -1,36 +1,70 @@
 Reserve bank data
 -------------------
 
-Monetary policy changes - cash rate
-http://www.rba.gov.au/statistics/tables/xls/a02hist.xls
+Monetary policy changes - cash rate (previous month)
+----------
+http://www.rba.gov.au/statistics/tables/xls/f01hist.xls
+
+FIRMMCRT: cash rate
+
+created: 1st month + 1 month + 1 day (if weekend move to next Monday)
+
+https://www.quandl.com/api/v3/datasets/RBA/F01_1_FIRMMCRT.json?api_key=yvyS1i7z4MR7EN_U3ffQ
 
 
-Interest rates monthly:
-http://www.rba.gov.au/statistics/tables/xls/f01d.xls
-
-Monthly exchange rates:
+Monthly exchange rates (previous month)
+----------
 http://www.rba.gov.au/statistics/tables/xls-hist/f11hist.xls
 
-Commodity prices:
-http://www.rba.gov.au/statistics/tables/xls/i02hist.xls?v=2017-02-01-19-15-8
+FXRUSD: $US exchange rate
+created: 1st month + 1 month
 
-http://www.rba.gov.au/statistics/tables/xls/i02hist.xls?v=2017-02-01-21-49-30
+Daily exchange rates
+----------
+https://www.quandl.com/api/v3/datasets/RBA/FXRUSD.json?api_key=yvyS1i7z4MR7EN_U3ffQ
 
-GDP:
-http://www.rba.gov.au/statistics/tables/xls/h01hist.xls
-
-APIs
-====
-
-Aus GDP quarterly:
-** https://www.quandl.com/api/v1/datasets/AUSBS/5206001_KEY_AGGREGATES_A2304402X.json?column=1 **
-
-Aus GDP per capita:
-https://www.quandl.com/api/v1/datasets/AUSBS/5206001_KEY_AGGREGATES_A2304404C.json?column=1
+Commodity prices (available for previous month)
+----------
+http://www.rba.gov.au/statistics/tables/xls/i02hist.xls
 
 
-Australia CPI (inflation) quarterly:
-https://www.quandl.com/api/v1/datasets/AUSBS/640101_A2325847F.json?column=1
+GRCPAIAD: all
+GRCPRCAD: rural
+GRCPNRAD: non-rural
+GRCPBMAD: base metals
+GRCPBCAD: non-rural bulk export
+GRCPAISAD: all bulk
+GRCPBCSAD: non-rural bulk
+created: 1st month + 1 month
+
+https://www.quandl.com/api/v3/datasets/RBA/I02.json?api_key=yvyS1i7z4MR7EN_U3ffQ
+created: 1st month + 1 month + 1 day (if weekend move to next Monday)
+
+
+Aus GDP quarterly
+----------
+https://www.quandl.com/api/v3/datasets/RBA/H01_GGDPCVGDP.json?api_key=yvyS1i7z4MR7EN_U3ffQ
+
+created: Release date + 3 months + 2 days (if weekend move to next Monday)
+
+Aus GDP per capita
+----------
+https://www.quandl.com/api/v3/datasets/RBA/H01_GGDPCVGDPFY.json?api_key=yvyS1i7z4MR7EN_U3ffQ
+
+created: Release date + 3 months + 2 days (if weekend move to next Monday)
+
+
+Australia CPI (inflation)
+----------
+https://www.quandl.com/api/v3/datasets/AUSBS/640106_A3597525W.json?api_key=yvyS1i7z4MR7EN_U3ffQ
+
+created: Release date + 1 month + 1 days (if weekend move to next Monday)
+
+
+Percentage of population employed
+----------
+https://www.quandl.com/api/v3/datasets/RBA/H05_GLFSEPTPOP.json?api_key=yvyS1i7z4MR7EN_U3ffQ
+created: Release date + 1 month + 1 days (if weekend move to next Monday)
 
 
 

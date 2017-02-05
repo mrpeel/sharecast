@@ -125,8 +125,9 @@ const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
 const companyFieldsToRetrieve = utils.createFieldArray(fields);
 let symbolGroups = [];
 let shareRetrievals = [];
-let csvFields = [];
-let csvData = [];
+let resultFields = [];
+let resultData = [];
+let indexData = [];
 let maxResultDate = '';
 
 let setupSymbols = asyncify(function() {
@@ -202,15 +203,15 @@ let processResult = function(result) {
 
     Object.keys(result).forEach((field) => {
       // Check the field is in the csv list
-      if (csvFields.indexOf(field) === -1) {
-        csvFields.push(field);
+      if (resultFields.indexOf(field) === -1) {
+        resultFields.push(field);
       }
 
       // Reset number here required
       result[field] = utils.checkForNumber(result[field]);
     });
     // Add result to csv data
-    csvData.push(result);
+    resultData.push(result);
   }
 };
 
@@ -223,8 +224,11 @@ let executeRetrieval = asyncify(function() {
       return processResults(results);
     })
     .then(function() {
-      if (csvData.length > 0) {
-        utils.writeToCsv(csvData, csvFields, 'indices', maxResultDate);
+      // Write data to index tables
+      indexData = resultData;
+
+      if (indexData.length > 0) {
+        utils.writeIndexResults(indexData);
       } else {
         console.log('No new index data to save');
       }
@@ -232,8 +236,8 @@ let executeRetrieval = asyncify(function() {
       return true;
     }).then(function() {
     // Reset fields for companies
-    csvFields = [];
-    csvData = [];
+    resultFields = [];
+    resultData = [];
 
     // Split companies into groups of 10 so each request contains 10
     for (companyCounter = 0; companyCounter < companies.length;
@@ -253,7 +257,7 @@ let executeRetrieval = asyncify(function() {
       });
 
       if (csvData.length > 0) {
-        utils.writeToCsv(csvData, csvFields, 'companies', maxResultDate);
+        utils.writeToCsv(resultData, resultFields, 'companies', maxResultDate);
 
         // Re-set last retrieval date
         utils.setLastRetrievalDate(maxResultDate);

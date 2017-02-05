@@ -3,9 +3,9 @@ const utils = require('./utils');
 const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
-const host = 'localhost';
-const db = 'sharecast';
 const credentials = require('../credentials/credentials.json');
+const host = credentials.host;
+const db = credentials.db;
 const username = credentials.username;
 const password = credentials.password;
 
