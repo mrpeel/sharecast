@@ -130,5 +130,50 @@ let testMe = asyncify(function() {
   }
 });
 
+let readAndInsertDividendHistory = asyncify(function() {
+  let connection;
+  for (companyCounter = 0; companyCounter <= 3030; companyCounter += 10) {
+    let csvFileName = 'companies-dividend-history-' + companyCounter +
+      '-2017-02-03.csv';
 
-readAndInsertIndexHistory();
+    if (utils.doesDataFileExist(csvFileName)) {
+      try {
+        let csvFilePath = '../data/' + csvFileName;
+        let csvData = awaitify(retrieveCsv(csvFilePath));
+        // console.log(csvData);
+
+        // Open DB connection
+        connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+        for (let c = 0; c < csvData.length; c++) {
+          // Prepare and insert row
+          let csvRow = csvData[c];
+          let dividendDate = utils.returnDateAsString(csvRow['date']);
+
+          awaitify(dbConn.executeQuery(connection,
+            'INSERT INTO `sharecast`.`dividend_history` ' +
+            '(`company_symbol`, ' +
+            '`dividend_date`, ' +
+            '`value`) ' +
+            '  VALUES' +
+            '(\'' + csvRow['symbol'] + '\',' +
+            '\'' + dividendDate + '\',' +
+            +csvRow['dividends'] +
+            ');'));
+        }
+      } catch (err) {
+        console.log(err);
+      } finally {
+        if (connection) {
+          dbConn.closeConnection(connection);
+        }
+      }
+    } else {
+      console.log(csvFileName + ' does not exist');
+    }
+  }
+});
+
+// readAndInsertIndexHistory();
+
+readAndInsertDividendHistory();

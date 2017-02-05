@@ -249,6 +249,49 @@ for (companyCounter = 0; companyCounter < companies.length;
   }
 }
 
+/**
+ * Returns a dividend value for a company date combination (if exists)
+ * specific date
+ * @param {String} companySymbol the companySymbol to look up
+ * @param {String} valueDate the date to check
+ * @return {Number}  the dividend value / null if not found
+ */
+let returnDividendValueForDate = asyncify(function(companySymbol, valueDate) {
+  if (!valueDate || !utils.isDate(valueDate)) {
+    throw new Error('valueDate supplied is invalid: ' + valueDate);
+  }
+
+  if (!companySymbol) {
+    throw new Error('companySymbol not supplied');
+  }
+
+  let connection;
+  try {
+    // Open DB connection
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    let result = awaitify(dbConn.selectQuery(connection,
+      'SELECT `value` ' +
+      'FROM `sharecast`.`dividend_history` ' +
+      'WHERE `company_symbol` = \'' + companySymbol + '\' ' +
+      'AND `dividend_date` <= \'' + valueDate + '\' ' +
+      'ORDER BY `dividend_date` desc ' +
+      'LIMIT 1;'
+    ));
+    if (result.length > 0) {
+      return result[0]['value'];
+    } else {
+      return null;
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
+});
+
 /*
 // Split companies into groups of 10 so each request contains 10
 for (companyCounter = 0; companyCounter < companies.length;

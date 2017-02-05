@@ -235,7 +235,45 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
  *    }
  */
 let returnIndicatorValuesForDate = asyncify(function(valueDate) {
-  console.log('dummy');
+  if (!valueDate || !utils.isDate(valueDate)) {
+    throw new Error('valueDate supplied is invalid: ' + valueDate);
+  }
+
+  let connection;
+  try {
+    let indicatorValues = [];
+    let indicatorIds = awaitify(getIndicatorList());
+
+    // Open DB connection
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    for (let c = 0; c < indicatorIds.length; c++) {
+      // Prepare and insert row
+      let indicatorId = indicatorIds[c];
+      let result = awaitify(dbConn.selectQuery(connection,
+        'SELECT `value` ' +
+        'FROM `sharecast`.`financial_indicator_values` ' +
+        'WHERE `indicator_symbol` = \'' + indicatorId + '\' ' +
+        'AND created <= \'' + valueDate + '\'' +
+        'ORDER BY `value_date` desc ' +
+        'LIMIT 1;'
+      ));
+      if (result.length > 0) {
+        indicatorValues.push({
+          indicatorId: indicatorId,
+          value: result[0]['value'],
+        });
+      }
+    }
+
+    return indicatorValues;
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
 });
 
 /**
@@ -315,5 +353,12 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
   }
 });
 
+let testRetrieval = asyncify(function() {
+  let indicatorValues = awaitify(returnIndicatorValuesForDate('2016-08-08'));
+  console.log(indicatorValues);
+});
 
-updateIndicatorValues();
+
+// updateIndicatorValues();
+
+testRetrieval();
