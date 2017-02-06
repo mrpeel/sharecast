@@ -131,10 +131,10 @@ let writeIndexResults = asyncify(function(indexData) {
     // Open DB connection
     connection = awaitify(dbConn.connectToDb(host, username, password, db));
 
-    for (let c = 0; c < csvData.length; c++) {
+    for (let c = 0; c < indexData.length; c++) {
       // Prepare and insert row
-      let csvRow = csvData[c];
-      let quoteDate = utils.returnDateAsString(csvRow['lastTradeDate']);
+      let indexRow = indexData[c];
+      let quoteDate = returnDateAsString(indexRow['lastTradeDate']);
       let yearMonth = quoteDate.substring(0, 7).replace('-', '');
       awaitify(dbConn.executeQuery(connection,
         'INSERT INTO `sharecast`.`index_quotes`' +
@@ -154,20 +154,20 @@ let writeIndexResults = asyncify(function(indexData) {
         '`percentChangeFrom52WeekHigh`' +
         ')' +
         '  VALUES' +
-        '(\'' + csvRow['symbol'] + '\',' +
+        '(\'' + indexRow['symbol'] + '\',' +
         '\'' + quoteDate + '\',' +
         '\'' + yearMonth + '\',' +
-        '' + csvRow['previousClose'] + ',' +
-        '' + csvRow['change'] + ',' +
-        '' + csvRow['changeInPercent'] + ',' +
-        '' + csvRow['daysLow'] + ',' +
-        '' + csvRow['daysHigh'] + ',' +
-        '' + csvRow['52WeekHigh'] + ',' +
-        '' + csvRow['52WeekLow'] + ',' +
-        '' + csvRow['changeFrom52WeekLow'] + ',' +
-        '' + csvRow['changeFrom52WeekHigh'] + ',' +
-        '' + csvRow['percentChangeFrom52WeekLow'] + ',' +
-        '' + csvRow['percebtChangeFrom52WeekHigh'] +
+        '' + indexRow['previousClose'] + ',' +
+        '' + indexRow['change'] + ',' +
+        '' + indexRow['changeInPercent'] + ',' +
+        '' + indexRow['daysLow'] + ',' +
+        '' + indexRow['daysHigh'] + ',' +
+        '' + indexRow['52WeekHigh'] + ',' +
+        '' + indexRow['52WeekLow'] + ',' +
+        '' + indexRow['changeFrom52WeekLow'] + ',' +
+        '' + indexRow['changeFrom52WeekHigh'] + ',' +
+        '' + indexRow['percentChangeFrom52WeekLow'] + ',' +
+        '' + indexRow['percebtChangeFrom52WeekHigh'] +
         ');'));
     }
   } catch (err) {

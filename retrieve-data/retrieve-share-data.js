@@ -1,5 +1,6 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
+const finIndicators = require('./retrieve-financial-indicator-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
@@ -215,9 +216,114 @@ let processResult = function(result) {
   }
 };
 
+/**
+ * Converts individual index data records into an array of values which
+ * can be appended to every company symbol record
+ * @param {Array} indexData the data in the format:
+ *    {
+ *    symbol: ALLORD
+ *    lastTradeDate: 2017-02-03
+ *     ...
+ *    }
+ * @return {Array}  Array in the form of
+ *    {
+ *      "allordpreviousclose": 5696.4,
+ *      "allordchange": -23.9,
+ *      "allorddayslow": 5668.9,
+ *      ...
+ *    }
+ */
+let convertIndexDatatoAppendData = function(indexData) {
+  let returnVal = {};
+
+  indexData.forEach((indexRow) => {
+    console.log(indexRow);
+    indexPrefix = indexRow['symbol'].toLowerCase();
+    returnVal[indexPrefix + 'previousclose'] = indexRow['previousClose'];
+    returnVal[indexPrefix + 'change'] = indexRow['change'];
+    returnVal[indexPrefix + 'dayslow'] = indexRow['daysLow'];
+    returnVal[indexPrefix + 'dayshigh'] = indexRow['daysHigh'];
+  });
+
+  console.log(returnVal);
+  return returnVal;
+};
+
+/**
+ * Copies properties from two objects to a new object
+ * @param {Object} object1
+ * @param {Object} object2
+ * @return {Object}  a new object with all the properties
+ */
+let addObjectProperties = function(object1, object2) {
+  let returnObj = {};
+
+  Object.keys(object1).forEach((key) => {
+    returnObj[key] = object1[key];
+  });
+
+  Object.keys(object2).forEach((key) => {
+    returnObj[key] = object2[key];
+  });
+
+  console.log('----- New object -----');
+  console.log(JSON.stringify(returnObj));
+
+  return returnObj;
+};
+
+/**
+ * Appends data to every compamy row
+ * @param {Object} dataVals the data in the format:
+ *    {
+ *    data: base data array
+ *    fields: fields list array
+ *    append: object with key/value pairs to append to every row
+ *    }
+ * @return {Object}  Object in the form of
+ *    {
+ *    data: updated data array
+ *    fields: updated fields list array
+ *    }
+ */
+let addAppendDataToRows = function(dataVals) {
+  let workingData = dataVals;
+  // Check if data is present to append
+  if (!workingData.append) {
+    return workingData;
+  }
+
+  // Check if fields have been supplied
+  if (workingData.fields) {
+    // Work through array and retrieve the key of each value
+    Object.keys(workingData.append).forEach((appendKey) => {
+      if (workingData.fields.indexOf(appendKey) < 0) {
+        workingData.fields.push(appendKey);
+      }
+    });
+  }
+
+  // Append data to every row
+  for (c = 0; c < workingData.data.length; c++) {
+    Object.keys(workingData.append).forEach((appendKey) => {
+      workingData.data[c][appendKey] = workingData.append[appendKey];
+    });
+  }
+
+  return workingData;
+};
+
 let executeRetrieval = asyncify(function() {
+  let dataToAppend = {};
+  let indexDataToAppend = {};
   awaitify(setupSymbols());
   lastResultDate = awaitify(utils.getLastRetrievalDate());
+
+  awaitify(finIndicators.updateIndicatorValues());
+
+  let todayString = utils.returnDateAsString(Date.now());
+  let financialIndicatos = awaitify(finIndicators
+    .returnIndicatorValuesForDate(todayString));
 
   retrieveSnapshot(indices, indiceFieldsToRetrieve)
     .then((results) => {
@@ -228,6 +334,7 @@ let executeRetrieval = asyncify(function() {
       indexData = resultData;
 
       if (indexData.length > 0) {
+        indexDataToAppend = convertIndexDatatoAppendData(indexData);
         utils.writeIndexResults(indexData);
       } else {
         console.log('No new index data to save');
@@ -256,8 +363,22 @@ let executeRetrieval = asyncify(function() {
         processResults(result);
       });
 
-      if (csvData.length > 0) {
-        utils.writeToCsv(resultData, resultFields, 'companies', maxResultDate);
+      if (resultData.length > 0) {
+        // create append array from indicators and index data
+        dataToAppend = addObjectProperties(financialIndicatos,
+          indexDataToAppend);
+
+        let updatedResults = addAppendDataToRows({
+          data: resultData,
+          fields: resultFields,
+          append: dataToAppend,
+        });
+
+        console.log(updatedResults.fields);
+        // console.log(updatedResults.data);
+
+        utils.writeToCsv(updatedResults.data, updatedResults.fields,
+          'companies', maxResultDate);
 
         // Re-set last retrieval date
         utils.setLastRetrievalDate(maxResultDate);

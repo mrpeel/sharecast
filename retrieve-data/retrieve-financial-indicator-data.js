@@ -229,9 +229,8 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
  * @param {Array} indicators list of indicator codes to retrieve
  * @return {Object}  Object in form of:
  *    {
- *      indicator: indicatorId,
- *      date: valueDate,
- *      value: indicatorValue,
+ *      indicatorId: indicatorValue,
+ *      ...
  *    }
  */
 let returnIndicatorValuesForDate = asyncify(function(valueDate) {
@@ -241,7 +240,7 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
 
   let connection;
   try {
-    let indicatorValues = [];
+    let indicatorValues = {};
     let indicatorIds = awaitify(getIndicatorList());
 
     // Open DB connection
@@ -259,10 +258,7 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
         'LIMIT 1;'
       ));
       if (result.length > 0) {
-        indicatorValues.push({
-          indicatorId: indicatorId,
-          value: result[0]['value'],
-        });
+        indicatorValues[indicatorId] = result[0]['value'];
       }
     }
 
@@ -362,3 +358,8 @@ let testRetrieval = asyncify(function() {
 // updateIndicatorValues();
 
 testRetrieval();
+
+module.exports = {
+  updateIndicatorValues: updateIndicatorValues,
+  returnIndicatorValuesForDate: returnIndicatorValuesForDate,
+};
