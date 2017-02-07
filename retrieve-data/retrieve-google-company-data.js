@@ -1,9 +1,17 @@
 
 const fetch = require('node-fetch');
-const utils = require('./utils.json');
+const utils = require('./utils');
+const dbConn = require('./mysql-connection');
+const asyncify = require('asyncawait/async');
+const awaitify = require('asyncawait/await');
+const credentials = require('../credentials/credentials.json');
+const host = credentials.host;
+const db = credentials.db;
+const username = credentials.username;
+const password = credentials.password;
 
 let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
-let suffixUrl = ']&restype=company&ei=zQOFWIDVN4OV0ATSkrHYDw';
+let suffixUrl = ']&restype=company&ei=X6iZWMmFIMGW0AThhLPoCw';
 
 let fields = {
   'earnings_per_share': 'earnings_per_share%20%3E%3D%20-8121%29%20%26%20%28earnings_per_share%20%3C%3D%203679%29',
@@ -65,70 +73,328 @@ let textResponses = [];
 // let preppedUrl = queryUrl.replace('##field_name##', 'earnings_per_share');
 
 
-let retrieveCompanies = function() {
-  let csvFields = ['symbol', 'name'];
-  let csvData = [];
+let retrieveCompanies = asyncify(function() {
+  return new Promise(function(resolve, reject) {
+    let resultFields = ['symbol', 'name'];
+    let resultData = [];
 
-  Object.keys(fields).forEach(function(lookupField) {
-    fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
-  });
+    Object.keys(fields).forEach((lookupField) => {
+      // fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
+      awaitify(fetch(baseUrl + fields[lookupField] + suffixUrl)
+        .then((response) => {
+          return response.text();
+        })
+        .then((responseBody) => {
+          let convertedResponse = responseBody
+            .replace(/\\x22/g, '&quot;')
+            .replace(/\\x27/g, '&#039;')
+            .replace(/\\x26/g, '&amp;')
+            .replace(/\\x2F/g, '&#47;')
+            .replace(/\\x3E/g, '&gt;')
+            .replace(/\\x3C/g, '&lt;');
 
-  Promise.all(fetchRequests)
-    .then(function(responses) {
-      responses.forEach(function(response) {
-        textResponses.push(response.text());
-      });
+          let jsonResults = JSON.parse(convertedResponse);
 
-      Promise.all(textResponses)
-        .then(function(responseBodies) {
-          responseBodies.forEach(function(responseBody) {
-            let convertedResponse = responseBody
-              .replace(/\\x22/g, '&quot;')
-              .replace(/\\x27/g, '&#039;')
-              .replace(/\\x26/g, '&amp;')
-              .replace(/\\x2F/g, '&#47;')
-              .replace(/\\x3E/g, '&gt;')
-              .replace(/\\x3C/g, '&lt;');
+          jsonResults.searchresults.forEach((result) => {
+            if (!companyResults[result.ticker]) {
+              companyResults[result.ticker] = {};
+            }
+            let companyVals = companyResults[result.ticker];
+            companyVals.name = result.title;
 
-            let jsonResults = JSON.parse(convertedResponse);
-
-            jsonResults.searchresults.forEach(function(result) {
-              if (!companyResults[result.ticker]) {
-                companyResults[result.ticker] = {};
-              }
-              let companyVals = companyResults[result.ticker];
-              companyVals.name = result.title;
-
-              // Check for empty values which are listed as '-'
-              if (result.columns[0].value === '-') {
-                companyVals[result.columns[0].field] = '';
-              } else {
-                companyVals[result.columns[0].field] = utils.checkForNumber(
-                  result.columns[0].value);
-              }
-            });
+            // Check for empty values which are listed as '-'
+            if (result.columns[0].value === '-') {
+              companyVals[result.columns[0].field] = '';
+            } else {
+              companyVals[result.columns[0].field] = utils.checkForNumber(
+                result.columns[0].value);
+            }
           });
-
-          // Work through all values and build csv data
-          Object.keys(companyResults).forEach(function(company) {
-            let companyData = {};
-            companyData.symbol = company;
-            // Loop through company and add each value
-            Object.keys(companyResults[company]).forEach(function(companyVal) {
-              if (csvFields.indexOf(companyVal) === -1) {
-                csvFields.push(companyVal);
-              }
-              companyData[companyVal] = companyResults[company][companyVal];
-            });
-            csvData.push(companyData);
-          });
-          console.log(csvData);
-          utils.writeToCsv(csvData, csvFields, 'company-metrics');
+        })
+        .catch((err) => {
+          cosole.log(err);
+          reject(err);
+        })
+      );
+    });
+    /* Promise.all(fetchRequests)
+      .then(function(responses) {
+        responses.forEach((response) => {
+          textResponses.push(response.text());
         });
-    }).catch(function(err) {
-    console.log(err);
+
+        Promise.all(textResponses)
+          .then(function(responseBodies) {
+            responseBodies.forEach((responseBody) => {
+              let convertedResponse = responseBody
+                .replace(/\\x22/g, '&quot;')
+                .replace(/\\x27/g, '&#039;')
+                .replace(/\\x26/g, '&amp;')
+                .replace(/\\x2F/g, '&#47;')
+                .replace(/\\x3E/g, '&gt;')
+                .replace(/\\x3C/g, '&lt;');
+
+              let jsonResults = JSON.parse(convertedResponse);
+
+              jsonResults.searchresults.forEach((result) => {
+                if (!companyResults[result.ticker]) {
+                  companyResults[result.ticker] = {};
+                }
+                let companyVals = companyResults[result.ticker];
+                companyVals.name = result.title;
+
+                // Check for empty values which are listed as '-'
+                if (result.columns[0].value === '-') {
+                  companyVals[result.columns[0].field] = '';
+                } else {
+                  companyVals[result.columns[0].field] = utils.checkForNumber(
+                    result.columns[0].value);
+                }
+              });
+            });*/
+
+    // Work through all values and build data
+    Object.keys(companyResults).forEach((company) => {
+      let companyData = {};
+      companyData.symbol = company;
+      // Loop through company and add each value
+      Object.keys(companyResults[company]).forEach((companyVal) => {
+        if (resultFields.indexOf(companyVal) === -1) {
+          resultFields.push(companyVal);
+        }
+        companyData[companyVal] = companyResults[company][companyVal];
+      });
+      resultData.push(companyData);
+    });
+    // console.log(resultData);
+    // utils.writeToCsv(resultData, resultFields, 'company-metrics');
+
+    resolve(resultData);
   });
+});
+
+
+/**
+ * Returns company metrics which were / are active for a specific date
+ *
+ * @param {String} symbol the company symbol
+ * @param {String} valueDate the date to retrieve (yyyy-mm-dd)
+ * @return {Object}  Object in form of:
+ *    {
+ *      symbol: symbolValue,
+ *      ...
+ *    }
+ */
+let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
+  if (!valueDate || !utils.isDate(valueDate)) {
+    throw new Error('valueDate supplied is invalid: ' + valueDate);
+  }
+
+  let connection;
+  try {
+    let metricValues = {};
+    // Open DB connection
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    let result = awaitify(dbConn.selectQuery(connection,
+      'SELECT * ' +
+      'FROM `sharecast`.`company_metrics` ' +
+      'WHERE `company_symbol` = \'' + symbol + '\' ' +
+      'AND `metrics_date` <= \'' + valueDate + '\'' +
+      'ORDER BY `metrics_date` desc ' +
+      'LIMIT 1;'
+    ));
+
+    if (result.length > 0) {
+      metricValues = result[0];
+    }
+
+    return metricValues;
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
+});
+
+/**
+ * Inserts an indicator value
+ * @param {Object} metricValue value to insert in form of:
+ *    {
+ *      symbol: symbol,
+ *      metrics-date: valueDate,
+ *      eps: eps,
+ *      ...
+ *    }
+ */
+let insertCompanyMetricsValue = asyncify(function(metricValue) {
+  let connection;
+
+  if (!metricValue['symbol'] || !metricValue['metrics-date']) {
+    console.log('metricValue parameters missing: ' +
+      JSON.stringify(metricValue));
+    return;
+  }
+
+  try {
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    // Check that this value does not exists
+    let existingValue = awaitify(dbConn.selectQuery(connection,
+      'SELECT `company_symbol` ' +
+      'FROM `sharecast`.`company_metrics` ' +
+      'WHERE `company_symbol` = \'' + metricValue['symbol'] + '\' ' +
+      'AND `metrics_date` = \'' + metricValue['metrics-date'] + '\' ' +
+      'LIMIT 1;'
+    ));
+
+    // If the result is empty then proceed to insert the record
+    if (existingValue.length === 0) {
+      metricValue['year-month'] = metricValue['metrics-date']
+        .substring(0, 7)
+        .replace('-', '');
+
+      awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
+        '`company_metrics` ' +
+        '(`company_symbol`, ' +
+        '`metrics_date`, ' +
+        '`year_month`, ' +
+        '`eps`, ' +
+        '`quotelast`, ' +
+        '`price200dayaverage`, ' +
+        '`price52weekpercchange`, ' +
+        '`pricetobook`, ' +
+        '`marketcap`, ' +
+        '`pe`, ' +
+        '`dividendrecentquarter`, ' +
+        '`dividendnextquarter`, ' +
+        '`dpsrecentyear`, ' +
+        '`iad`, ' +
+        '`dividendpershare`, ' +
+        '`dividendyield`, ' +
+        '`dividend`, ' +
+        '`bookvaluepershareyear`, ' +
+        '`cashpershareyear`, ' +
+        '`currentratioyear`, ' +
+        '`ltdebttoassetsyear`, ' +
+        '`ltdebttoassetsquarter`, ' +
+        '`totaldebttoassetsyear`, ' +
+        '`totaldebttoassetsquarter`, ' +
+        '`ltdebttoequityyear`, ' +
+        '`ltdebttoequityquarter`, ' +
+        '`totaldebttoequityyear`, ' +
+        '`totaldebttoequityquarter`, ' +
+        '`aintcov`, ' +
+        '`returnoninvestmentttm`, ' +
+        '`returnoninvestment5years`, ' +
+        '`returnoninvestmentyear`, ' +
+        '`returnonassetsttm`, ' +
+        '`returnonassets5years`, ' +
+        '`returnonassetsyear`, ' +
+        '`returnonequityttm`, ' +
+        '`returnonequity5years`, ' +
+        '`returnonequityyear`, ' +
+        '`beta`, ' +
+        '`float`, ' +
+        '`grossmargin`, ' +
+        '`ebitdmargin`, ' +
+        '`operatingmargin`, ' +
+        '`netprofitmarginpercent`, ' +
+        '`netincomegrowthrate5years`, ' +
+        '`revenuegrowthrate5years`, ' +
+        '`revenuegrowthrate10years`, ' +
+        '`epsgrowthrate5years`, ' +
+        '`epsgrowthrate10years`, ' +
+        '`volume`, ' +
+        '`averagevolume`) ' +
+        'VALUES ( ' +
+        '\'' + metricValue['symbol'] + '\', ' +
+        '\'' + metricValue['metrics-date'] + '\', ' +
+        '\'' + metricValue['year-month'] + '\', ' +
+        (metricValue['EPS'] || 'null') + ', ' +
+        (metricValue['QuoteLast'] || 'null') + ', ' +
+        (metricValue['Price200DayAverage'] || 'null') + ', ' +
+        (metricValue['Price52WeekPercChange'] || 'null') + ', ' +
+        (metricValue['PriceToBook'] || 'null') + ', ' +
+        (metricValue['MarketCap'] || 'null') + ', ' +
+        (metricValue['PE'] || 'null') + ', ' +
+        (metricValue['DividendRecentQuarter'] || 'null') + ', ' +
+        (metricValue['DividendNextQuarter'] || 'null') + ', ' +
+        (metricValue['DPSRecentYear'] || 'null') + ', ' +
+        (metricValue['IAD'] || 'null') + ', ' +
+        (metricValue['DividendPerShare'] || 'null') + ', ' +
+        (metricValue['DividendYield'] || 'null') + ', ' +
+        (metricValue['Dividend'] || 'null') + ', ' +
+        (metricValue['BookValuePerShareYear'] || 'null') + ', ' +
+        (metricValue['CashPerShareYear'] || 'null') + ', ' +
+        (metricValue['CurrentRatioYear'] || 'null') + ', ' +
+        (metricValue['LTDebtToAssetsYear'] || 'null') + ', ' +
+        (metricValue['LTDebtToAssetsQuarter'] || 'null') + ', ' +
+        (metricValue['TotalDebtToAssetsYear'] || 'null') + ', ' +
+        (metricValue['TotalDebtToAssetsQuarter'] || 'null') + ', ' +
+        (metricValue['LTDebtToEquityYear'] || 'null') + ', ' +
+        (metricValue['LTDebtToEquityQuarter'] || 'null') + ', ' +
+        (metricValue['TotalDebtToEquityYear'] || 'null') + ', ' +
+        (metricValue['TotalDebtToEquityQuarter'] || 'null') + ', ' +
+        (metricValue['AINTCOV'] || 'null') + ', ' +
+        (metricValue['ReturnOnInvestmentTTM'] || 'null') + ', ' +
+        (metricValue['ReturnOnInvestment5Years'] || 'null') + ', ' +
+        (metricValue['ReturnOnInvestmentYear'] || 'null') + ', ' +
+        (metricValue['ReturnOnAssetsTTM'] || 'null') + ', ' +
+        (metricValue['ReturnOnAssets5Years'] || 'null') + ', ' +
+        (metricValue['ReturnOnAssetsYear'] || 'null') + ', ' +
+        (metricValue['ReturnOnEquityTTM'] || 'null') + ', ' +
+        (metricValue['ReturnOnEquity5Years'] || 'null') + ', ' +
+        (metricValue['ReturnOnEquityYear'] || 'null') + ', ' +
+        (metricValue['Beta'] || 'null') + ', ' +
+        (metricValue['Float'] || 'null') + ', ' +
+        (metricValue['GrossMargin'] || 'null') + ', ' +
+        (metricValue['EBITDMargin'] || 'null') + ', ' +
+        (metricValue['OperatingMargin'] || 'null') + ', ' +
+        (metricValue['NetProfitMarginPercent'] || 'null') + ', ' +
+        (metricValue['NetIncomeGrowthRate5Years'] || 'null') + ', ' +
+        (metricValue['RevenueGrowthRate5Years'] || 'null') + ', ' +
+        (metricValue['RevenueGrowthRate10Years'] || 'null') + ', ' +
+        (metricValue['EPSGrowthRate5Years'] || 'null') + ', ' +
+        (metricValue['EPSGrowthRate10Years'] || 'null') + ', ' +
+        (metricValue['Volume'] || 'null') + ', ' +
+        (metricValue['AverageVolume'] || 'null') + ');')
+      );
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
+});
+
+/**
+ * Retrieves and processes each company metric information
+ */
+let updateCompanyMetrics = asyncify(function() {
+  try {
+    let metricsData = awaitify(retrieveCompanies());
+
+    // console.log(metricsData);
+
+    metricsData.forEach((companyMetricsRecord) => {
+      companyMetricsRecord['metrics-date'] = utils.returnDateAsString(
+        Date.now());
+
+      awaitify(insertCompanyMetricsValue(companyMetricsRecord));
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+updateCompanyMetrics();
+
+module.exports = {
+  updateCompanyMetrics: updateCompanyMetrics,
+  returnCompanyMetricValuesForDate: returnCompanyMetricValuesForDate,
 };
-
-
-retrieveCompanies();

@@ -278,6 +278,8 @@ let doesDataFileExist = function(fileName) {
 let checkForNumber = function(value) {
   let finalChar = String(value).slice(-1);
   let leadingVal = String(value).slice(0, String(value).length - 1);
+  let adjustedVal = value;
+
   let charsToMatch = {
     'k': 1000,
     'K': 1000,
@@ -291,10 +293,18 @@ let checkForNumber = function(value) {
   // Check if final character is thousands, millions or billions
   if (!isNaN(leadingVal) && possibleChars.indexOf(finalChar) > -1) {
     // if it is, multiple value to get normal number
-    return leadingVal * charsToMatch[finalChar];
-  } else {
-    return value;
+    adjustedVal = leadingVal * charsToMatch[finalChar];
   }
+
+  // If it's not a number, replace commas in value, then check if it's a number
+  if (isNaN(adjustedVal)) {
+    let holdingVal = adjustedVal.replace(/,/g, '');
+
+    if (!isNaN(holdingVal)) {
+      adjustedVal = holdingVal;
+    }
+  }
+  return adjustedVal;
 };
 
 

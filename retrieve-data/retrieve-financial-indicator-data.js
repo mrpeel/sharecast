@@ -226,7 +226,7 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
 /**
  * Returns a list of financial indicators which were / are active for a
  * specific date
- * @param {Array} indicators list of indicator codes to retrieve
+ * @param {String} valueDate the date to retrieve indicators for (yyyy-mm-dd)
  * @return {Object}  Object in form of:
  *    {
  *      indicatorId: indicatorValue,
@@ -348,16 +348,6 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
     }
   }
 });
-
-let testRetrieval = asyncify(function() {
-  let indicatorValues = awaitify(returnIndicatorValuesForDate('2016-08-08'));
-  console.log(indicatorValues);
-});
-
-
-// updateIndicatorValues();
-
-testRetrieval();
 
 module.exports = {
   updateIndicatorValues: updateIndicatorValues,

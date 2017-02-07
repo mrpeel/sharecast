@@ -1,6 +1,7 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
 const finIndicators = require('./retrieve-financial-indicator-data');
+const metrics = require('./retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
@@ -313,6 +314,95 @@ let addAppendDataToRows = function(dataVals) {
   return workingData;
 };
 
+let addMetricDataToRows = asyncify(function(dataVals) {
+  return new Promise(function(resolve, reject) {
+    try {
+      let wkData = dataVals;
+
+      // Check if fields have been supplied
+      if (wkData.fields) {
+        let metricFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
+          'DividendRecentQuarter', 'DividendNextQuarter', 'DPSRecentYear', 'IAD',
+          'DividendPerShare', 'DividendYield', 'Dividend', 'BookValuePerShareYear',
+          'CashPerShareYear', 'CurrentRatioYear', 'LTDebtToAssetsYear',
+          'LTDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
+          'TotalDebtToAssetsQuarter', 'LTDebtToEquityYear', 'LTDebtToEquityQuarter',
+          'TotalDebtToEquityYear', 'TotalDebtToEquityQuarter', 'AINTCOV',
+          'ReturnOnInvestmentTTM', 'ReturnOnInvestment5Years',
+          'ReturnOnInvestmentYear', 'ReturnOnAssetsTTM', 'ReturnOnAssets5Years',
+          'ReturnOnAssetsYear', 'ReturnOnEquityTTM', 'ReturnOnEquity5Years',
+          'ReturnOnEquityYear', 'Beta', 'Float', 'GrossMargin', 'EBITDMargin',
+          'OperatingMargin', 'NetProfitMarginPercent', 'NetIncomeGrowthRate5Years',
+          'RevenueGrowthRate5Years', 'RevenueGrowthRate10Years',
+          'EPSGrowthRate5Years', 'EPSGrowthRate10Years'];
+
+        // Make sure the metrics fields are added to the fields list
+        metricFields.forEach((field) => {
+          if (wkData.fields.indexOf(field) === -1) {
+            wkData.fields.push(field);
+          }
+        });
+      }
+
+      // Append data to every row
+      for (c = 0; c < wkData.data.length; c++) {
+        meVal = awaitify(metrics.returnCompanyMetricValuesForDate(
+          wkData.data[c]['symbol'], utils.returnDateAsString(Date.now())));
+
+        if (meVal['symbol']) {
+          wkData.data[c]['EPS'] = meVal['EPS'];
+          wkData.data[c]['PriceToBook'] = meVal['PriceToBook'];
+          wkData.data[c]['MarketCap'] = meVal['MarketCap'];
+          wkData.data[c]['PE'] = meVal['PE'];
+          wkData.data[c]['DividendRecentQuarter'] = meVal['DividendRecentQuarter'];
+          wkData.data[c]['DividendNextQuarter'] = meVal['DividendNextQuarter'];
+          wkData.data[c]['DPSRecentYear'] = meVal['DPSRecentYear'];
+          wkData.data[c]['IAD'] = meVal['IAD'];
+          wkData.data[c]['DividendPerShare'] = meVal['DividendPerShare'];
+          wkData.data[c]['DividendYield'] = meVal['DividendYield'];
+          wkData.data[c]['Dividend'] = meVal['Dividend'];
+          wkData.data[c]['BookValuePerShareYear'] = meVal['BookValuePerShareYear'];
+          wkData.data[c]['CashPerShareYear'] = meVal['CashPerShareYear'];
+          wkData.data[c]['CurrentRatioYear'] = meVal['CurrentRatioYear'];
+          wkData.data[c]['LTDebtToAssetsYear'] = meVal['LTDebtToAssetsYear'];
+          wkData.data[c]['LTDebtToAssetsQuarter'] = meVal['LTDebtToAssetsQuarter'];
+          wkData.data[c]['TotalDebtToAssetsYear'] = meVal['TotalDebtToAssetsYear'];
+          wkData.data[c]['TotalDebtToAssetsQuarter'] = meVal['TotalDebtToAssetsQuarter'];
+          wkData.data[c]['LTDebtToEquityYear'] = meVal['LTDebtToEquityYear'];
+          wkData.data[c]['LTDebtToEquityQuarter'] = meVal['LTDebtToEquityQuarter'];
+          wkData.data[c]['TotalDebtToEquityYear'] = meVal['TotalDebtToEquityYear'];
+          wkData.data[c]['TotalDebtToEquityQuarter'] = meVal['TotalDebtToEquityQuarter'];
+          wkData.data[c]['AINTCOV'] = meVal['AINTCOV'];
+          wkData.data[c]['ReturnOnInvestmentTTM'] = meVal['ReturnOnInvestmentTTM'];
+          wkData.data[c]['ReturnOnInvestment5Years'] = meVal['ReturnOnInvestment5Years'];
+          wkData.data[c]['ReturnOnInvestmentYear'] = meVal['ReturnOnInvestmentYear'];
+          wkData.data[c]['ReturnOnAssetsTTM'] = meVal['ReturnOnAssetsTTM'];
+          wkData.data[c]['ReturnOnAssets5Years'] = meVal['ReturnOnAssets5Years'];
+          wkData.data[c]['ReturnOnAssetsYear'] = meVal['ReturnOnAssetsYear'];
+          wkData.data[c]['ReturnOnEquityTTM'] = meVal['ReturnOnEquityTTM'];
+          wkData.data[c]['ReturnOnEquity5Years'] = meVal['ReturnOnEquity5Years'];
+          wkData.data[c]['ReturnOnEquityYear'] = meVal['ReturnOnEquityYear'];
+          wkData.data[c]['Beta'] = meVal['Beta'];
+          wkData.data[c]['Float'] = meVal['Float'];
+          wkData.data[c]['GrossMargin'] = meVal['GrossMargin'];
+          wkData.data[c]['EBITDMargin'] = meVal['EBITDMargin'];
+          wkData.data[c]['OperatingMargin'] = meVal['OperatingMargin'];
+          wkData.data[c]['NetProfitMarginPercent'] = meVal['NetProfitMarginPercent'];
+          wkData.data[c]['NetIncomeGrowthRate5Years'] = meVal['NetIncomeGrowthRate5Years'];
+          wkData.data[c]['RevenueGrowthRate5Years'] = meVal['RevenueGrowthRate5Years'];
+          wkData.data[c]['RevenueGrowthRate10Years'] = meVal['RevenueGrowthRate10Years'];
+          wkData.data[c]['EPSGrowthRate5Years'] = meVal['EPSGrowthRate5Years'];
+          wkData.data[c]['EPSGrowthRate10Years'] = meVal['EPSGrowthRate10Years'];
+        }
+      }
+
+      resolve(wkData);
+    } catch (err) {
+      reject(err);
+    }
+  });
+});
+
 let executeRetrieval = asyncify(function() {
   let dataToAppend = {};
   let indexDataToAppend = {};
@@ -320,6 +410,8 @@ let executeRetrieval = asyncify(function() {
   lastResultDate = awaitify(utils.getLastRetrievalDate());
 
   awaitify(finIndicators.updateIndicatorValues());
+
+  awaitify(metrics.updateCompanyMetrics());
 
   let todayString = utils.returnDateAsString(Date.now());
   let financialIndicatos = awaitify(finIndicators
@@ -374,14 +466,17 @@ let executeRetrieval = asyncify(function() {
           append: dataToAppend,
         });
 
-        console.log(updatedResults.fields);
-        // console.log(updatedResults.data);
+        addMetricDataToRows(updatedResults)
+          .then((resultsWithMetrics) => {
+            console.log(resultsWithMetrics.fields);
+            // console.log(updatedResults.data);
 
-        utils.writeToCsv(updatedResults.data, updatedResults.fields,
-          'companies', maxResultDate);
+            utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
+              'companies', maxResultDate);
 
-        // Re-set last retrieval date
-        utils.setLastRetrievalDate(maxResultDate);
+            // Re-set last retrieval date
+            utils.setLastRetrievalDate(maxResultDate);
+          });
       } else {
         console.log('No new company data to save');
       }
