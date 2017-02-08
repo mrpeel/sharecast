@@ -186,37 +186,40 @@ let retrieveCompanies = asyncify(function() {
  *    }
  */
 let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
-  if (!valueDate || !utils.isDate(valueDate)) {
-    throw new Error('valueDate supplied is invalid: ' + valueDate);
-  }
-
-  let connection;
-  try {
-    let metricValues = {};
-    // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
-
-    let result = awaitify(dbConn.selectQuery(connection,
-      'SELECT * ' +
-      'FROM `sharecast`.`company_metrics` ' +
-      'WHERE `company_symbol` = \'' + symbol + '\' ' +
-      'AND `metrics_date` <= \'' + valueDate + '\'' +
-      'ORDER BY `metrics_date` desc ' +
-      'LIMIT 1;'
-    ));
-
-    if (result.length > 0) {
-      metricValues = result[0];
+  return new Promise(function(resolve, reject) {
+    if (!valueDate || !utils.isDate(valueDate)) {
+      throw new Error('valueDate supplied is invalid: ' + valueDate);
     }
 
-    return metricValues;
-  } catch (err) {
-    console.log(err);
-  } finally {
-    if (connection) {
-      dbConn.closeConnection(connection);
+    let connection;
+    try {
+      let metricValues = {};
+      // Open DB connection
+      connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+      let result = awaitify(dbConn.selectQuery(connection,
+        'SELECT * ' +
+        'FROM `sharecast`.`company_metrics` ' +
+        'WHERE `CompanySymbol` = \'' + symbol + '\' ' +
+        'AND `MetricsDate` <= \'' + valueDate + '\'' +
+        'ORDER BY `MetricsDate` desc ' +
+        'LIMIT 1;'
+      ));
+
+      if (result.length > 0) {
+        metricValues = result[0];
+      }
+
+      resolve(metricValues);
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    } finally {
+      if (connection) {
+        dbConn.closeConnection(connection);
+      }
     }
-  }
+  });
 });
 
 /**
@@ -243,10 +246,10 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
 
     // Check that this value does not exists
     let existingValue = awaitify(dbConn.selectQuery(connection,
-      'SELECT `company_symbol` ' +
+      'SELECT `CompanySymbol` ' +
       'FROM `sharecast`.`company_metrics` ' +
-      'WHERE `company_symbol` = \'' + metricValue['symbol'] + '\' ' +
-      'AND `metrics_date` = \'' + metricValue['metrics-date'] + '\' ' +
+      'WHERE `CompanySymbol` = \'' + metricValue['symbol'] + '\' ' +
+      'AND `MetricsDate` = \'' + metricValue['metrics-date'] + '\' ' +
       'LIMIT 1;'
     ));
 
@@ -255,61 +258,65 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
       metricValue['year-month'] = metricValue['metrics-date']
         .substring(0, 7)
         .replace('-', '');
+      metricValue['Id'] = 'Me' + metricValue['symbol'] +
+      metricValue['metrics-date'].replace('-', '');
 
       awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
         '`company_metrics` ' +
-        '(`company_symbol`, ' +
-        '`metrics_date`, ' +
-        '`year_month`, ' +
-        '`eps`, ' +
-        '`quotelast`, ' +
-        '`price200dayaverage`, ' +
-        '`price52weekpercchange`, ' +
-        '`pricetobook`, ' +
-        '`marketcap`, ' +
-        '`pe`, ' +
-        '`dividendrecentquarter`, ' +
-        '`dividendnextquarter`, ' +
-        '`dpsrecentyear`, ' +
-        '`iad`, ' +
-        '`dividendpershare`, ' +
-        '`dividendyield`, ' +
-        '`dividend`, ' +
-        '`bookvaluepershareyear`, ' +
-        '`cashpershareyear`, ' +
-        '`currentratioyear`, ' +
-        '`ltdebttoassetsyear`, ' +
-        '`ltdebttoassetsquarter`, ' +
-        '`totaldebttoassetsyear`, ' +
-        '`totaldebttoassetsquarter`, ' +
-        '`ltdebttoequityyear`, ' +
-        '`ltdebttoequityquarter`, ' +
-        '`totaldebttoequityyear`, ' +
-        '`totaldebttoequityquarter`, ' +
-        '`aintcov`, ' +
-        '`returnoninvestmentttm`, ' +
-        '`returnoninvestment5years`, ' +
-        '`returnoninvestmentyear`, ' +
-        '`returnonassetsttm`, ' +
-        '`returnonassets5years`, ' +
-        '`returnonassetsyear`, ' +
-        '`returnonequityttm`, ' +
-        '`returnonequity5years`, ' +
-        '`returnonequityyear`, ' +
-        '`beta`, ' +
-        '`float`, ' +
-        '`grossmargin`, ' +
-        '`ebitdmargin`, ' +
-        '`operatingmargin`, ' +
-        '`netprofitmarginpercent`, ' +
-        '`netincomegrowthrate5years`, ' +
-        '`revenuegrowthrate5years`, ' +
-        '`revenuegrowthrate10years`, ' +
-        '`epsgrowthrate5years`, ' +
-        '`epsgrowthrate10years`, ' +
-        '`volume`, ' +
-        '`averagevolume`) ' +
+        '(`Id`, ' +
+        '`CompanySymbol`, ' +
+        '`MetricsDate`, ' +
+        '`YearMonth`, ' +
+        '`EPS`, ' +
+        '`Quotelast`, ' +
+        '`Price200DayAverage`, ' +
+        '`Price52WeekPercChange`, ' +
+        '`PriceToBook`, ' +
+        '`MarketCap`, ' +
+        '`PE`, ' +
+        '`DividendRecentQuarter`, ' +
+        '`DividendNextQuarter`, ' +
+        '`DPSRecentYear`, ' +
+        '`IAD`, ' +
+        '`DividendPerShare`, ' +
+        '`DividendYield`, ' +
+        '`Dividend`, ' +
+        '`BookValuePerShareYear`, ' +
+        '`CashPerShareYear`, ' +
+        '`CurrentRatioYear`, ' +
+        '`LTDebtToAssetsYear`, ' +
+        '`LTDebtToAssetsQuarter`, ' +
+        '`TotalDebtToAssetsYear`, ' +
+        '`TotalDebtToAssetsQuarter`, ' +
+        '`LTDebtToEquityYear`, ' +
+        '`LTDebtToEquityQuarter`, ' +
+        '`TotalDebtToEquityYear`, ' +
+        '`TotalDebtToEquityQuarter`, ' +
+        '`AINTCOV`, ' +
+        '`ReturnOnInvestmentTTM`, ' +
+        '`ReturnOnInvestment5Years`, ' +
+        '`ReturnOnInvestmentYear`, ' +
+        '`ReturnOnAssetsTTM`, ' +
+        '`ReturnOnAssets5Years`, ' +
+        '`ReturnOnAssetsYear`, ' +
+        '`ReturnOnEquityTTM`, ' +
+        '`ReturnOnEquity5Years`, ' +
+        '`ReturnOnEquityYear`, ' +
+        '`Beta`, ' +
+        '`Float`, ' +
+        '`GrossMargin`, ' +
+        '`EBITDMargin`, ' +
+        '`OperatingMargin`, ' +
+        '`NetProfitMarginPercent`, ' +
+        '`NetIncomeGrowthRate5Years`, ' +
+        '`RevenueGrowthRate5Years`, ' +
+        '`RevenueGrowthRate10Years`, ' +
+        '`EPSGrowthRate5Years`, ' +
+        '`EPSGrowthRate10Years`, ' +
+        '`Volume`, ' +
+        '`AverageVolume`) ' +
         'VALUES ( ' +
+        '\'' + metricValue['Id'] + '\', ' +
         '\'' + metricValue['symbol'] + '\', ' +
         '\'' + metricValue['metrics-date'] + '\', ' +
         '\'' + metricValue['year-month'] + '\', ' +

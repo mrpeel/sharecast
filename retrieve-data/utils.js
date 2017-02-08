@@ -73,15 +73,15 @@ let getCompanies = function() {
       .then((conn) => {
         connection = conn;
 
-        return dbConn.selectQuery(connection, 'SELECT company_symbol, ' +
-          'company_symbol_yahoo FROM sharecast.companies;');
+        return dbConn.selectQuery(connection, 'SELECT CompanySymbol, ' +
+          'CompanySymbolYahoo FROM sharecast.companies;');
       })
       .then((rows) => {
         // console.log(rows);
         rows.forEach((row) => {
           companies.push({
-            'symbol': row.company_symbol,
-            'yahoo-symbol': row.company_symbol_yahoo,
+            'symbol': row.CompanySymbol,
+            'yahoo-symbol': row.CompanySymbolYahoo,
           });
         });
         dbConn.closeConnection(connection);
@@ -103,15 +103,15 @@ let getIndices = function() {
       .then((conn) => {
         connection = conn;
 
-        return dbConn.selectQuery(connection, 'SELECT index_symbol, ' +
-          'index_symbol_yahoo FROM sharecast.indices;');
+        return dbConn.selectQuery(connection, 'SELECT IndexSymbol, ' +
+          'IndexSymbolYahoo FROM sharecast.indices;');
       })
       .then((rows) => {
         console.log(rows);
         rows.forEach((row) => {
           indices.push({
-            'symbol': row.index_symbol,
-            'yahoo-symbol': row.index_symbol_yahoo,
+            'symbol': row.IndexSymbol,
+            'yahoo-symbol': row.IndexSymbolYahoo,
           });
         });
         dbConn.closeConnection(connection);
@@ -124,60 +124,6 @@ let getIndices = function() {
       });
   });
 };
-
-let writeIndexResults = asyncify(function(indexData) {
-  let connection;
-  try {
-    // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
-
-    for (let c = 0; c < indexData.length; c++) {
-      // Prepare and insert row
-      let indexRow = indexData[c];
-      let quoteDate = returnDateAsString(indexRow['lastTradeDate']);
-      let yearMonth = quoteDate.substring(0, 7).replace('-', '');
-      awaitify(dbConn.executeQuery(connection,
-        'INSERT INTO `sharecast`.`index_quotes`' +
-        '(`index_symbol`,' +
-        '`quote_date`,' +
-        '`year_month`,' +
-        '`previousClose`,' +
-        '`change`,' +
-        '`changeInPercent`,' +
-        '`daysLow`,' +
-        '`daysHigh`,' +
-        '`52WeekHigh`,' +
-        '`52WeekLow`,' +
-        '`changeFrom52WeekLow`,' +
-        '`changeFrom52WeekHigh`,' +
-        '`percentChangeFrom52WeekLow`,' +
-        '`percentChangeFrom52WeekHigh`' +
-        ')' +
-        '  VALUES' +
-        '(\'' + indexRow['symbol'] + '\',' +
-        '\'' + quoteDate + '\',' +
-        '\'' + yearMonth + '\',' +
-        '' + indexRow['previousClose'] + ',' +
-        '' + indexRow['change'] + ',' +
-        '' + indexRow['changeInPercent'] + ',' +
-        '' + indexRow['daysLow'] + ',' +
-        '' + indexRow['daysHigh'] + ',' +
-        '' + indexRow['52WeekHigh'] + ',' +
-        '' + indexRow['52WeekLow'] + ',' +
-        '' + indexRow['changeFrom52WeekLow'] + ',' +
-        '' + indexRow['changeFrom52WeekHigh'] + ',' +
-        '' + indexRow['percentChangeFrom52WeekLow'] + ',' +
-        '' + indexRow['percebtChangeFrom52WeekHigh'] +
-        ');'));
-    }
-  } catch (err) {
-    console.log(err);
-  } finally {
-    if (connection) {
-      dbConn.closeConnection(connection);
-    }
-  }
-});
 
 let returnDateAsString = function(dateValue) {
   let checkDate = new Date(dateValue);
@@ -313,7 +259,6 @@ module.exports = {
   setLastRetrievalDate: setLastRetrievalDate,
   getCompanies: getCompanies,
   getIndices: getIndices,
-  writeIndexResults: writeIndexResults,
   returnDateAsString: returnDateAsString,
   dateAdd: dateAdd,
   isDate: isDate,

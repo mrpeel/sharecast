@@ -217,6 +217,63 @@ let processResult = function(result) {
   }
 };
 
+let writeIndexResults = asyncify(function(indexData) {
+  let connection;
+  try {
+    // Open DB connection
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    for (let c = 0; c < indexData.length; c++) {
+      // Prepare and insert row
+      let indexRow = indexData[c];
+      let quoteDate = utils.returnDateAsString(indexRow['lastTradeDate']);
+      let yearMonth = quoteDate.substring(0, 7).replace('-', '');
+      let quoteId = 'In' + indexRow['symbol'] + quoteDate.replace('-', '');
+      awaitify(dbConn.executeQuery(connection,
+        'INSERT INTO `sharecast`.`index_quotes`' +
+        '(`Id`,' +
+        '`IndexSymbol`,' +
+        '`QuoteDate`,' +
+        '`YearMonth`,' +
+        '`previousClose`,' +
+        '`change`,' +
+        '`changeInPercent`,' +
+        '`daysLow`,' +
+        '`daysHigh`,' +
+        '`52WeekHigh`,' +
+        '`52WeekLow`,' +
+        '`changeFrom52WeekLow`,' +
+        '`changeFrom52WeekHigh`,' +
+        '`percentChangeFrom52WeekLow`,' +
+        '`percentChangeFrom52WeekHigh`' +
+        ')' +
+        '  VALUES' +
+        '(\'' + quoteId + '\',' +
+        '\'' + indexRow['symbol'] + '\',' +
+        '\'' + quoteDate + '\',' +
+        '\'' + yearMonth + '\',' +
+        '' + indexRow['previousClose'] + ',' +
+        '' + indexRow['change'] + ',' +
+        '' + indexRow['changeInPercent'] + ',' +
+        '' + indexRow['daysLow'] + ',' +
+        '' + indexRow['daysHigh'] + ',' +
+        '' + indexRow['52WeekHigh'] + ',' +
+        '' + indexRow['52WeekLow'] + ',' +
+        '' + indexRow['changeFrom52WeekLow'] + ',' +
+        '' + indexRow['changeFrom52WeekHigh'] + ',' +
+        '' + indexRow['percentChangeFrom52WeekLow'] + ',' +
+        '' + indexRow['percebtChangeFrom52WeekHigh'] +
+        ');'));
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
+});
+
 /**
  * Converts individual index data records into an array of values which
  * can be appended to every company symbol record
@@ -267,7 +324,7 @@ let addObjectProperties = function(object1, object2) {
     returnObj[key] = object2[key];
   });
 
-  console.log('----- New object -----');
+  console.log('----- Appended object -----');
   console.log(JSON.stringify(returnObj));
 
   return returnObj;
@@ -314,6 +371,19 @@ let addAppendDataToRows = function(dataVals) {
   return workingData;
 };
 
+/**
+ * Looks up current company Metrics and appends them to each company row
+ * @param {Object} dataVals the data in the format:
+ *    {
+ *    data: base data array
+ *    fields: fields list array
+ *    }
+ * @return {Object}  Object in the form of
+ *    {
+ *    data: updated data array
+ *    fields: updated fields list array
+ *    }
+ */
 let addMetricDataToRows = asyncify(function(dataVals) {
   return new Promise(function(resolve, reject) {
     try {
@@ -345,55 +415,64 @@ let addMetricDataToRows = asyncify(function(dataVals) {
       }
 
       // Append data to every row
-      for (c = 0; c < wkData.data.length; c++) {
-        meVal = awaitify(metrics.returnCompanyMetricValuesForDate(
-          wkData.data[c]['symbol'], utils.returnDateAsString(Date.now())));
+      for (let c = 0; c < wkData.data.length; c++) {
+        let companSymbol = wkData.data[c]['symbol'];
 
-        if (meVal['symbol']) {
-          wkData.data[c]['EPS'] = meVal['EPS'];
-          wkData.data[c]['PriceToBook'] = meVal['PriceToBook'];
-          wkData.data[c]['MarketCap'] = meVal['MarketCap'];
-          wkData.data[c]['PE'] = meVal['PE'];
-          wkData.data[c]['DividendRecentQuarter'] = meVal['DividendRecentQuarter'];
-          wkData.data[c]['DividendNextQuarter'] = meVal['DividendNextQuarter'];
-          wkData.data[c]['DPSRecentYear'] = meVal['DPSRecentYear'];
-          wkData.data[c]['IAD'] = meVal['IAD'];
-          wkData.data[c]['DividendPerShare'] = meVal['DividendPerShare'];
-          wkData.data[c]['DividendYield'] = meVal['DividendYield'];
-          wkData.data[c]['Dividend'] = meVal['Dividend'];
-          wkData.data[c]['BookValuePerShareYear'] = meVal['BookValuePerShareYear'];
-          wkData.data[c]['CashPerShareYear'] = meVal['CashPerShareYear'];
-          wkData.data[c]['CurrentRatioYear'] = meVal['CurrentRatioYear'];
-          wkData.data[c]['LTDebtToAssetsYear'] = meVal['LTDebtToAssetsYear'];
-          wkData.data[c]['LTDebtToAssetsQuarter'] = meVal['LTDebtToAssetsQuarter'];
-          wkData.data[c]['TotalDebtToAssetsYear'] = meVal['TotalDebtToAssetsYear'];
-          wkData.data[c]['TotalDebtToAssetsQuarter'] = meVal['TotalDebtToAssetsQuarter'];
-          wkData.data[c]['LTDebtToEquityYear'] = meVal['LTDebtToEquityYear'];
-          wkData.data[c]['LTDebtToEquityQuarter'] = meVal['LTDebtToEquityQuarter'];
-          wkData.data[c]['TotalDebtToEquityYear'] = meVal['TotalDebtToEquityYear'];
-          wkData.data[c]['TotalDebtToEquityQuarter'] = meVal['TotalDebtToEquityQuarter'];
-          wkData.data[c]['AINTCOV'] = meVal['AINTCOV'];
-          wkData.data[c]['ReturnOnInvestmentTTM'] = meVal['ReturnOnInvestmentTTM'];
-          wkData.data[c]['ReturnOnInvestment5Years'] = meVal['ReturnOnInvestment5Years'];
-          wkData.data[c]['ReturnOnInvestmentYear'] = meVal['ReturnOnInvestmentYear'];
-          wkData.data[c]['ReturnOnAssetsTTM'] = meVal['ReturnOnAssetsTTM'];
-          wkData.data[c]['ReturnOnAssets5Years'] = meVal['ReturnOnAssets5Years'];
-          wkData.data[c]['ReturnOnAssetsYear'] = meVal['ReturnOnAssetsYear'];
-          wkData.data[c]['ReturnOnEquityTTM'] = meVal['ReturnOnEquityTTM'];
-          wkData.data[c]['ReturnOnEquity5Years'] = meVal['ReturnOnEquity5Years'];
-          wkData.data[c]['ReturnOnEquityYear'] = meVal['ReturnOnEquityYear'];
-          wkData.data[c]['Beta'] = meVal['Beta'];
-          wkData.data[c]['Float'] = meVal['Float'];
-          wkData.data[c]['GrossMargin'] = meVal['GrossMargin'];
-          wkData.data[c]['EBITDMargin'] = meVal['EBITDMargin'];
-          wkData.data[c]['OperatingMargin'] = meVal['OperatingMargin'];
-          wkData.data[c]['NetProfitMarginPercent'] = meVal['NetProfitMarginPercent'];
-          wkData.data[c]['NetIncomeGrowthRate5Years'] = meVal['NetIncomeGrowthRate5Years'];
-          wkData.data[c]['RevenueGrowthRate5Years'] = meVal['RevenueGrowthRate5Years'];
-          wkData.data[c]['RevenueGrowthRate10Years'] = meVal['RevenueGrowthRate10Years'];
-          wkData.data[c]['EPSGrowthRate5Years'] = meVal['EPSGrowthRate5Years'];
-          wkData.data[c]['EPSGrowthRate10Years'] = meVal['EPSGrowthRate10Years'];
-        }
+        awaitify(
+          metrics.returnCompanyMetricValuesForDate(
+            companSymbol, utils.returnDateAsString(Date.now()))
+            .then((meVal) => {
+              if (meVal['CompanySymbol']) {
+                wkData.data[c]['EPS'] = meVal['EPS'];
+                wkData.data[c]['PriceToBook'] = meVal['PriceToBook'];
+                wkData.data[c]['MarketCap'] = meVal['MarketCap'];
+                wkData.data[c]['PE'] = meVal['PE'];
+                wkData.data[c]['DividendRecentQuarter'] = meVal['DividendRecentQuarter'];
+                wkData.data[c]['DividendNextQuarter'] = meVal['DividendNextQuarter'];
+                wkData.data[c]['DPSRecentYear'] = meVal['DPSRecentYear'];
+                wkData.data[c]['IAD'] = meVal['IAD'];
+                wkData.data[c]['DividendPerShare'] = meVal['DividendPerShare'];
+                wkData.data[c]['DividendYield'] = meVal['DividendYield'];
+                wkData.data[c]['Dividend'] = meVal['Dividend'];
+                wkData.data[c]['BookValuePerShareYear'] = meVal['BookValuePerShareYear'];
+                wkData.data[c]['CashPerShareYear'] = meVal['CashPerShareYear'];
+                wkData.data[c]['CurrentRatioYear'] = meVal['CurrentRatioYear'];
+                wkData.data[c]['LTDebtToAssetsYear'] = meVal['LTDebtToAssetsYear'];
+                wkData.data[c]['LTDebtToAssetsQuarter'] = meVal['LTDebtToAssetsQuarter'];
+                wkData.data[c]['TotalDebtToAssetsYear'] = meVal['TotalDebtToAssetsYear'];
+                wkData.data[c]['TotalDebtToAssetsQuarter'] = meVal['TotalDebtToAssetsQuarter'];
+                wkData.data[c]['LTDebtToEquityYear'] = meVal['LTDebtToEquityYear'];
+                wkData.data[c]['LTDebtToEquityQuarter'] = meVal['LTDebtToEquityQuarter'];
+                wkData.data[c]['TotalDebtToEquityYear'] = meVal['TotalDebtToEquityYear'];
+                wkData.data[c]['TotalDebtToEquityQuarter'] = meVal['TotalDebtToEquityQuarter'];
+                wkData.data[c]['AINTCOV'] = meVal['AINTCOV'];
+                wkData.data[c]['ReturnOnInvestmentTTM'] = meVal['ReturnOnInvestmentTTM'];
+                wkData.data[c]['ReturnOnInvestment5Years'] = meVal['ReturnOnInvestment5Years'];
+                wkData.data[c]['ReturnOnInvestmentYear'] = meVal['ReturnOnInvestmentYear'];
+                wkData.data[c]['ReturnOnAssetsTTM'] = meVal['ReturnOnAssetsTTM'];
+                wkData.data[c]['ReturnOnAssets5Years'] = meVal['ReturnOnAssets5Years'];
+                wkData.data[c]['ReturnOnAssetsYear'] = meVal['ReturnOnAssetsYear'];
+                wkData.data[c]['ReturnOnEquityTTM'] = meVal['ReturnOnEquityTTM'];
+                wkData.data[c]['ReturnOnEquity5Years'] = meVal['ReturnOnEquity5Years'];
+                wkData.data[c]['ReturnOnEquityYear'] = meVal['ReturnOnEquityYear'];
+                wkData.data[c]['Beta'] = meVal['Beta'];
+                wkData.data[c]['Float'] = meVal['Float'];
+                wkData.data[c]['GrossMargin'] = meVal['GrossMargin'];
+                wkData.data[c]['EBITDMargin'] = meVal['EBITDMargin'];
+                wkData.data[c]['OperatingMargin'] = meVal['OperatingMargin'];
+                wkData.data[c]['NetProfitMarginPercent'] = meVal['NetProfitMarginPercent'];
+                wkData.data[c]['NetIncomeGrowthRate5Years'] = meVal['NetIncomeGrowthRate5Years'];
+                wkData.data[c]['RevenueGrowthRate5Years'] = meVal['RevenueGrowthRate5Years'];
+                wkData.data[c]['RevenueGrowthRate10Years'] = meVal['RevenueGrowthRate10Years'];
+                wkData.data[c]['EPSGrowthRate5Years'] = meVal['EPSGrowthRate5Years'];
+                wkData.data[c]['EPSGrowthRate10Years'] = meVal['EPSGrowthRate10Years'];
+              }
+              console.log(wkData.data[c]);
+            })
+            .catch((err) => {
+              console.log(err);
+            })
+        );
       }
 
       resolve(wkData);
@@ -427,7 +506,7 @@ let executeRetrieval = asyncify(function() {
 
       if (indexData.length > 0) {
         indexDataToAppend = convertIndexDatatoAppendData(indexData);
-        utils.writeIndexResults(indexData);
+        writeIndexResults(indexData);
       } else {
         console.log('No new index data to save');
       }
@@ -488,5 +567,6 @@ let executeRetrieval = asyncify(function() {
       console.log(err);
     });
 });
+
 
 executeRetrieval();

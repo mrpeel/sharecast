@@ -191,14 +191,14 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
       let indicatorId = indicatorIds[c];
       let indicatorDate;
       let result = awaitify(dbConn.selectQuery(connection,
-        'SELECT `value_date` ' +
+        'SELECT `ValueDate` ' +
         'FROM `sharecast`.`financial_indicator_values` ' +
-        'WHERE `indicator_symbol` = \'' + indicatorId + '\' ' +
-        'ORDER BY `value_date` desc ' +
+        'WHERE `IndicatorSymbol` = \'' + indicatorId + '\' ' +
+        'ORDER BY `ValueDate` desc ' +
         'LIMIT 1;'
       ));
       if (result.length > 0) {
-        indicatorDate = result[0]['value_date'];
+        indicatorDate = result[0]['ValueDate'];
       } else {
         indicatorDate = defaultStartDate;
       }
@@ -250,15 +250,15 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
       // Prepare and insert row
       let indicatorId = indicatorIds[c];
       let result = awaitify(dbConn.selectQuery(connection,
-        'SELECT `value` ' +
+        'SELECT `Value` ' +
         'FROM `sharecast`.`financial_indicator_values` ' +
-        'WHERE `indicator_symbol` = \'' + indicatorId + '\' ' +
-        'AND created <= \'' + valueDate + '\'' +
-        'ORDER BY `value_date` desc ' +
+        'WHERE `IndicatorSymbol` = \'' + indicatorId + '\' ' +
+        'AND Created <= \'' + valueDate + '\'' +
+        'ORDER BY `ValueDate` desc ' +
         'LIMIT 1;'
       ));
       if (result.length > 0) {
-        indicatorValues[indicatorId] = result[0]['value'];
+        indicatorValues[indicatorId] = result[0]['Value'];
       }
     }
 
@@ -328,13 +328,19 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
       .substring(0, 7)
       .replace('-', '');
 
+    indicatorValue['Id'] = 'Fi' + indicatorValue['indicatorId'] +
+    indicatorValue['value-date'].replace('-', '');
+
+
     awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
       '`sharecast`.`financial_indicator_values` ' +
-      '(`indicator_symbol`, ' +
-      '`value_date`, ' +
-      '`year_month`, ' +
-      '`value`)  ' +
+      '(`Id`, ' +
+      '`IndicatorSymbol`, ' +
+      '`ValueDate`, ' +
+      '`YearMonth`, ' +
+      '`Value`)  ' +
       'VALUES ( ' +
+      '\'' + indicatorValue['Id'] + '\', ' +
       '\'' + indicatorValue['indicatorId'] + '\', ' +
       '\'' + indicatorValue['value-date'] + '\', ' +
       '\'' + indicatorValue['year-month'] + '\', ' +
