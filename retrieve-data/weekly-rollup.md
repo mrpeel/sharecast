@@ -62,28 +62,23 @@ Updates to previous week roll-ups
 
 
 Apply formula to each result
- - 1,2,4,8,12 weeks work on capital gain only
- - 26, 52 weeks factor in dividends
+- calculate capital gain % : future price / current price
+- calculate dividend % : IAD (annual dividend) / 52 * number of weeks in the future
+- add together using a double weighting for dividends (dividends are more important)
 
-  1,2,4,8,12 weeks ago:
-    (FuturePrice - median price for week) / (median price for the week):
+
+  Recommendation calculation:
+    (FuturePrice - median price for week) / (median price for the week) +
+    (median price for the week) / dividend calculation * 2):
       if >= 0.05: buy
       if >= 0 and < 0.05: hold
       if < 0: sell
 
-  26 weeks ago (double weighting for dividends) - assuming one dividend payment:
-    (FuturePrice - median price for week) / (median price for the week)
-    + (2 * median dividend yield for the week)
 
-  52 weeks ago (double weighting for dividends) - assuming 2 dividend payments:
-    (FuturePrice - median price for week) / (median price for the week)
-    + (4 * median dividend yield for the week)
-
-
-1 week ago -> update 1WeekFuturePrice: median lastTradePriceOnly (across week)
-2 weeks ago -> update 2WeekFuturePrice: median lastTradePriceOnly (across week)
-4 weeks ago -> update 4WeekFuturePrice: median lastTradePriceOnly (across week)
-8 weeks ago -> update 8WeekFuturePrice: median lastTradePriceOnly (across week)
-12 weeks ago -> update 12WeekFuturePrice: median lastTradePriceOnly (across week)
-26 weeks ago -> update 26WeekFuturePrice: median lastTradePriceOnly (across week)
-52 weeks ago -> update 52WeekFuturePrice: median lastTradePriceOnly (across week)
+      1 week ago -> update 1WeekFutureRecommendation
+      2 weeks ago -> update 2WeekFutureRecommendation
+      4 weeks ago -> update 4WeekFutureRecommendation
+      8 weeks ago -> update 8WeekFutureRecommendation
+      12 weeks ago -> update 12WeekFutureRecommendation
+      26 weeks ago -> update 26WeekFutureRecommendation
+      52 weeks ago -> update 52WeekFutureRecommendation
