@@ -63,13 +63,29 @@ Updates to previous week roll-ups
 
 Apply formula to each result
 - calculate capital gain % : future price / current price
-- calculate dividend % : IAD (annual dividend) / 52 * number of weeks in the future
+- dividends not calculated for 1,2,4,8 weeks because the odds are they won't be paid
+  during the period
+- calculate dividend % : lastTradePriceOnly / dividendPerShare / 52 * number of weeks in the future
 - add together using a double weighting for dividends (dividends are more important)
+
+1 week ago -> update 1WeekFutureCaptialGain
+2 weeks ago -> update 2WeekFutureCaptialGain
+4 weeks ago -> update 4WeekFutureCaptialGain
+8 weeks ago -> update 8WeekFutureCaptialGain
+12 weeks ago -> update 12WeekFutureCaptialGain
+26 weeks ago -> update 26WeekFutureCaptialGain
+52 weeks ago -> update 52WeekFutureCaptialGain
+
+12 weeks ago -> update 12WeekFutureDividendGain
+26 weeks ago -> update 26WeekFutureDividendGain
+52 weeks ago -> update 52WeekFutureDividendGain
+
 
 
   Recommendation calculation:
-    (FuturePrice - median price for week) / (median price for the week) +
-    (median price for the week) / dividend calculation * 2):
+    1,2,4,8 weeks: CaptialGain
+    12,26,52: CaptialGain + (Dividends * 2)
+
       if >= 0.05: buy
       if >= 0 and < 0.05: hold
       if < 0: sell

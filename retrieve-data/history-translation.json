@@ -1,0 +1,54 @@
+{
+    "Cash flow (¢)": {
+        "name": "CashPerShareYear",
+        "multiply-by": 0.01
+    },
+    "Earnings pre abs (¢)": {
+        "name": "EPS",
+        "multiply-by": 1
+    },
+    "Dividends (¢)": {
+        "name": "DPSRecentYear",
+        "multiply-by": 0.01
+    },
+    "Operating margin (%)": {
+        "name": "OperatingMargin",
+        "multiply-by": 1
+    },
+    "Book value ($)": {
+        "name": "BookValuePerShareYear",
+        "multiply-by": 1
+    },
+    "Shares outstanding (m)": {
+        "name": "Float",
+        "multiply-by": 1000000
+    },
+    "Market cap (m)": {
+        "name": "MarketCap",
+        "multiply-by": 1000000
+    },
+    "Relative P/E (%)": {
+        "name": "PE",
+        "multiply-by": 1
+    },
+    "Dividend Yield (%)": {
+        "name": "DividendYield",
+        "multiply-by": 1
+    },
+    "Price/book ratio": {
+        "name": "PriceToBook",
+        "multiply-by": 1
+    },
+    "Gross Gearing (Debt/Equity) (%)": {
+        "name": "TotalDebtToEquityYear",
+        "multiply-by": 1
+    },
+    "Net interest expense cover (x)": {
+        "name": "AINTCOV",
+        "multiply-by": 1
+    },
+    "Return on equity (%)": {
+        "name": "ReturnOnEquityYear",
+        "multiply-by": 1
+    }
+}
