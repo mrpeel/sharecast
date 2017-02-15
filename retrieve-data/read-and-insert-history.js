@@ -1,5 +1,6 @@
 const csv = require('csvtojson');
 const utils = require('./utils');
+const dynamoMetrics = require('./dynamo-retrieve-google-company-data');
 const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
@@ -174,6 +175,42 @@ let readAndInsertDividendHistory = asyncify(function() {
   }
 });
 
+let readAndInsertMetrics = asyncify(function() {
+  let csvFileName = 'company-metrics-2017-01-25.csv';
+
+  if (utils.doesDataFileExist(csvFileName)) {
+    try {
+      let csvFilePath = '../data/' + csvFileName;
+      let metricsValues = awaitify(retrieveCsv(csvFilePath));
+
+      metricsValues.forEach((metricValue) => {
+        metricValue['metricsDate'] = '2017-01-25';
+
+        // Remove nulls, empty values and -
+        // Check through for values with null and remove from object
+        Object.keys(metricValue).forEach((field) => {
+          let holdingVal = metricValue[field];
+          if (holdingVal === null || holdingVal === '' ||
+            holdingVal === '-') {
+            delete metricValue[field];
+          } else if (typeof (holdingVal) === 'string' &&
+            !isNaN(holdingVal.replace(',', ''))) {
+            metricValue[field] = Number(holdingVal.replace(',', ''));
+          }
+        });
+
+        console.log(metricValue);
+
+      // awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+});
+
 // readAndInsertIndexHistory();
 
-readAndInsertDividendHistory();
+// readAndInsertDividendHistory();
+
+readAndInsertMetrics();

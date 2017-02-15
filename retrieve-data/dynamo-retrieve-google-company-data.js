@@ -256,9 +256,10 @@ let updateCompanyMetrics = asyncify(function() {
   }
 });
 
-updateCompanyMetrics();
+// updateCompanyMetrics();
 
 module.exports = {
   updateCompanyMetrics: updateCompanyMetrics,
   returnCompanyMetricValuesForDate: returnCompanyMetricValuesForDate,
+  insertCompanyMetricsValue: insertCompanyMetricsValue,
 };
