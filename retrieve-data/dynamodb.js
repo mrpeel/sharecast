@@ -95,7 +95,9 @@ let insertRecord = function(insertDetails) {
 *  ':symbol': 'AAD',
 *  },
 *  limit: 1, (optional query limit)
-*  scanIndexForward: false, (optional to reverse sort order)
+*  reverseOrder: false, (optional to reverse sort order)
+*  projectionExpression: 'symbol, quoteDate',(optional expression to limit
+*                      the fields returned)
 * };
 @return {Promise} which resolves with:
 *   array of data items
@@ -118,6 +120,10 @@ let queryTable = function(queryDetails) {
 
     if (queryDetails.reverseOrder) {
       params.ScanIndexForward = false;
+    }
+
+    if (queryDetails.projectionExpression) {
+      params.ProjectionExpression = queryDetails.projectionExpression;
     }
 
     client.query(params, function(err, data) {
@@ -144,6 +150,8 @@ let queryTable = function(queryDetails) {
 *  ':symbol': 'AAD',
 *  },
 *  limit: 1, (optional query limit)
+*  projectionExpression: 'symbol, quoteDate',(optional expression to limit
+*                      the fields returned)
 * };
 @return {Promise} which resolves with:
 *   array of data items
@@ -160,6 +168,11 @@ let scanTable = function(scanDetails) {
       params.Limit = scanDetails.limit;
     }
 
+    if (queryDetails.projectionExpression) {
+      params.ProjectionExpression = queryDetails.projectionExpression;
+    }
+
+
     client.scan(params, (err, data) => {
       if (err) {
         console.error('Unable to scan ', scanDetails.tableName,
@@ -175,6 +188,44 @@ let scanTable = function(scanDetails) {
   });
 };
 
+/** Scan a table and return all records
+* @param {Object} tableDetails - an object with all the details
+* tableDetails = {
+*  tableName: 'companies',
+*  reverseOrder: false, (optional to reverse sort order)
+*  projectionExpression: 'symbol, quoteDate',(optional expression to limit
+*                      the fields returned)
+* };
+@return {Promise} which resolves with:
+*   array of data items
+*/
+let getTable = function(tableDetails) {
+  return new Promise(function(resolve, reject) {
+    let params = {
+      TableName: tableDetails.tableName,
+    };
+
+
+    if (tableDetails.reverseOrder) {
+      params.ScanIndexForward = false;
+    }
+
+    if (tableDetails.projectionExpression) {
+      params.ProjectionExpression = tableDetails.projectionExpression;
+    }
+
+    client.scan(params, function(err, data) {
+      if (err) {
+        console.error('Unable to get table  ', tableDetails.tableName,
+          '. Error:', JSON.stringify(err, null, 2));
+        reject(JSON.stringify(err, null, 2));
+      } else {
+        console.log('Get table succeeded: ', tableDetails.tableName);
+        resolve(data.Items || []);
+      }
+    });
+  });
+};
 
 let testQuery = function() {
   /* let queryDetails = {
@@ -230,4 +281,5 @@ module.exports = {
   insertRecord: insertRecord,
   queryTable: queryTable,
   scanTable: scanTable,
+  getTable: getTable,
 };

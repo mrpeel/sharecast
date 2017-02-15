@@ -272,6 +272,7 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
  */
 let updateIndicatorValues = asyncify(function() {
   try {
+    console.log('----- Start financial indicator retrieval -----');
     let indicatorIds = awaitify(getIndicatorList());
     let indicatorDates = awaitify(getIndicatorRequestDates(indicatorIds));
 
@@ -313,6 +314,8 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
       JSON.stringify(indicatorValue));
     return;
   }
+
+  console.log('----- Start write financial indicator results -----');
 
   try {
     indicatorValue['yearMonth'] = indicatorValue['valueDate']

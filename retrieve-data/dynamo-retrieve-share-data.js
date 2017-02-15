@@ -1,6 +1,7 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
+const symbols = require('./dynamo-symbols');
 const finIndicators = require('./dynamo-retrieve-financial-indicator-data');
 const metrics = require('./retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
@@ -57,6 +58,7 @@ const indiceFields = {
 
 let symbolLookup = {};
 let indexLookup = {};
+let indexSymbols = [];
 let companyLookup = {};
 let indices = [];
 let companies = [];
@@ -72,29 +74,102 @@ let resultData = [];
 let indexData = [];
 let maxResultDate = '';
 
+/**  Retrieve company and index symbols and sets them up for retrieval
+* @return {Object} coninating values in the format:
+*  {
+*    indexLookup: {Object}, (object to match index symbol with lookup
+*                          symbol, e.g. ^ALLORD: ALLORD)
+*    indices: [], (array of symbols to use during retrieval)
+*    companyLookup: {Object},  (object to match company symbol with lookup
+*                          symbol ^AAD: AAD)
+*    companies: [], (array of symbols to use during retrieval)
+*    symbolLookup: {Object}, (object to match lookup with real index / company
+*                          symbol)
+*    indexSymbols: [], (array of the index symbols used)
+*  }
+*/
+
 let setupSymbols = asyncify(function() {
   try {
-    let indexValues = awaitify(utils.getIndices());
-    let companyValues = awaitify(utils.getCompanies());
+    console.log('----- Start setup symbols -----');
+    let indexValues = awaitify(symbols.getIndices());
+    let companyValues = awaitify(symbols.getCompanies());
+    let wSymbolLookup = {};
+    let wIndexLookup = {};
+    let wIndexSymbols = [];
+    let wCompanyLookup = {};
+    let wIndices = [];
+    let wCompanies = [];
+
 
     indexValues.forEach((indexValue) => {
       console.log(indexValue);
-      indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
-      symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      wIndexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      wSymbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      wIndexSymbols.push(indexValue['symbol']);
     });
 
-    indices = utils.createFieldArray(indexLookup);
+    wIndices = utils.createFieldArray(wIndexLookup);
 
     companyValues.forEach((companyValue) => {
-      companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-      symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+      wCompanyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+      wSymbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
     });
 
-    companies = utils.createFieldArray(companyLookup);
+    wCompanies = utils.createFieldArray(wCompanyLookup);
+
+    return {
+      indexLookup: wIndexLookup,
+      indices: wIndices,
+      companyLookup: wCompanyLookup,
+      companies: wCompanies,
+      symbolLookup: wSymbolLookup,
+      indexSymbols: wIndexSymbols,
+    };
   } catch (err) {
     console.log(err);
   }
 });
+
+/**  Use the max date for an array of index symbols
+*     to determine the last date which data was collected
+* @param {Array} indexSymbols - one or more index symbols to look up
+* @return {String} with date formatted as 'YYYY-MM-DD'
+*/
+let getLastRetrievalDate = function(indexSymbols) {
+  console.log('----- Start get last retrieval date -----');
+  return new Promise(function(resolve, reject) {
+    try {
+      let queryDetails = {
+        tableName: 'indexQuotes',
+        keyConditionExpression: 'symbol = :symbol',
+        reverseOrder: true,
+        limit: 1,
+        projectionExpression: 'quoteDate',
+      };
+
+      let retrievalDate = '';
+
+
+      indexSymbols.forEach((indexSymbol) => {
+        queryDetails.expressionAttributeValues = {
+          ':symbol': indexSymbol,
+        };
+        let result = awaitify(dynamodb.queryTable(queryDetails));
+
+        // Check if this result is later than what we already have
+        if (result.length > 0 && result[0]['quoteDate'] > retrievalDate) {
+          retrievalDate = result[0]['quoteDate'];
+        }
+      });
+
+      resolve(retrievalDate);
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    }
+  });
+};
 
 
 let retrieveSnapshot = function(symbol, fields) {
@@ -158,6 +233,7 @@ let processResult = function(result) {
 };
 
 let writeIndexResults = asyncify(function(indexData) {
+  console.log('----- Start write index quote results -----');
   try {
     // Set up the basic insert structure for dynamo
     let insertDetails = {
@@ -426,8 +502,16 @@ let writeCompanyQuoteData = asyncify(function(quoteObject, quoteDate) {
 let executeRetrieval = asyncify(function() {
   let dataToAppend = {};
   let indexDataToAppend = {};
-  awaitify(setupSymbols());
-  lastResultDate = awaitify(utils.getLastRetrievalDate());
+  let symbolResult = awaitify(setupSymbols());
+
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
+
+  lastResultDate = awaitify(getLastRetrievalDate(indexSymbols));
 
   awaitify(finIndicators.updateIndicatorValues());
 
@@ -436,6 +520,8 @@ let executeRetrieval = asyncify(function() {
   let todayString = utils.returnDateAsString(Date.now());
   let financialIndicatos = awaitify(finIndicators
     .returnIndicatorValuesForDate(todayString));
+
+  console.log('----- Start retrieve index quotes -----');
 
   retrieveSnapshot(indices, indiceFieldsToRetrieve)
     .then((results) => {
@@ -457,6 +543,8 @@ let executeRetrieval = asyncify(function() {
     // Reset fields for companies
     resultFields = [];
     resultData = [];
+
+    console.log('----- Start retrieve company quotes -----');
 
     // Split companies into groups of 10 so each request contains 10
     for (companyCounter = 0; companyCounter < companies.length;
@@ -488,16 +576,14 @@ let executeRetrieval = asyncify(function() {
 
         addMetricDataToRows(updatedResults)
           .then((resultsWithMetrics) => {
-            console.log(resultsWithMetrics.fields);
-            // console.log(updatedResults.data);
+            // console.log(resultsWithMetrics.fields);
+
+            console.log('----- Start write company quotes -----');
 
             writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
 
             utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
               'companies', maxResultDate);
-
-            // Re-set last retrieval date
-            utils.setLastRetrievalDate(maxResultDate);
           });
       } else {
         console.log('No new company data to save');
