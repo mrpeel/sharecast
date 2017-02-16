@@ -3,9 +3,10 @@ const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const symbols = require('./dynamo-symbols');
 const finIndicators = require('./dynamo-retrieve-financial-indicator-data');
-const metrics = require('./retrieve-google-company-data');
+const metrics = require('./dynamo-retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
+const program = require('commander');
 
 const fields = {
   p: 'previous-close',
@@ -499,7 +500,19 @@ let writeCompanyQuoteData = asyncify(function(quoteObject, quoteDate) {
   });
 });
 
-let executeRetrieval = asyncify(function() {
+let executeFinancialIndicators = asyncify(function() {
+  awaitify(finIndicators.updateIndicatorValues());
+});
+
+let executeCompanyMetrics = asyncify(function() {
+  let symbolResult = awaitify(setupSymbols());
+  let mCompanies = symbolResult.companies;
+
+  awaitify(metrics.updateCompanyMetrics(mCompanies));
+});
+
+
+let executeQuoteRetrieval = asyncify(function() {
   let dataToAppend = {};
   let indexDataToAppend = {};
   let symbolResult = awaitify(setupSymbols());
@@ -512,10 +525,6 @@ let executeRetrieval = asyncify(function() {
   companies = symbolResult.companies;
 
   lastResultDate = awaitify(getLastRetrievalDate(indexSymbols));
-
-  awaitify(finIndicators.updateIndicatorValues());
-
-  awaitify(metrics.updateCompanyMetrics());
 
   let todayString = utils.returnDateAsString(Date.now());
   let financialIndicatos = awaitify(finIndicators
@@ -597,5 +606,23 @@ let executeRetrieval = asyncify(function() {
     });
 });
 
+program
+  .version('0.0.1')
+  .description('Sharecast share data retrieval')
+  .option('-f, --financial', 'Retrieve financial indicators')
+  .option('-m, --metrics', 'Retrieve company metrics')
+  .option('-q, --quotes', 'Retrieve index and company quotes')
+  .parse(process.argv);
 
-executeRetrieval();
+if (program.financial) {
+  console.log('Executing retrieve financial indicators');
+  executeFinancialIndicators();
+}
+if (program.metrics) {
+  console.log('Executing retrieve company metrics');
+  executeCompanyMetrics();
+}
+if (program.quotes) {
+  console.log('Executing retrieve index and company quotes');
+  executeQuoteRetrieval();
+}

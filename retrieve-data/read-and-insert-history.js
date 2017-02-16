@@ -184,7 +184,7 @@ let readAndInsertMetrics = asyncify(function() {
       let metricsValues = awaitify(retrieveCsv(csvFilePath));
 
       metricsValues.forEach((metricValue) => {
-        metricValue['metricsDate'] = '2017-01-25';
+        metricValue['metricsDate'] = '2017-01-26';
 
         // Remove nulls, empty values and -
         // Check through for values with null and remove from object

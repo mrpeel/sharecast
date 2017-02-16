@@ -179,7 +179,7 @@ let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
           'metricsDate <= :metricsDate',
         expressionAttributeValues: {
           ':symbol': symbol,
-          ':created': valueDate,
+          ':metricsDate': valueDate,
         },
         reverseOrder: true,
         limit: 1,
@@ -248,6 +248,20 @@ let updateCompanyMetrics = asyncify(function() {
     metricsData.forEach((companyMetricsRecord) => {
       companyMetricsRecord['metricsDate'] = utils.returnDateAsString(
         Date.now());
+
+      // Remove nulls, empty values and -
+      // Check through for values with null and remove from object
+      // Check for numbers returned as strings and convert
+      Object.keys(companyMetricsRecord).forEach((field) => {
+        let holdingVal = companyMetricsRecord[field];
+        if (holdingVal === null || holdingVal === '' ||
+          holdingVal === '-') {
+          delete companyMetricsRecord[field];
+        } else if (typeof (holdingVal) === 'string' &&
+          !isNaN(holdingVal.replace(',', ''))) {
+          companyMetricsRecord[field] = Number(holdingVal.replace(',', ''));
+        }
+      });
 
       awaitify(insertCompanyMetricsValue(companyMetricsRecord));
     });
