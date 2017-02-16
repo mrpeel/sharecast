@@ -222,6 +222,36 @@ let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
   });
 });
 
+let returnAllCompanyMetricsValues = asyncify(function() {
+  return new Promise(function(resolve, reject) {
+    let connection;
+    try {
+      let metricsValues = [];
+      // Open DB connection
+      connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+      let result = awaitify(dbConn.selectQuery(connection,
+        'SELECT * ' +
+        'FROM `sharecast`.`company_metrics` ' +
+        'ORDER BY `MetricsDate` desc; '
+      ));
+
+      if (result.length > 0) {
+        metricsValues = result;
+      }
+
+      resolve(metricsValues);
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    } finally {
+      if (connection) {
+        dbConn.closeConnection(connection);
+      }
+    }
+  });
+});
+
 /**
  * Inserts an indicator value
  * @param {Object} metricValue value to insert in form of:
@@ -404,4 +434,5 @@ updateCompanyMetrics();
 module.exports = {
   updateCompanyMetrics: updateCompanyMetrics,
   returnCompanyMetricValuesForDate: returnCompanyMetricValuesForDate,
+  returnAllCompanyMetricsValues: returnAllCompanyMetricsValues,
 };

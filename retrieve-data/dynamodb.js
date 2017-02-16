@@ -227,17 +227,7 @@ let getTable = function(tableDetails) {
   });
 };
 
-let testQuery = function() {
-  /* let queryDetails = {
-    tableName: 'companyQuotes',
-    keyConditionExpression: 'symbol = :symbol and quoteDate <= :quoteDate',
-    expressionAttributeValues: {
-      ':symbol': 'AAD',
-      ':quoteDate': '2017-02-08',
-    },
-    limit: 1,
-  };*/
-
+/* let testQuery = function() {
   let queryDetails = {
     tableName: 'financialIndicatorValues',
     indexName: 'symbol-created-index',
@@ -255,9 +245,9 @@ let testQuery = function() {
   }).catch((err) => {
     console.log(err);
   });
-};
+}; */
 
-let testScan = function() {
+/* let testScan = function() {
   let scanDetails = {
     tableName: 'financialIndicatorValues',
     filterExpression: 'symbol = :symbol and created <= :created',
@@ -273,9 +263,9 @@ let testScan = function() {
   }).catch((err) => {
     console.log(err);
   });
-};
+}; */
 
-testQuery();
+// testQuery();
 
 module.exports = {
   insertRecord: insertRecord,

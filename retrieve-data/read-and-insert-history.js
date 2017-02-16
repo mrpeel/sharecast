@@ -1,6 +1,8 @@
 const csv = require('csvtojson');
 const utils = require('./utils');
+const dynamodb = require('./dynamodb');
 const dynamoMetrics = require('./dynamo-retrieve-google-company-data');
+const metrics = require('./retrieve-google-company-data');
 const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
@@ -175,16 +177,24 @@ let readAndInsertDividendHistory = asyncify(function() {
   }
 });
 
-let readAndInsertMetrics = asyncify(function() {
-  let csvFileName = 'company-metrics-2017-01-25.csv';
+/*let readAndInsertMetrics = asyncify(function() {
+  let csvFileName = 'company-metrics-2017-01-26.csv';
+  let csvFileName2 = 'company-metrics-2017-01-25.csv';
+  let companyEps = {};
 
-  if (utils.doesDataFileExist(csvFileName)) {
+  if (utils.doesDataFileExist(csvFileName) &&
+    utils.doesDataFileExist(csvFileName2)) {
     try {
       let csvFilePath = '../data/' + csvFileName;
       let metricsValues = awaitify(retrieveCsv(csvFilePath));
 
       metricsValues.forEach((metricValue) => {
         metricValue['metricsDate'] = '2017-01-26';
+        metricValue['yearMonth'] = metricValue['metricsDate']
+          .substring(0, 7)
+          .replace('-', '');
+
+        companyEps[metricValue['symbol']] = metricValue['EPS'];
 
         // Remove nulls, empty values and -
         // Check through for values with null and remove from object
@@ -199,18 +209,151 @@ let readAndInsertMetrics = asyncify(function() {
           }
         });
 
-        console.log(metricValue);
+        // console.log(metricValue);
 
-      // awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+        awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+      });
+
+      csvFilePath = '../data/' + csvFileName2;
+      metricsValues = awaitify(retrieveCsv(csvFilePath));
+
+      metricsValues.forEach((metricValue) => {
+        metricValue['metricsDate'] = '2017-01-25';
+        metricValue['yearMonth'] = metricValue['metricsDate']
+          .substring(0, 7)
+          .replace('-', '');
+
+        metricValue['EPS'] = companyEps[metricValue['symbol']];
+
+        // Remove nulls, empty values and -
+        // Check through for values with null and remove from object
+        Object.keys(metricValue).forEach((field) => {
+          let holdingVal = metricValue[field];
+          if (holdingVal === null || holdingVal === '' ||
+            holdingVal === '-') {
+            delete metricValue[field];
+          } else if (typeof (holdingVal) === 'string' &&
+            !isNaN(holdingVal.replace(',', ''))) {
+            metricValue[field] = Number(holdingVal.replace(',', ''));
+          }
+        });
+
+        // console.log(metricValue);
+
+        awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
       });
     } catch (err) {
       console.log(err);
     }
   }
+}); */
+
+let extractAndInsertMetrics = asyncify(function() {
+  try {
+    let metricsValues = awaitify(metrics.returnAllCompanyMetricsValues());
+
+    metricsValues.forEach((metricValue) => {
+      metricValue['symbol'] = metricValue['CompanySymbol'];
+      metricValue['metricsDate'] = utils.returnDateAsString(
+        metricValue['MetricsDate']);
+      metricValue['yearMonth'] = metricValue['metricsDate']
+        .substring(0, 7)
+        .replace('-', '');
+      metricValue['created'] = utils.returnDateAsString(
+        metricValue['Created']);
+
+      // Remove uppercase properties
+      delete metricValue['Id'];
+      delete metricValue['CompanySymbol'];
+      delete metricValue['MetricsDate'];
+      delete metricValue['Created'];
+
+      // Remove nulls, empty values and -
+      // Check through for values with null and remove from object
+      Object.keys(metricValue).forEach((field) => {
+        let holdingVal = metricValue[field];
+        if (holdingVal === null || holdingVal === '' ||
+          holdingVal === '-') {
+          delete metricValue[field];
+        } else if (typeof (holdingVal) === 'string' &&
+          !isNaN(holdingVal.replace(',', ''))) {
+          metricValue[field] = Number(holdingVal.replace(',', ''));
+        }
+      });
+
+      // console.log(metricValue);
+
+      awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+    });
+  } catch (err) {
+    console.log(err);
+  }
 });
 
+
+let extractAndInsertIndexHistory = asyncify(function() {
+  let connection;
+  let insertDetails = {
+    tableName: 'indexQuotes',
+    values: {},
+    primaryKey: [
+      'symbol', 'quoteDate',
+    ],
+  };
+
+  try {
+    // Open DB connection
+    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+
+    let results = awaitify(dbConn.selectQuery(connection,
+      'SELECT * FROM `sharecast`.`index_quotes`;'));
+
+    if (results.length) {
+      results.forEach((indexValue) => {
+        indexValue['symbol'] = metricValue['IndexSymbol'];
+        indexValue['quoteDate'] = utils.returnDateAsString(
+          indexValue['QuoteDate']);
+        indexValue['yearMonth'] = indexValue['quoteDate']
+          .substring(0, 7)
+          .replace('-', '');
+        indexValue['created'] = utils.returnDateAsString(
+          indexValue['Created']);
+
+        // Remove uppercase properties
+        delete indexValue['Id'];
+        delete indexValue['IndexSymbol'];
+        delete indexValue['QuoteDate'];
+        delete indexValue['Created'];
+
+        // Remove nulls, empty values and -
+        // Check through for values with null and remove from object
+        Object.keys(indexValue).forEach((field) => {
+          let holdingVal = indexValue[field];
+          if (holdingVal === null || holdingVal === '' ||
+            holdingVal === '-') {
+            delete indexValue[field];
+          } else if (typeof (holdingVal) === 'string' &&
+            !isNaN(holdingVal.replace(',', ''))) {
+            indexValue[field] = Number(holdingVal.replace(',', ''));
+          }
+        });
+
+        // console.log(indexValue);
+        insertDetails.values = indexValue;
+
+        awaitify(dynamodb.insertRecord(insertDetails));
+      });
+    }
+  } catch (err) {
+    console.log(err);
+  } finally {
+    if (connection) {
+      dbConn.closeConnection(connection);
+    }
+  }
+});
 // readAndInsertIndexHistory();
 
 // readAndInsertDividendHistory();
 
-readAndInsertMetrics();
+extractAndInsertMetrics();
