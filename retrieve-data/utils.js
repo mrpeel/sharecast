@@ -4,6 +4,7 @@ const symbols = require('./symbols.json');
 const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
+const moment = require('moment-timezone');
 const credentials = require('../credentials/credentials.json');
 const host = credentials.host;
 const db = credentials.db;
@@ -125,63 +126,88 @@ let getIndices = function() {
   });
 };
 
-let returnDateAsString = function(dateValue) {
-  let checkDate = new Date(dateValue);
-
-  return checkDate.getFullYear() + '-' +
-    ('0' + (checkDate.getMonth() + 1)).slice(-2) + '-' +
-    ('0' + checkDate.getDate()).slice(-2);
+/** Returns a date in a set format: YYYY-MM-DD
+* @param {String} dateValue - the date string to parse
+* @param {String} dateFormat - a string defining the input format:
+*  YYYY	2014	4 or 2 digit year
+*  YY	14	2 digit year
+*  Y	-25	Year with any number of digits and sign
+*  Q	1..4	Quarter of year. Sets month to first month in quarter.
+*  M MM	1..12	Month number
+*  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
+*  D DD	1..31	Day of month
+*  Do	1st..31st	Day of month with ordinal
+*  DDD DDDD	1..365	Day of year
+*  X	1410715640.579	Unix timestamp
+*  x	1410715640579	Unix ms timestamp
+* @return {String} the reformatted date or an empty string
+*/
+let returnDateAsString = function(dateValue, dateFormat) {
+  if (moment(dateValue, dateFormat || '').isValid()) {
+    return moment(dateValue, dateFormat || '').format('YYYY-MM-DD');
+  } else {
+    return '';
+  }
 };
+
+
+/** Returns a date for the end of the month in a set format: YYYY-MM-DD
+* @param {String} dateValue - the date string to parse
+* @param {String} dateFormat - a string defining the input format:
+*  YYYY	2014	4 or 2 digit year
+*  YY	14	2 digit year
+*  Y	-25	Year with any number of digits and sign
+*  Q	1..4	Quarter of year. Sets month to first month in quarter.
+*  M MM	1..12	Month number
+*  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
+*  D DD	1..31	Day of month
+*  Do	1st..31st	Day of month with ordinal
+*  DDD DDDD	1..365	Day of year
+*  X	1410715640.579	Unix timestamp
+*  x	1410715640579	Unix ms timestamp
+* @return {String} the formatted end of month date or an empty string
+*/
+let returnEndOfMonth = function(dateValue, dateFormat) {
+  if (moment(dateValue, dateFormat || '').isValid()) {
+    return moment(dateValue, dateFormat || '')
+      .endOf("month")
+      .format('YYYY-MM-DD');
+  } else {
+    return '';
+  }
+};
+
 
 /**
  * converts the date string used for querying to a formated date string which
  *  can be displayed
  * @param {String} dateValue a date or string in a format which can be
  *   converted to a date
- * @param {string} unit the unit to change by "d" days, "w" weeks, "y" years
+ * @param {string} unit the unit to change by "days" days, "weeks" weeks,
+ *                    "months", "year" years
  * @param {number} number to change, positive number for futures, negative
  *    number for past
  * @return {Date} a date with the new value
  */
 let dateAdd = function(dateValue, unit, number) {
   // Check that this really is a date
-  if (!isDate(dateValue)) {
+  if (!moment(dateValue).isValid()) {
     throw new Error('dateValue invalid: ' + dateValue);
   }
-  if (!(unit === 'd' || unit === 'm' || unit === 'y')) {
+  if (!(unit === 'days' || unit === 'weeks' || unit === 'months' ||
+    unit === 'years')) {
     throw new Error('unit invalid: ' + unit);
   }
   if (typeof number !== 'number') {
     throw new Error('number invalid: ' + number);
   }
 
-  let newDate = new Date(dateValue);
-  let dateComponents = {};
-
-  dateComponents.years = newDate.getFullYear();
-  dateComponents.months = newDate.getMonth();
-  dateComponents.days = newDate.getDate();
-
-  if (unit === 'd') {
-    newDate.setDate(dateComponents.days + number);
-  } else if (unit === 'm') {
-    newDate.setMonth(dateComponents.months + number);
-  } else if (unit === 'y') {
-    newDate.setFullYear(dateComponents.years + number);
-  }
-
-  return newDate;
+  return moment(dateValue).add(number, unit).format('YYYY-MM-DD');
 };
 
-let isDate = function(dateValue) {
-  let newDate = new Date(dateValue);
-
-  // Check that this really is a date - it must be able to return the month
-  if (isNaN(newDate.getMonth())) {
-    return false;
-  } else {
-    return true;
-  }
+let isDate = function(dateValue, dateFormat) {
+  // Check that this really is a date
+  return moment(dateValue, dateFormat || '').isValid();
 };
 
 let createFieldArray = function(fieldObject) {
@@ -267,4 +293,5 @@ module.exports = {
   writeJSONfile: writeJSONfile,
   doesDataFileExist: doesDataFileExist,
   checkForNumber: checkForNumber,
+  returnEndOfMonth: returnEndOfMonth,
 };

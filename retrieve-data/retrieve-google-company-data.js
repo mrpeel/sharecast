@@ -112,7 +112,7 @@ let retrieveCompanies = asyncify(function() {
           });
         })
         .catch((err) => {
-          cosole.log(err);
+          console.log(err);
           reject(err);
         })
       );

@@ -204,7 +204,7 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
       }
 
       indicatorDate = utils.returnDateAsString(
-        utils.dateAdd(indicatorDate, 'd', 1));
+        utils.dateAdd(indicatorDate, 'days', 1));
 
       indicatorDates.push({
         'symbol': indicatorId,
@@ -324,9 +324,9 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
 
     // Special one-off functionality for dealing with historical data
       /* indicatorValue['created'] = utils.dateAdd(indicatorValue['valueDate'],
-      'm', indicatorRetrievalValues[indicatorValue['symbol']]['monthLag']);
+      'months', indicatorRetrievalValues[indicatorValue['symbol']]['monthLag']);
 
-      indicatorValue['created'] = utils.dateAdd(indicatorValue['created'], 'd',
+      indicatorValue['created'] = utils.dateAdd(indicatorValue['created'], 'days',
         indicatorRetrievalValues[indicatorValue['symbol']]['dayLag']);
 
       indicatorValue['created'] = utils.returnDateAsString(

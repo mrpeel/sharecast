@@ -1,5 +1,9 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
+const dynamodb = require('./dynamodb');
+const asyncify = require('asyncawait/async');
+const awaitify = require('asyncawait/await');
+const shareRetrieve = require('./dynamo-retrieve-share-data');
 
 const fields = {
   // b: 'bid',
@@ -107,27 +111,8 @@ const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
 const companyFieldsToRetrieve = utils.createFieldArray(fields);
 // let symbolGroups = [];
 // let shareRetrievals = [];
-let csvFields = [];
-let csvData = [];
-
-let setupSymbols = function() {
-  let indexValues = utils.getIndices();
-  let companyValues = utils.getCompanies();
-
-  indexValues.forEach(function(indexValue) {
-    indexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
-    symbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
-  });
-
-  indices = utils.createFieldArray(indexLookup);
-
-  companyValues.forEach(function(companyValue) {
-    companyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-    symbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-  });
-
-  companies = utils.createFieldArray(companyLookup);
-};
+let dataFields = [];
+let data = [];
 
 let retrieveHistory = function(symbol, fields, startDate, endDate, interval) {
   return new Promise(function(resolve, reject) {
@@ -195,17 +180,18 @@ let processHistoryResult = function(result) {
 
   Object.keys(result).forEach(function(field) {
     // Check the field is in the csv list
-    if (csvFields.indexOf(field) === -1) {
-      csvFields.push(field);
+    if (dataFields.indexOf(field) === -1) {
+      dataFields.push(field);
     }
 
     // Reset number here required
     result[field] = utils.checkForNumber(result[field]);
   });
   // Add result to csv data
-  csvData.push(result);
+  data.push(result);
 };
 
+/*
 setupSymbols();
 
 let today = new Date();
@@ -247,7 +233,7 @@ for (companyCounter = 0; companyCounter < companies.length;
   } else {
     console.log('Skipping companyCounter: ' + internalCounter);
   }
-}
+} */
 
 /**
  * Returns a dividend value for a company date combination (if exists)
@@ -292,41 +278,65 @@ let returnDividendValueForDate = asyncify(function(companySymbol, valueDate) {
   }
 });
 
-/*
-// Split companies into groups of 10 so each request contains 10
-for (companyCounter = 0; companyCounter < companies.length;
-  companyCounter += 10) {
-  // symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
-  let companySymbols = companies.slice(companyCounter, companyCounter + 10);
-  let internalCounter = companyCounter;
 
-  if (!utils.doesDataFileExist('companies-history-' + internalCounter + '-'
-      + dateString + '.csv')) {
-    setTimeout(function() {
-      console.log('Processing companyCounter: ' + internalCounter);
-      retrieveHistory(companySymbols, companyFieldsToRetrieve, '2012-01-01',
-        '2017-01-29', 'd')
-        .then(function(results) {
-          // Reset fields for companies
-          csvFields = [];
-          csvData = [];
+let getDividendHistory = asyncify(function() {
+  let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
-          processHistoryResults(results);
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
 
-          if (csvData.length > 0) {
-            utils.writeToCsv(csvData, csvFields, 'companies-history-' +
-              internalCounter);
-          } else {
-            console.log('No history data to save');
-          }
-        }).catch(function(err) {
-        console.log(err);
-      });
-    }, internalCounter * 20);
-  } else {
-    console.log('Skipping companyCounter: ' + internalCounter);
+  // Split companies into groups of 10 so each request contains 10
+  for (companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 10) {
+    // symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
+    let companySymbols = companies.slice(companyCounter, companyCounter + 10);
+    let internalCounter = companyCounter;
+
+    let insertDetails = {
+      tableName: 'companyMetrics',
+      primaryKey: ['symbol', 'metricsDate'],
+    };
+
+
+    console.log('Processing companyCounter: ' + internalCounter);
+    /* awaitify(retrieveHistory(companySymbols, companyFieldsToRetrieve,
+      '2006-01-01', '2017-01-29', 'd') */
+    try {
+      let results = awaitify(retrieveDividendHistory(companySymbols,
+        '2006-01-01', '2017-01-29'));
+      // Reset fields for companies
+      data = [];
+
+      processHistoryResults(results);
+
+      if (data.length > 0) {
+        data.forEach((dividendRecord) => {
+          dividendRecord['DividendPerShare'] = dividendRecord['dividends'];
+          dividendRecord['metricsDate'] = dividendRecord['date'];
+          dividendRecord['yearMonth'] = dividendRecord['metricsDate']
+            .substring(0, 7)
+            .replace('-', '');
+
+          delete dividendRecord['dividends'];
+          delete dividendRecord['date'];
+
+          // console.log(dividendRecord);
+          insertDetails.values = dividendRecord;
+
+          awaitify(dynamodb.insertRecord(insertDetails));
+        });
+      } else {
+        console.log('No history data to save');
+      }
+    } catch (err) {
+      console.log(err);
+    }
   }
-}
+});
 
 /* retrieveHistory(indices, indiceFieldsToRetrieve, '2012-01-01',
   '2017-01-29', 'd')
@@ -376,3 +386,5 @@ for (companyCounter = 0; companyCounter < companies.length;
   .catch(function(err) {
     console.log(err);
   }); */
+
+getDividendHistory();

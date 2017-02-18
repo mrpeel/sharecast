@@ -2,6 +2,9 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
+const Bottleneck = require('bottleneck');
+// Create rate limiter for 4 executions per second
+const limiter = new Bottleneck(4, 1000);
 
 AWS.config.loadFromPath('../credentials/aws.json');
 
@@ -53,8 +56,7 @@ let insertRecord = function(insertDetails) {
         insertDetails.primaryKey[0] + ')';
     }
 
-
-    client.put(params, function(err, data) {
+    limiter.submit(client.put, params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {
         console.error('Skipping add to ' + insertDetails.tableName + ': ',
           JSON.stringify(insertDetails.primaryKey), ' already exists.' +
@@ -227,6 +229,48 @@ let getTable = function(tableDetails) {
   });
 };
 
+/** Update a record in a table
+* @param {Object} tableDetails - an object with all the details
+* tableDetails = {
+*  tableName: 'companies',
+*  key: {
+            symbol: id,
+            quoteDate: ''
+        },
+]
+*  updateExpression: 'set sentTime = :sentTime, sentLog = :sentLog'
+*  expressionAttributeValues: {
+    ':sentTime': moment().tz('Australia/Sydney').format(),
+    ':sentLog': result
+    };
+* };
+@return {Promise} which resolves with:
+*   array of data items
+*/
+let updateRecord = function(updateDetails) {
+  return new Promise(function(resolve, reject) {
+    let params = {
+      TableName: updateDetails.tableName,
+      Key: updateDetails.key,
+      UpdateExpression: updateDetails.updateExpression,
+      ExpressionAttributeValues: updateDetails.expressionAttributeValues,
+    };
+
+    param.ReturnValues = 'UPDATED_NEW';
+
+    client.update(params, function(err, data) {
+      if (err) {
+        console.error('Unable to get table  ', tableDetails.tableName,
+          '. Error:', JSON.stringify(err, null, 2));
+        reject(JSON.stringify(err, null, 2));
+      } else {
+        console.log('Get table succeeded: ', tableDetails.tableName);
+        resolve(data.Items || []);
+      }
+    });
+  });
+};
+
 /* let testQuery = function() {
   let queryDetails = {
     tableName: 'financialIndicatorValues',
@@ -272,4 +316,5 @@ module.exports = {
   queryTable: queryTable,
   scanTable: scanTable,
   getTable: getTable,
+  updateRecord: updateRecord,
 };

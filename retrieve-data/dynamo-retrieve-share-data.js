@@ -626,3 +626,7 @@ if (program.quotes) {
   console.log('Executing retrieve index and company quotes');
   executeQuoteRetrieval();
 }
+
+module.exports = {
+  setupSymbols: setupSymbols,
+}

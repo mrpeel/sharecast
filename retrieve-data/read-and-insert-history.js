@@ -2,7 +2,9 @@ const csv = require('csvtojson');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const dynamoMetrics = require('./dynamo-retrieve-google-company-data');
-const metrics = require('./retrieve-google-company-data');
+// const metrics = require('./retrieve-google-company-data');
+const companyHistory = require('../data/company-history.json');
+const historyTranslation = require('./history-translation.json');
 const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
@@ -177,7 +179,7 @@ let readAndInsertDividendHistory = asyncify(function() {
   }
 });
 
-/*let readAndInsertMetrics = asyncify(function() {
+/* let readAndInsertMetrics = asyncify(function() {
   let csvFileName = 'company-metrics-2017-01-26.csv';
   let csvFileName2 = 'company-metrics-2017-01-25.csv';
   let companyEps = {};
@@ -310,7 +312,7 @@ let extractAndInsertIndexHistory = asyncify(function() {
 
     if (results.length) {
       results.forEach((indexValue) => {
-        indexValue['symbol'] = metricValue['IndexSymbol'];
+        indexValue['symbol'] = indexValue['IndexSymbol'];
         indexValue['quoteDate'] = utils.returnDateAsString(
           indexValue['QuoteDate']);
         indexValue['yearMonth'] = indexValue['quoteDate']
@@ -318,12 +320,15 @@ let extractAndInsertIndexHistory = asyncify(function() {
           .replace('-', '');
         indexValue['created'] = utils.returnDateAsString(
           indexValue['Created']);
+        indexValue['percebtChangeFrom52WeekHigh'] = indexValue['percentChangeFrom52WeekHigh'];
 
         // Remove uppercase properties
         delete indexValue['Id'];
         delete indexValue['IndexSymbol'];
         delete indexValue['QuoteDate'];
+        delete indexValue['YearMonth'];
         delete indexValue['Created'];
+        delete indexValue['percentChangeFrom52WeekHigh'];
 
         // Remove nulls, empty values and -
         // Check through for values with null and remove from object
@@ -352,8 +357,193 @@ let extractAndInsertIndexHistory = asyncify(function() {
     }
   }
 });
+
+
+let openAndInsertIndexHistory = asyncify(function() {
+  let insertDetails = {
+    tableName: 'indexQuotes',
+    values: {},
+    primaryKey: [
+      'symbol', 'quoteDate',
+    ],
+  };
+
+  let csvFileNames = ['indices-2017-02-03.csv'];
+
+  csvFileNames.forEach((csvFileName) => {
+    if (utils.doesDataFileExist(csvFileName)) {
+      try {
+        let csvFilePath = '../data/' + csvFileName;
+        let indexValues = awaitify(retrieveCsv(csvFilePath));
+
+        indexValues.forEach((indexValue) => {
+          indexValue['quoteDate'] = utils.returnDateAsString(
+            indexValue['lastTradeDate']);
+          indexValue['yearMonth'] = indexValue['quoteDate']
+            .substring(0, 7)
+            .replace('-', '');
+
+          // Remove nulls, empty values and -
+          // Check through for values with null and remove from object
+          Object.keys(indexValue).forEach((field) => {
+            let holdingVal = indexValue[field];
+            if (holdingVal === null || holdingVal === '' ||
+              holdingVal === '-') {
+              delete indexValue[field];
+            } else if (typeof (holdingVal) === 'string' &&
+              !isNaN(holdingVal.replace(',', ''))) {
+              indexValue[field] = Number(holdingVal.replace(',', ''));
+            }
+          });
+
+          // console.log(indexValue);
+          insertDetails.values = indexValue;
+
+          awaitify(dynamodb.insertRecord(insertDetails));
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  });
+});
+
+let extractAndInsertCompanyHistory = asyncify(function() {
+  let queryDetails = {
+    tableName: 'companyMetrics',
+    limit: 1,
+  };
+
+  let updateDetails = {
+    tableName: 'companyMetrics',
+  };
+
+  try {
+    Object.keys(companyHistory).forEach((company) => {
+      let companyMetrics = companyHistory[company];
+
+      Object.keys(companyMetrics).forEach((yearMetric) => {
+        let metricValue = companyMetrics[yearMetric];
+
+        // Translate values into metrics property names
+        Object.keys(metricValue).forEach((field) => {
+          // Check if a translation is found
+          if (historyTranslation[field] && metricValue[field] !== '--' &&
+            metricValue[field] !== '-') {
+            let val = utils.checkForNumber(metricValue[field]);
+            val = Number(val) * historyTranslation[field]['multiply-by'];
+            metricValue[historyTranslation[field]['name']] = val;
+          }
+          // emove original field from object
+          delete metricValue[field];
+        });
+
+        // Remove nulls, empty values and -
+        // Check through for values with null and remove from object
+        Object.keys(metricValue).forEach((field) => {
+          let holdingVal = metricValue[field];
+          if (holdingVal === null || holdingVal === '' ||
+            holdingVal === '-' || holdingVal === '--') {
+            delete metricValue[field];
+          } else if (typeof (holdingVal) === 'string' &&
+            !isNaN(holdingVal.replace(',', ''))) {
+            metricValue[field] = Number(holdingVal.replace(',', ''));
+          }
+        });
+
+        /* Dates are stored in the format 06/07 = June 2007 */
+        let baseDate = utils.returnDateAsString('01/' + yearMetric,
+          'D/M/YYYY');
+        let metricsEndDate = utils.dateAdd(baseDate, 'months', 1);
+        let metricsStartDate = utils.dateAdd(baseDate, 'months', -1);
+
+
+        // Try to find a matching dividend record in the companyMetrics table
+        // Look forward up to 30 days
+        queryDetails.keyConditionExpression = 'symbol = :symbol and ' +
+          'metricsDate >= :metricsDate';
+        queryDetails.expressionAttributeValues = {
+          ':symbol': company,
+          ':metricsDate': baseDate,
+        };
+
+        let result = awaitify(dynamodb.queryTable(queryDetails));
+
+        // Check if we have a result within the time period
+        if (result.length === 0 || result[0]['metricsDate'] > metricsEndDate) {
+          // Not found, so look back up to 30 days
+          queryDetails.keyConditionExpression = 'symbol = :symbol and ' +
+            'metricsDate < :metricsDate';
+          queryDetails.expressionAttributeValues = {
+            ':symbol': company,
+            ':metricsDate': baseDate,
+          };
+          queryDetails.reverseOrder = true;
+
+          result = awaitify(dynamodb.queryTable(queryDetails));
+        }
+
+        // Check if we have a result within the time period
+        if (result.length > 0 && (result[0]['metricsDate'] < metricsEndDate ||
+          result[0]['metricsDate'] > metricsStartDate)) {
+          // We have a result so we'll update that record
+          let returnedMetricDate = result[0]['metricsDate'];
+          // Set up the key: symbol and metricsDate
+          updateDetails.key = {
+            symbol: company,
+            metricsDate: returnedMetricDate,
+          };
+          let fieldsPresent = [];
+          let updateExpression;
+          let expressionAttributeValues = {};
+
+          // Get a list of fields
+          Object.keys(metricValue).forEach((field) => {
+            expressionAttributeValues[(':' + field)] = metricValue[field];
+            fieldsPresent.push(field + '= :' + field);
+          });
+
+          updateExpression = 'set ' + fieldsPresent.join(', ');
+
+          updateDetails.updateExpression = updateExpression;
+          updateDetails.expressionAttributeValues = expressionAttributeValues;
+
+        // awaitify(dynamoMetrics.updateRecord(updateDetails));
+        } else {
+          /* No result so estimate the dat.
+          Dates are stored in the format 06/07 = June 2007,
+            Average it out and set to the middle of the month */
+          let estDate = utils.returnDateAsString('15/' + yearMetric,
+            'D/M/YYYY');
+          metricValue['metricsDate'] = estDate;
+          metricValue['yearMonth'] = estDate
+            .substring(0, 7)
+            .replace('-', '');
+
+          // Add in all the required base values
+          metricValue['symbol'] = company;
+
+        // awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+        }
+
+        // console.log(metricValue);
+
+      });
+    });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+
 // readAndInsertIndexHistory();
 
 // readAndInsertDividendHistory();
 
-extractAndInsertMetrics();
+// extractAndInsertMetrics();
+
+// extractAndInsertIndexHistory();
+
+// openAndInsertIndexHistory();
+
+extractAndInsertCompanyHistory();

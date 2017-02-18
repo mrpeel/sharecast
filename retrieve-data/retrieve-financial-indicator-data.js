@@ -204,7 +204,7 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
       }
 
       indicatorDate = utils.returnDateAsString(
-        utils.dateAdd(indicatorDate, 'd', 1));
+        utils.dateAdd(indicatorDate, 'days', 1));
 
       indicatorDates.push({
         'indicatorId': indicatorId,
