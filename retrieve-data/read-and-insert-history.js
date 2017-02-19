@@ -491,26 +491,32 @@ let extractAndInsertCompanyHistory = asyncify(function() {
           result[0]['metricsDate'] > metricsStartDate)) {
           // We have a result so we'll update that record
           let returnedMetricDate = result[0]['metricsDate'];
+          // Set-up the values for recent quarter dividend
+          let dividendRecentQuarter = result[0]['DividendPerShare'] || 0;
           // Set up the key: symbol and metricsDate
           updateDetails.key = {
             symbol: company,
             metricsDate: returnedMetricDate,
           };
-          let fieldsPresent = [];
+          let fieldsPresent = ['#DividendRecentQuarter=:DividendRecentQuarter'];
           let updateExpression;
-          let expressionAttributeValues = {};
-          let expressionAttributeNames = {};
+          let expressionAttributeValues = {
+            ':DividendRecentQuarter': dividendRecentQuarter,
+          };
+          let expressionAttributeNames = {
+            '#DividendRecentQuarter': 'DividendRecentQuarter',
+          };
 
           // Get a list of fields
           Object.keys(metricValue).forEach((field) => {
             expressionAttributeValues[(':' + field)] = metricValue[field];
             expressionAttributeNames[('#' + field)] = field;
-            fieldsPresent.push('#' + field + '= :' + field);
+            fieldsPresent.push('#' + field + '=:' + field);
           });
 
           // Enure that some fields are present to update
           if (fieldsPresent.length) {
-            updateExpression = 'set ' + fieldsPresent.join(', ');
+            updateExpression = 'set ' + fieldsPresent.join(',');
 
             updateDetails.updateExpression = updateExpression;
             updateDetails.expressionAttributeValues = expressionAttributeValues;
