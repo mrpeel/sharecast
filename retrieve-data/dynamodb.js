@@ -2,9 +2,6 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
-const Bottleneck = require('bottleneck');
-// Create rate limiter for 4 executions per second
-const limiter = new Bottleneck(4, 1000);
 
 AWS.config.loadFromPath('../credentials/aws.json');
 
@@ -56,10 +53,12 @@ let insertRecord = function(insertDetails) {
         insertDetails.primaryKey[0] + ')';
     }
 
-    limiter.submit(client.put, params, function(err, data) {
+    console.log('Put table request: ', JSON.stringify(params));
+
+    client.put(params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {
-        console.error('Skipping add to ' + insertDetails.tableName + ': ',
-          JSON.stringify(insertDetails.primaryKey), ' already exists.' +
+        console.error('Skipping add to ', insertDetails.tableName, ': ',
+          JSON.stringify(insertDetails.primaryKey), ' already exists.',
           ', values: ', JSON.stringify(insertDetails.values));
         resolve({
           result: 'skipped',
@@ -68,16 +67,15 @@ let insertRecord = function(insertDetails) {
             ', values: ' + JSON.stringify(insertDetails.values),
         });
       } else if (err) {
-        console.error('Unable to add to ' + insertDetails.tableName +
-        ', values: ', JSON.stringify(insertDetails.values), '. Error JSON:',
+        console.error('Unable to add to ', insertDetails.tableName,
+          ', values: ', JSON.stringify(insertDetails.values), '. Error JSON:',
           JSON.stringify(err, null, 2));
         reject({
           result: 'failed',
           message: JSON.stringify(err, null, 2),
         });
       } else {
-        console.log('PutItem succeeded to ' + insertDetails.tableName +
-          ', values: ', JSON.stringify(insertDetails.values));
+        console.log('PutItem to ', insertDetails.tableName, ' succeeded.');
         resolve({
           result: 'inserted',
           data: JSON.stringify(insertDetails.values),
@@ -122,21 +120,24 @@ let queryTable = function(queryDetails) {
 
     if (queryDetails.reverseOrder) {
       params.ScanIndexForward = false;
+    } else {
+      params.ScanIndexForward = true;
     }
 
     if (queryDetails.projectionExpression) {
       params.ProjectionExpression = queryDetails.projectionExpression;
     }
 
+    console.log('Query table request: ', JSON.stringify(params));
+
     client.query(params, function(err, data) {
       if (err) {
         console.error('Unable to query ', queryDetails.tableName,
-          ', expression: ', queryDetails.keyConditionExpression,
           '. Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Query succeeded: ', queryDetails.tableName,
-          ', expression: ', queryDetails.keyConditionExpression);
+        console.log('Query table ', queryDetails.tableName, ' succeeded.  ',
+          data.Items.length, ' returned.');
         resolve(data.Items || []);
       }
     });
@@ -174,16 +175,17 @@ let scanTable = function(scanDetails) {
       params.ProjectionExpression = queryDetails.projectionExpression;
     }
 
+    console.log('Scan table request: ', JSON.stringify(params));
+
 
     client.scan(params, (err, data) => {
       if (err) {
         console.error('Unable to scan ', scanDetails.tableName,
-          ', expression: ', scanDetails.filterExpression,
           '. Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Scan succeeded: ', scanDetails.tableName,
-          ', expression: ', scanDetails.filterExpression);
+        console.log('Scan table ', scanDetails.tableName, ' succeeded.',
+          data.Items.length, ' returned.');
         resolve(data.Items || []);
       }
     });
@@ -216,13 +218,16 @@ let getTable = function(tableDetails) {
       params.ProjectionExpression = tableDetails.projectionExpression;
     }
 
+    console.log('Get table request: ', JSON.stringify(params));
+
     client.scan(params, function(err, data) {
       if (err) {
         console.error('Unable to get table  ', tableDetails.tableName,
           '. Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Get table succeeded: ', tableDetails.tableName);
+        console.log('Get table ', tableDetails.tableName, ' succeeded.',
+          data.Items.length, ' returned.');
         resolve(data.Items || []);
       }
     });
@@ -230,7 +235,7 @@ let getTable = function(tableDetails) {
 };
 
 /** Update a record in a table
-* @param {Object} tableDetails - an object with all the details
+* @param {Object} updateDetails - an object with all the details
 * tableDetails = {
 *  tableName: 'companies',
 *  key: {
@@ -238,11 +243,14 @@ let getTable = function(tableDetails) {
             quoteDate: ''
         },
 ]
-*  updateExpression: 'set sentTime = :sentTime, sentLog = :sentLog'
+*  updateExpression: 'set #sentTime = :sentTime, sentLog = :sentLog',
 *  expressionAttributeValues: {
     ':sentTime': moment().tz('Australia/Sydney').format(),
     ':sentLog': result
-    };
+  },
+  *  expressionAttributeNames: (optional) {
+      '#sentTime': 'SentTime',
+    },
 * };
 @return {Promise} which resolves with:
 *   array of data items
@@ -256,16 +264,22 @@ let updateRecord = function(updateDetails) {
       ExpressionAttributeValues: updateDetails.expressionAttributeValues,
     };
 
-    param.ReturnValues = 'UPDATED_NEW';
+    if (updateDetails.expressionAttributeNames) {
+      params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
+    }
+
+    params.ReturnValues = 'UPDATED_NEW';
+
+    console.log('Update table request: ', JSON.stringify(params));
 
     client.update(params, function(err, data) {
       if (err) {
-        console.error('Unable to get table  ', tableDetails.tableName,
+        console.error('Unable to update table  ', updateDetails.tableName,
           '. Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Get table succeeded: ', tableDetails.tableName);
-        resolve(data.Items || []);
+        console.log('Update table ', updateDetails.tableName, ' succeeded.');
+        resolve(data || null);
       }
     });
   });

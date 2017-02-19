@@ -11,6 +11,15 @@ const db = credentials.db;
 const username = credentials.username;
 const password = credentials.password;
 
+let sleep = function(ms) {
+  if (!ms) {
+    ms = 1;
+  }
+  return new Promise((r) => {
+    setTimeout(r, ms);
+  });
+};
+
 let getLastRetrievalDate = function() {
   return new Promise(function(resolve, reject) {
     let connection;
@@ -281,6 +290,7 @@ let checkForNumber = function(value) {
 
 
 module.exports = {
+  sleep: sleep,
   getLastRetrievalDate: getLastRetrievalDate,
   setLastRetrievalDate: setLastRetrievalDate,
   getCompanies: getCompanies,

@@ -418,6 +418,9 @@ let extractAndInsertCompanyHistory = asyncify(function() {
     tableName: 'companyMetrics',
   };
 
+  let updateCounter = 0;
+  let insertCounter = 0;
+
   try {
     Object.keys(companyHistory).forEach((company) => {
       let companyMetrics = companyHistory[company];
@@ -454,7 +457,7 @@ let extractAndInsertCompanyHistory = asyncify(function() {
         /* Dates are stored in the format 06/07 = June 2007 */
         let baseDate = utils.returnDateAsString('01/' + yearMetric,
           'D/M/YYYY');
-        let metricsEndDate = utils.dateAdd(baseDate, 'months', 1);
+        let metricsEndDate = utils.dateAdd(baseDate, 'months', 3);
         let metricsStartDate = utils.dateAdd(baseDate, 'months', -1);
 
 
@@ -496,40 +499,56 @@ let extractAndInsertCompanyHistory = asyncify(function() {
           let fieldsPresent = [];
           let updateExpression;
           let expressionAttributeValues = {};
+          let expressionAttributeNames = {};
 
           // Get a list of fields
           Object.keys(metricValue).forEach((field) => {
             expressionAttributeValues[(':' + field)] = metricValue[field];
-            fieldsPresent.push(field + '= :' + field);
+            expressionAttributeNames[('#' + field)] = field;
+            fieldsPresent.push('#' + field + '= :' + field);
           });
 
-          updateExpression = 'set ' + fieldsPresent.join(', ');
+          // Enure that some fields are present to update
+          if (fieldsPresent.length) {
+            updateExpression = 'set ' + fieldsPresent.join(', ');
 
-          updateDetails.updateExpression = updateExpression;
-          updateDetails.expressionAttributeValues = expressionAttributeValues;
+            updateDetails.updateExpression = updateExpression;
+            updateDetails.expressionAttributeValues = expressionAttributeValues;
+            updateDetails.expressionAttributeNames = expressionAttributeNames;
 
-        // awaitify(dynamoMetrics.updateRecord(updateDetails));
+            updateCounter++;
+            awaitify(dynamodb.updateRecord(updateDetails));
+          }
         } else {
-          /* No result so estimate the dat.
-          Dates are stored in the format 06/07 = June 2007,
-            Average it out and set to the middle of the month */
-          let estDate = utils.returnDateAsString('15/' + yearMetric,
-            'D/M/YYYY');
-          metricValue['metricsDate'] = estDate;
-          metricValue['yearMonth'] = estDate
-            .substring(0, 7)
-            .replace('-', '');
+          // Check that the object has some values to insert
+          if (Object.keys(metricValue).length) {
+            /* No result so estimate the date.
+            Dates are stored in the format 06/07 = June 2007,
+              Average it out and set to the middle of the month */
+            let estDate = utils.returnDateAsString('15/' + yearMetric,
+              'D/M/YYYY');
+            metricValue['metricsDate'] = estDate;
+            metricValue['yearMonth'] = estDate
+              .substring(0, 7)
+              .replace('-', '');
 
-          // Add in all the required base values
-          metricValue['symbol'] = company;
+            // Add in all the required base values
+            metricValue['symbol'] = company;
 
-        // awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+            insertCounter++;
+            awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+          }
         }
 
-        // console.log(metricValue);
-
+      // console.log(metricValue);
+      /* Make sure can't exceed 5 writes per second - put latency is around 15
+         milliseconds  */
+      // awaitify(utils.sleep(175));
       });
     });
+
+    console.log('Updates: ', updateCounter);
+    console.log('Inserts: ', insertCounter);
   } catch (err) {
     console.log(err);
   }
