@@ -94,6 +94,7 @@ let insertRecord = function(insertDetails) {
 *  expressionAttributeValues: {
 *  ':symbol': 'AAD',
 *  },
+*  filterExpression: 'quoteDate <= :quoteDate' (optional),
 *  limit: 1, (optional query limit)
 *  reverseOrder: false, (optional to reverse sort order)
 *  projectionExpression: 'symbol, quoteDate',(optional expression to limit
@@ -123,6 +124,11 @@ let queryTable = function(queryDetails) {
     } else {
       params.ScanIndexForward = true;
     }
+
+    if (queryDetails.filterExpression) {
+      params.FilterExpression = queryDetails.filterExpression;
+    }
+
 
     if (queryDetails.projectionExpression) {
       params.ProjectionExpression = queryDetails.projectionExpression;
@@ -171,8 +177,8 @@ let scanTable = function(scanDetails) {
       params.Limit = scanDetails.limit;
     }
 
-    if (queryDetails.projectionExpression) {
-      params.ProjectionExpression = queryDetails.projectionExpression;
+    if (scanDetails.projectionExpression) {
+      params.ProjectionExpression = scanDetails.projectionExpression;
     }
 
     console.log('Scan table request: ', JSON.stringify(params));

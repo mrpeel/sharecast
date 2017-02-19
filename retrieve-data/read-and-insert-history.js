@@ -561,6 +561,156 @@ let extractAndInsertCompanyHistory = asyncify(function() {
 });
 
 
+let addMetricsToDividends = asyncify(function() {
+  let scanDetails = {
+    tableName: 'companyMetrics',
+    filterExpression: 'attribute_exists(DividendPerShare) and ' +
+      'attribute_not_exists(BookValuePerShareYear)',
+  };
+
+  let updateDetails = {
+    tableName: 'companyMetrics',
+  };
+
+  let queryDetails = {
+    tableName: 'companyMetrics',
+    limit: 1,
+    reverseOrder: true,
+    filterExpression: 'attribute_exists(BookValuePerShareYear)',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'metricsDate < :metricsDate',
+  };
+
+  let dividendRecords = awaitify(dynamodb.scanTable(scanDetails));
+
+  dividendRecords.forEach((dividendRecord) => {
+    /* Work through each record, try to find preceding record with
+       BookValuePerShareYear */
+    let fieldsPresent = ['#DividendRecentQuarter=:DividendRecentQuarter'];
+    let updateExpression;
+    let expressionAttributeValues = {
+      ':DividendRecentQuarter': dividendRecord['DividendPerShare'],
+    };
+    let expressionAttributeNames = {
+      '#DividendRecentQuarter': 'DividendRecentQuarter',
+    };
+
+    // Set up the key: symbol and metricsDate
+    updateDetails.key = {
+      symbol: dividendRecord['symbol'],
+      metricsDate: dividendRecord['metricsDate'],
+    };
+
+    // Add the values for the query
+    queryDetails.expressionAttributeValues = {
+      ':symbol': dividendRecord['symbol'],
+      ':metricsDate': dividendRecord['metricsDate'],
+    };
+
+    // Execute the query
+    let queryResult = awaitify(dynamodb.queryTable(queryDetails));
+
+    if (queryResult.length) {
+      let copyFromRecord = queryResult[0];
+
+      // Remove the attributes which should not be copied
+      delete copyFromRecord['symbol'];
+      delete copyFromRecord['metricsDate'];
+      delete copyFromRecord['yearMonth'];
+      delete copyFromRecord['created'];
+      delete copyFromRecord['DividendRecentQuarter'];
+      delete copyFromRecord['DividendPerShare'];
+
+      // Get a list of fields and values to copy
+      Object.keys(copyFromRecord).forEach((field) => {
+        expressionAttributeValues[(':' + field)] = copyFromRecord[field];
+        expressionAttributeNames[('#' + field)] = field;
+        fieldsPresent.push('#' + field + '=:' + field);
+      });
+    }
+    // Enure that some fields are present to update
+    updateExpression = 'set ' + fieldsPresent.join(',');
+
+    updateDetails.updateExpression = updateExpression;
+    updateDetails.expressionAttributeValues = expressionAttributeValues;
+    updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+    awaitify(dynamodb.updateRecord(updateDetails));
+  });
+});
+
+
+let calculateYearDividends = asyncify(function() {
+  let scanDetails = {
+    tableName: 'companyMetrics',
+    filterExpression: 'attribute_exists(DividendPerShare) and ' +
+      'attribute_not_exists(DividendYield) and ' +
+      'attribute_not_exists(DPSRecentYear)',
+  };
+
+  let updateDetails = {
+    tableName: 'companyMetrics',
+  };
+
+  let queryDetails = {
+    tableName: 'companyMetrics',
+    filterExpression: 'attribute_exists(DividendRecentQuarter)',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'metricsDate between :metricsStartDate and :metricsEndDate',
+  };
+
+  let dividendRecords = awaitify(dynamodb.scanTable(scanDetails));
+
+  dividendRecords.forEach((dividendRecord) => {
+    /* Work through each record, try to find preceding record with
+       BookValuePerShareYear */
+    let updateExpression;
+    let expressionAttributeNames = {
+      '#DividendPerShare': 'DividendPerShare',
+      '#DPSRecentYear': 'DPSRecentYear',
+    };
+
+    // Set up the key: symbol and metricsDate
+    updateDetails.key = {
+      symbol: dividendRecord['symbol'],
+      metricsDate: dividendRecord['metricsDate'],
+    };
+
+    // Add the values for the query
+    queryDetails.expressionAttributeValues = {
+      ':symbol': dividendRecord['symbol'],
+      ':metricsStartDate': utils.dateAdd(dividendRecord['metricsDate'],
+        'weeks', -50),
+      ':metricsEndDate': dividendRecord['metricsDate'],
+    };
+
+    // Execute the query
+    let queryResult = awaitify(dynamodb.queryTable(queryDetails));
+
+    if (queryResult.length) {
+      let yearDividends = 0;
+      queryResult.forEach((record) => {
+        yearDividends += record['DividendRecentQuarter'] || 0;
+      });
+
+      let expressionAttributeValues = {
+        ':DividendPerShare': yearDividends,
+        ':DPSRecentYear': yearDividends,
+      };
+
+      // Enure that some fields are present to update
+      updateExpression = 'set #DividendPerShare=:DividendPerShare, ' +
+        '#DPSRecentYear=:DPSRecentYear';
+
+      updateDetails.updateExpression = updateExpression;
+      updateDetails.expressionAttributeValues = expressionAttributeValues;
+      updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+      awaitify(dynamodb.updateRecord(updateDetails));
+    }
+  });
+});
+
 // readAndInsertIndexHistory();
 
 // readAndInsertDividendHistory();
@@ -571,4 +721,6 @@ let extractAndInsertCompanyHistory = asyncify(function() {
 
 // openAndInsertIndexHistory();
 
-extractAndInsertCompanyHistory();
+// extractAndInsertCompanyHistory();
+
+calculateYearDividends();

@@ -13,7 +13,9 @@ Apply formula to each result:
 - calculate capital gain % : future price / current price
 - dividends not calculated for 1,2,4,8 weeks because the odds are they won't be paid
   during the period
-- calculate dividend % : lastTradePriceOnly / dividendPerShare / 52 * number of weeks in the future
+- some values have DividendYield - use DividendYield / 52 * number of weeks in the future
+OR
+  - calculate dividend yield % : lastTradePriceOnly / DPSRecentYear / 52 * number of weeks in the future
 - add together using a double weighting for dividends (dividends are more important)
 
 
