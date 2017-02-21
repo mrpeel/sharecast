@@ -162,34 +162,33 @@ let retrieveDividendHistory = function(symbol, startDate, endDate) {
 };
 
 
-let processHistoryResults = function(results) {
+let processIndexHistoryResults = asyncify(function(results) {
   if (results) {
     Object.keys(results).forEach(function(symbolResults) {
       // Multiple  symbols returned
       results[symbolResults].forEach(function(indResult) {
-        processHistoryResult(indResult);
+        awaitify(processIndexHistoryResult(indResult));
+        awaitify(utils.sleep(175));
       });
     });
   }
-};
+});
 
-let processHistoryResult = function(result) {
-  result.date = utils.returnDateAsString(result.date);
+let processIndexHistoryResult = asyncify(function(result) {
+  result.lastTradeDate = utils.returnDateAsString(result.date);
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
 
-  Object.keys(result).forEach(function(field) {
-    // Check the field is in the csv list
-    if (dataFields.indexOf(field) === -1) {
-      dataFields.push(field);
-    }
+  // Remove oriingal date field
+  delete result['date'];
 
+  Object.keys(result).forEach(function(field) {
     // Reset number here required
     result[field] = utils.checkForNumber(result[field]);
   });
-  // Add result to csv data
-  data.push(result);
-};
+  // Insert result in dynamodb
+  awaitify(shareRetrieve.writeIndexQuote(result));
+});
 
 /*
 setupSymbols();
@@ -387,4 +386,21 @@ for (companyCounter = 0; companyCounter < companies.length;
     console.log(err);
   }); */
 
-getDividendHistory();
+let getIndexHistory = asyncify(function() {
+  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
+
+  let results = awaitify(retrieveHistory(indices, indiceFieldsToRetrieve,
+    '2006-07-01', '2011-12-31', 'd'));
+
+  processIndexHistoryResults(results);
+});
+
+
+getIndexHistory();

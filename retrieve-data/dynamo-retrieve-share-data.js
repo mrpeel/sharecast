@@ -331,8 +331,22 @@ let addMetricsToQuote = function(quote) {
   return quote;
 };
 
-let writeIndexResults = asyncify(function(indexData) {
+let writeIndexResults = asyncify(function(indexDataSet) {
   console.log('----- Start write index quote results -----');
+
+  if (indexDataSet.length) {
+    indexDataSet.forEach((indexQuote) => {
+      try {
+        awaitify(writeIndexQuote(indexQuote));
+      } catch (err) {
+        console.log(err);
+      }
+    });
+  }
+});
+
+let writeIndexQuote = asyncify(function(indexQuote) {
+  console.log('----- Write index quote  -----');
   try {
     // Set up the basic insert structure for dynamo
     let insertDetails = {
@@ -343,22 +357,18 @@ let writeIndexResults = asyncify(function(indexData) {
       ],
     };
 
-    for (let c = 0; c < indexData.length; c++) {
-      // Prepare and insert row
-      let indexRow = indexData[c];
-      indexRow.quoteDate = utils.returnDateAsString(indexRow['lastTradeDate']);
-      indexRow.yearMonth = indexRow.quoteDate.substring(0, 7).replace('-', '');
+    indexQuote.quoteDate = utils.returnDateAsString(indexQuote['lastTradeDate']);
+    indexQuote.yearMonth = indexQuote.quoteDate.substring(0, 7).replace('-', '');
 
-      // Check through for values with null and remove from object
-      Object.keys(indexRow).forEach((field) => {
-        if (indexRow[field] === null) {
-          delete indexRow[field];
-        }
-      });
+    // Check through for values with null and remove from object
+    Object.keys(indexQuote).forEach((field) => {
+      if (indexQuote[field] === null) {
+        delete indexQuote[field];
+      }
+    });
 
-      insertDetails.values = indexRow;
-      awaitify(dynamodb.insertRecord(insertDetails));
-    }
+    insertDetails.values = indexQuote;
+    awaitify(dynamodb.insertRecord(insertDetails));
   } catch (err) {
     console.log(err);
   }
@@ -959,4 +969,5 @@ if (program.all) {
 module.exports = {
   setupSymbols: setupSymbols,
   updateQuotesWithMetrics: updateQuotesWithMetrics,
+  writeIndexQuote: writeIndexQuote,
 };

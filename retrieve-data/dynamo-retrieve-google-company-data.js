@@ -264,6 +264,7 @@ let updateCompanyMetrics = asyncify(function() {
       });
 
       awaitify(insertCompanyMetricsValue(companyMetricsRecord));
+      awaitify(utils.sleep(50));
     });
   } catch (err) {
     console.log(err);
