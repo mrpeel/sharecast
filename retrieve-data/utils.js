@@ -179,11 +179,41 @@ let returnDateAsString = function(dateValue, dateFormat) {
 let returnEndOfMonth = function(dateValue, dateFormat) {
   if (moment(dateValue, dateFormat || '').isValid()) {
     return moment(dateValue, dateFormat || '')
-      .endOf("month")
+      .endOf('month')
       .format('YYYY-MM-DD');
   } else {
     return '';
   }
+};
+
+/**
+ * converts the date string used for querying to a formated date string which
+ *  can be displayed
+ * @param {String} dateValue a date or string in a format which can be
+ *   converted to a date
+ * @param {string} unit the unit to change by "seconds", "minutes", "hours",
+ "days" , "weeks", "months", "years"
+ * @param {number} number to change, positive number for futures, negative
+ *    number for past
+ * @return {Date} a date with the new value
+ */
+let dateDiff = function(dateValue1, dateValue2, unit) {
+  // Check that this really is a date
+  if (!moment(dateValue1).isValid()) {
+    throw new Error('dateValue1 invalid: ' + dateValue1);
+  }
+
+  if (!moment(dateValue2).isValid()) {
+    throw new Error('dateValue2 invalid: ' + dateValue2);
+  }
+
+  if (!(unit === 'seconds' || unit === 'minutes' || unit === 'hours' ||
+    unit === 'days' || unit === 'weeks' || unit === 'months' ||
+    unit === 'years')) {
+    throw new Error('unit invalid: ' + unit);
+  }
+
+  return Math.abs(dateValue1.diff(dateValue2, unit));
 };
 
 
@@ -297,6 +327,7 @@ module.exports = {
   getIndices: getIndices,
   returnDateAsString: returnDateAsString,
   dateAdd: dateAdd,
+  dateDiff: dateDiff,
   isDate: isDate,
   createFieldArray: createFieldArray,
   writeToCsv: writeToCsv,

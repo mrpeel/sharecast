@@ -613,7 +613,13 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   awaitify(dynamodb.insertRecord(insertDetails));
 });
 
-let updateQuotesWithMetrics = asyncify(function(quoteDate, searchForward) {
+let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate,
+  searchForward) {
+  if (!symbols) {
+    console.log('updateQuotesWithMetrics error: no symbols supplied');
+    return;
+  }
+
   if (!quoteDate) {
     console.log('updateQuotesWithMetrics error: no quoteDate supplied');
     return;
@@ -623,85 +629,75 @@ let updateQuotesWithMetrics = asyncify(function(quoteDate, searchForward) {
 
   let metricsDate = quoteDate;
 
-  let scanDetails = {
-    tableName: 'companyMetrics',
-    filterExpression: 'metricsDate = :metricsDate',
-    expressionAttributeValues: {
-      ':metricsDate': metricsDate,
-    },
+  // Set-up update details, only update the record if it is found
+  let updateDetails = {
+    tableName: 'companyQuotes',
   };
 
-
-  let metricsRecords = awaitify(dynamodb.scanTable(scanDetails));
-
-  /* If there are no metrics records for the day, find the previous date
-    with a record */
-  if (metricsRecords.length) {
-    // Set-up update details, only update the record if it is found
-    let updateDetails = {
+  symbols.forEach((companySymbol) => {
+    // Confirm record(s) exist to update
+    let queryQuotes = {
       tableName: 'companyQuotes',
-      conditionExpression: 'attribute_exists(symbol)',
+      filterExpression: 'attribute_not_exists(EPS) and ' +
+        'attribute_not_exists(BookValuePerShareYear) and ' +
+        'attribute_not_exists(MarketCap)',
+      expressionAttributeValues: {
+        ':symbol': companySymbol,
+        ':quoteDate': quoteDate,
+      },
+      projectionExpression: 'symbol, quoteDate',
     };
 
-    /* Work through returned metrics values and update company quotes for each
-        value */
-    metricsRecords.forEach((metricsRecord) => {
+    if (searchForward) {
+      /* Need to search forwards for any records on or after selected
+          dateParameter which are missing metrics info */
+      queryQuotes.keyConditionExpression = 'symbol = :symbol and ' +
+        ' quoteDate >= :quoteDate';
+    } else {
+      /* only look for quotes on the selected day */
+      queryQuotes.keyConditionExpression = 'symbol = :symbol and ' +
+        ' quoteDate = :quoteDate';
+    }
+
+    let qResult = awaitify(dynamodb.queryTable(queryQuotes));
+
+    if (qResult.length) {
+      // If at least one quote record has been returned, continue
       let fieldsPresent = [];
       let updateExpression;
       let expressionAttributeValues = {};
       let expressionAttributeNames = {};
-      let workingRecord = metricsRecord;
       let quoteDates = [];
 
-      if (searchForward) {
-        /* Need to search forwards for any records on or after selected
-            dateParameter which are missing metrics info */
-        let queryQuotes = {
-          tableName: 'companyQuotes',
-          keyConditionExpression: 'symbol = :symbol',
-          filterExpression: 'quoteDate >= :quoteDate and ' +
-            'attribute_not_exists(EPS) and ' +
-            'attribute_not_exists(BookValuePerShareYear) and ' +
-            'attribute_not_exists(MarketCap)',
-          expressionAttributeValues: {
-            ':symbol': workingRecord['symbol'],
-            ':quoteDate': quoteDate,
-          },
-          projectionExpression: 'symbol, quoteDate',
-        };
+      // Set-up date(s) to update for this company
+      qResult.forEach((result) => {
+        quoteDates.push(result['quoteDate']);
+      });
 
-        let qResult = awaitify(dynamodb.queryTable(queryQuotes));
 
-        if (qResult.length) {
-          qResult.forEach((result) => {
-            quoteDates.push(qResult['quoteDate']);
-          });
-        }
-      } else {
-        quoteDates.push(quoteDate);
-      }
+      // Set-up query and retrieve metrics value
+      let queryDetails = {
+        tableName: 'companyMetrics',
+        keyConditionExpression: 'symbol = :symbol and ' +
+          'metricsDate = :metricsDate',
+        expressionAttributeValues: {
+          ':metricsDate': metricsDate,
+          ':symbol': companySymbol,
+        },
+        limit: 1,
+      };
 
-      // Work through quote dates to execute update for
-      quoteDates.forEach((qDate) => {
-        // Check that quote record exists
-        queryQuotes = {
-          tableName: 'companyQuotes',
-          keyConditionExpression: 'symbol = :symbol',
-          filterExpression: 'quoteDate = :quoteDate',
-          expressionAttributeValues: {
-            ':symbol': workingRecord['symbol'],
-            ':quoteDate': quoteDate,
-          },
-          projectionExpression: 'symbol, quoteDate',
-        };
+      let metricsResult = awaitify(dynamodb.queryTable(queryDetails));
 
-        let qLookup = awaitify(dynamodb.queryTable(queryQuotes));
+      // Check we got a metrics result
+      if (metricsResult.length) {
+        let workingRecord = metricsResult[0];
 
-        // Check if the company quote record exists and contiue if it does
-        if (qLookup.length) {
+        // Work through quote dates to execute update for
+        quoteDates.forEach((qDate) => {
           // Set up the key: symbol and quoteDate
           updateDetails.key = {
-            symbol: workingRecord['symbol'],
+            symbol: companySymbol,
             quoteDate: qDate,
           };
 
@@ -732,11 +728,12 @@ let updateQuotesWithMetrics = asyncify(function(quoteDate, searchForward) {
               conosle.log(err);
             }
           }
-        }
-      });
-    });
-  }
+        });
+      }
+    }
+  });
 });
+
 
 let getCurrentExecutionDate = asyncify(function() {
   // Get current dat based on last index quote for All Ordinaries
@@ -753,7 +750,7 @@ let getCurrentExecutionDate = asyncify(function() {
 
   let indexLookup = awaitify(dynamodb.queryTable(queryDetails));
   if (indexLookup.length) {
-    return indexLookup['quoteDate'];
+    return indexLookup[0]['quoteDate'];
   } else {
     return null;
   }
@@ -890,10 +887,42 @@ let executeQuoteRetrieval = asyncify(function() {
 let executeMetricsUpdate = asyncify(function() {
   // Get current dat based on last index quote for All Ordinaries
   let metricsDate = awaitify(getCurrentExecutionDate());
+  let companies = [];
+  let symbolResult = awaitify(setupSymbols());
+
+  Object.keys(symbolResult.companyLookup).forEach((yahooSymbol) => {
+    companies.push(symbolResult.companyLookup[yahooSymbol]);
+  });
 
   if (metricsDate) {
-    awaitify(updateQuotesWithMetrics(metricsDate));
+    awaitify(updateQuotesWithMetrics(companies, metricsDate));
   }
+});
+
+let executeAll = asyncify(function() {
+  let t0 = new Date();
+  awaitify(executeFinancialIndicators());
+  let tf = new Date();
+  console.log('Retrieve financial indicators completed.  ',
+    utils.dateDiff(t0, tf), ' seconds to execute.');
+
+  executeCompanyMetrics();
+  let tm = new Date();
+  console.log('Retrieve company metrics completed.  ',
+    utils.dateDiff(tf, tm), ' seconds to execute.');
+
+  executeQuoteRetrieval();
+  let tq = new Date();
+  console.log('Retrieve index and company quotes completed.  ',
+    utils.dateDiff(tm, tq), ' seconds to execute.');
+
+  executeMetricsUpdate();
+  let tu = new Date();
+  console.log('Update company quotes with metrics data completed.  ',
+    utils.dateDiff(tq, tu), ' seconds to execute.');
+
+  console.log('Total time for all operations: ',
+    utils.dateDiff(t0, tu), ' seconds to execute.');
 });
 
 program
@@ -903,6 +932,7 @@ program
   .option('-m, --metrics', 'Retrieve company metrics')
   .option('-q, --quotes', 'Retrieve index and company quotes')
   .option('-u, --updates', 'Update company quotes with metrics data')
+  .option('-a', '--all', 'Perform complete series of operations')
   .parse(process.argv);
 
 if (program.financial) {
@@ -917,9 +947,13 @@ if (program.quotes) {
   console.log('Executing retrieve index and company quotes');
   executeQuoteRetrieval();
 }
-if (program.quotes) {
+if (program.updates) {
   console.log('Executing update company quotes with metrics');
   executeMetricsUpdate();
+}
+if (program.all) {
+  console.log('Executing complete series');
+  executeAll();
 }
 
 module.exports = {
