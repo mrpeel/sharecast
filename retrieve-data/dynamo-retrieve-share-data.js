@@ -57,6 +57,23 @@ const indiceFields = {
   n: 'name',
 };
 
+let metricsFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
+  'DividendRecentQuarter', 'DividendNextQuarter', 'DPSRecentYear',
+  'IAD', 'DividendPerShare', 'DividendYield', 'Dividend',
+  'BookValuePerShareYear', 'CashPerShareYear', 'CurrentRatioYear',
+  'LTDebtToAssetsYear', 'LTDebtToAssetsQuarter',
+  'TotalDebtToAssetsYear', 'TotalDebtToAssetsQuarter',
+  'LTDebtToEquityYear', 'LTDebtToEquityQuarter',
+  'TotalDebtToEquityYear', 'TotalDebtToEquityQuarter', 'AINTCOV',
+  'ReturnOnInvestmentTTM', 'ReturnOnInvestment5Years',
+  'ReturnOnInvestmentYear', 'ReturnOnAssetsTTM', 'ReturnOnAssets5Years',
+  'ReturnOnAssetsYear', 'ReturnOnEquityTTM', 'ReturnOnEquity5Years',
+  'ReturnOnEquityYear', 'Beta', 'Float', 'GrossMargin', 'EBITDMargin',
+  'OperatingMargin', 'NetProfitMarginPercent',
+  'NetIncomeGrowthRate5Years', 'RevenueGrowthRate5Years',
+  'RevenueGrowthRate10Years', 'EPSGrowthRate5Years',
+  'EPSGrowthRate10Years'];
+
 let symbolLookup = {};
 let indexLookup = {};
 let indexSymbols = [];
@@ -193,7 +210,7 @@ let retrieveSnapshot = function(symbol, fields) {
   });
 };
 
-let processResults = function(results) {
+let processIndexResults = function(results) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
@@ -228,9 +245,90 @@ let processResult = function(result) {
       // Reset number here required
       result[field] = utils.checkForNumber(result[field]);
     });
+
     // Add result to csv data
     resultData.push(result);
   }
+};
+
+let processCompanyResults = asyncify(function(results, dataToAppend) {
+  if (results) {
+    // Check if multi-dimensional
+    if (Array.isArray(results)) {
+      // Multiple  symbols returned
+      results.forEach((indResult) => {
+        awaitify(processResultAndMetric(indResult, dataToAppend));
+      });
+    } else {
+      // Single symbol returned
+      awaitify(processResultAndMetric(results, dataToAppend));
+    }
+  }
+});
+
+let processResultAndMetric = asyncify(function(result, dataToAppend) {
+  // Retrieve last trade date to check whether to output this value
+  result.lastTradeDate = utils.returnDateAsString(result.lastTradeDate);
+  if (result.lastTradeDate > lastResultDate) {
+    if (result.lastTradeDate > maxResultDate) {
+      maxResultDate = result.lastTradeDate;
+    }
+
+    // Convert yahoo symbol to generic symbol
+    result.symbol = symbolLookup[result.symbol];
+
+    Object.keys(result).forEach((field) => {
+      // Check the field is in the csv list
+      if (resultFields.indexOf(field) === -1) {
+        resultFields.push(field);
+      }
+
+      // Reset number here required
+      result[field] = utils.checkForNumber(result[field]);
+    });
+
+    // Add metric data to this result
+    // result = awaitify(addMetricsToQuote(result));
+
+    // If data to append,ietrate through keys and add it to the record
+    if (dataToAppend) {
+      Object.keys(dataToAppend).forEach((dataKey) => {
+        result[dataKey] = dataToAppend[dataKey];
+      });
+    }
+
+    // Write value
+    writeCompanyQuoteData(result);
+
+    // console.log(result);
+
+  // Add result to csv data
+  // resultData.push(result);
+  }
+});
+
+let addMetricsToQuote = function(quote) {
+  if (!quote['symbol']) {
+    console.log('Call addMetricsToQuote missing quote.symbol element');
+    return quote;
+  }
+  try {
+    let meVal = awaitify(
+      metrics.returnCompanyMetricValuesForDate(
+        quote['symbol'], utils.returnDateAsString(quote['lastTradeDate'])));
+
+    metricsFields.forEach((metricField) => {
+      if (meVal[metricField] || meVal[metricField] === 0) {
+        quote[metricField] = meVal[metricField];
+      }
+    });
+
+  // console.log(quote);
+  } catch (err) {
+    console.log(err);
+  }
+
+  return quote;
 };
 
 let writeIndexResults = asyncify(function(indexData) {
@@ -364,6 +462,29 @@ let addAppendDataToRows = function(dataVals) {
 };
 
 /**
+ * Appends data to every compamy row
+ * @param {Object}  fieldData data in the format:
+ *    {
+ *    fields: base data array
+ *    appendFields: fields list array
+ *    }
+ * @return {Array}  Updated field list
+ */
+let appendDataFieldNamesToDataSet = function(fieldData) {
+  // Check if fields have been supplied
+  if (fieldData.fields && fieldData.appendFields) {
+    // Work through array and retrieve the key of each value
+    Object.keys(fieldData.appendFields).forEach((appendKey) => {
+      if (fieldData.fields.indexOf(appendKey) < 0) {
+        fieldData.fields.push(appendKey);
+      }
+    });
+  }
+
+  return fieldData.fields;
+};
+
+/**
  * Looks up current company Metrics and appends them to each company row
  * @param {Object} dataVals the data in the format:
  *    {
@@ -383,23 +504,8 @@ let addMetricDataToRows = asyncify(function(dataVals) {
 
       // Check if fields have been supplied
       if (wkData.fields) {
-        let metricFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
-          'DividendRecentQuarter', 'DividendNextQuarter', 'DPSRecentYear', 'IAD',
-          'DividendPerShare', 'DividendYield', 'Dividend', 'BookValuePerShareYear',
-          'CashPerShareYear', 'CurrentRatioYear', 'LTDebtToAssetsYear',
-          'LTDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
-          'TotalDebtToAssetsQuarter', 'LTDebtToEquityYear', 'LTDebtToEquityQuarter',
-          'TotalDebtToEquityYear', 'TotalDebtToEquityQuarter', 'AINTCOV',
-          'ReturnOnInvestmentTTM', 'ReturnOnInvestment5Years',
-          'ReturnOnInvestmentYear', 'ReturnOnAssetsTTM', 'ReturnOnAssets5Years',
-          'ReturnOnAssetsYear', 'ReturnOnEquityTTM', 'ReturnOnEquity5Years',
-          'ReturnOnEquityYear', 'Beta', 'Float', 'GrossMargin', 'EBITDMargin',
-          'OperatingMargin', 'NetProfitMarginPercent', 'NetIncomeGrowthRate5Years',
-          'RevenueGrowthRate5Years', 'RevenueGrowthRate10Years',
-          'EPSGrowthRate5Years', 'EPSGrowthRate10Years'];
-
         // Make sure the metrics fields are added to the fields list
-        metricFields.forEach((field) => {
+        metricsFields.forEach((field) => {
           if (wkData.fields.indexOf(field) === -1) {
             wkData.fields.push(field);
           }
@@ -414,50 +520,12 @@ let addMetricDataToRows = asyncify(function(dataVals) {
           metrics.returnCompanyMetricValuesForDate(
             companSymbol, utils.returnDateAsString(Date.now()))
             .then((meVal) => {
-              if (meVal['CompanySymbol']) {
-                wkData.data[c]['EPS'] = meVal['EPS'];
-                wkData.data[c]['PriceToBook'] = meVal['PriceToBook'];
-                wkData.data[c]['MarketCap'] = meVal['MarketCap'];
-                wkData.data[c]['PE'] = meVal['PE'];
-                wkData.data[c]['DividendRecentQuarter'] = meVal['DividendRecentQuarter'];
-                wkData.data[c]['DividendNextQuarter'] = meVal['DividendNextQuarter'];
-                wkData.data[c]['DPSRecentYear'] = meVal['DPSRecentYear'];
-                wkData.data[c]['IAD'] = meVal['IAD'];
-                wkData.data[c]['DividendPerShare'] = meVal['DividendPerShare'];
-                wkData.data[c]['DividendYield'] = meVal['DividendYield'];
-                wkData.data[c]['Dividend'] = meVal['Dividend'];
-                wkData.data[c]['BookValuePerShareYear'] = meVal['BookValuePerShareYear'];
-                wkData.data[c]['CashPerShareYear'] = meVal['CashPerShareYear'];
-                wkData.data[c]['CurrentRatioYear'] = meVal['CurrentRatioYear'];
-                wkData.data[c]['LTDebtToAssetsYear'] = meVal['LTDebtToAssetsYear'];
-                wkData.data[c]['LTDebtToAssetsQuarter'] = meVal['LTDebtToAssetsQuarter'];
-                wkData.data[c]['TotalDebtToAssetsYear'] = meVal['TotalDebtToAssetsYear'];
-                wkData.data[c]['TotalDebtToAssetsQuarter'] = meVal['TotalDebtToAssetsQuarter'];
-                wkData.data[c]['LTDebtToEquityYear'] = meVal['LTDebtToEquityYear'];
-                wkData.data[c]['LTDebtToEquityQuarter'] = meVal['LTDebtToEquityQuarter'];
-                wkData.data[c]['TotalDebtToEquityYear'] = meVal['TotalDebtToEquityYear'];
-                wkData.data[c]['TotalDebtToEquityQuarter'] = meVal['TotalDebtToEquityQuarter'];
-                wkData.data[c]['AINTCOV'] = meVal['AINTCOV'];
-                wkData.data[c]['ReturnOnInvestmentTTM'] = meVal['ReturnOnInvestmentTTM'];
-                wkData.data[c]['ReturnOnInvestment5Years'] = meVal['ReturnOnInvestment5Years'];
-                wkData.data[c]['ReturnOnInvestmentYear'] = meVal['ReturnOnInvestmentYear'];
-                wkData.data[c]['ReturnOnAssetsTTM'] = meVal['ReturnOnAssetsTTM'];
-                wkData.data[c]['ReturnOnAssets5Years'] = meVal['ReturnOnAssets5Years'];
-                wkData.data[c]['ReturnOnAssetsYear'] = meVal['ReturnOnAssetsYear'];
-                wkData.data[c]['ReturnOnEquityTTM'] = meVal['ReturnOnEquityTTM'];
-                wkData.data[c]['ReturnOnEquity5Years'] = meVal['ReturnOnEquity5Years'];
-                wkData.data[c]['ReturnOnEquityYear'] = meVal['ReturnOnEquityYear'];
-                wkData.data[c]['Beta'] = meVal['Beta'];
-                wkData.data[c]['Float'] = meVal['Float'];
-                wkData.data[c]['GrossMargin'] = meVal['GrossMargin'];
-                wkData.data[c]['EBITDMargin'] = meVal['EBITDMargin'];
-                wkData.data[c]['OperatingMargin'] = meVal['OperatingMargin'];
-                wkData.data[c]['NetProfitMarginPercent'] = meVal['NetProfitMarginPercent'];
-                wkData.data[c]['NetIncomeGrowthRate5Years'] = meVal['NetIncomeGrowthRate5Years'];
-                wkData.data[c]['RevenueGrowthRate5Years'] = meVal['RevenueGrowthRate5Years'];
-                wkData.data[c]['RevenueGrowthRate10Years'] = meVal['RevenueGrowthRate10Years'];
-                wkData.data[c]['EPSGrowthRate5Years'] = meVal['EPSGrowthRate5Years'];
-                wkData.data[c]['EPSGrowthRate10Years'] = meVal['EPSGrowthRate10Years'];
+              if (meVal['symbol']) {
+                metricsFields.forEach((metricField) => {
+                  if (meVal[metricField] || meVal[metricField] === 0) {
+                    wkData.data[c][metricField] = meVal[metricField];
+                  }
+                });
               }
               console.log(wkData.data[c]);
             })
@@ -474,7 +542,28 @@ let addMetricDataToRows = asyncify(function(dataVals) {
   });
 });
 
-let writeCompanyQuoteData = asyncify(function(quoteObject, quoteDate) {
+let addMetricsFieldNamesToDataSet = function(dataset) {
+  if (!dataset.Fields) {
+    console.log('Call addMetricsFieldNames missing dataset.fields.');
+    return dataset;
+  }
+  try {
+    // Check if fields have been supplied
+    if (dataset.fields) {
+      // Make sure the metrics fields are added to the fields list
+      metricsFields.forEach((field) => {
+        if (dataset.fields.indexOf(field) === -1) {
+          dataset.fields.push(field);
+        }
+      });
+    }
+  } catch (err) {
+    console.log(err);
+  }
+  return dataset;
+};
+
+let writeCompanyQuoteDataSet = asyncify(function(quoteObject, quoteDate) {
   let insertDetails = {
     tableName: 'companyQuotes',
     values: {},
@@ -498,6 +587,176 @@ let writeCompanyQuoteData = asyncify(function(quoteObject, quoteDate) {
     insertDetails.values = quote;
     awaitify(dynamodb.insertRecord(insertDetails));
   });
+});
+
+let writeCompanyQuoteData = asyncify(function(quoteData) {
+  let insertDetails = {
+    tableName: 'companyQuotes',
+    values: {},
+    primaryKey: [
+      'symbol', 'quoteDate',
+    ],
+  };
+
+  quoteData.quoteDate = quoteData['lastTradeDate'];
+  quoteData.yearMonth = quoteData.quoteDate.substring(0, 7).replace('-', '');
+
+
+  // Check through for values with null and remove from object
+  Object.keys(quoteData).forEach((field) => {
+    if (quoteData[field] === null) {
+      delete quoteData[field];
+    }
+  });
+
+  insertDetails.values = quoteData;
+  awaitify(dynamodb.insertRecord(insertDetails));
+});
+
+let updateQuotesWithMetrics = asyncify(function(quoteDate, searchForward) {
+  if (!quoteDate) {
+    console.log('updateQuotesWithMetrics error: no quoteDate supplied');
+    return;
+  }
+
+  console.log('Updating company quotes with metrics for ', quoteDate);
+
+  let metricsDate = quoteDate;
+
+  let scanDetails = {
+    tableName: 'companyMetrics',
+    filterExpression: 'metricsDate = :metricsDate',
+    expressionAttributeValues: {
+      ':metricsDate': metricsDate,
+    },
+  };
+
+
+  let metricsRecords = awaitify(dynamodb.scanTable(scanDetails));
+
+  /* If there are no metrics records for the day, find the previous date
+    with a record */
+  if (metricsRecords.length) {
+    // Set-up update details, only update the record if it is found
+    let updateDetails = {
+      tableName: 'companyQuotes',
+      conditionExpression: 'attribute_exists(symbol)',
+    };
+
+    /* Work through returned metrics values and update company quotes for each
+        value */
+    metricsRecords.forEach((metricsRecord) => {
+      let fieldsPresent = [];
+      let updateExpression;
+      let expressionAttributeValues = {};
+      let expressionAttributeNames = {};
+      let workingRecord = metricsRecord;
+      let quoteDates = [];
+
+      if (searchForward) {
+        /* Need to search forwards for any records on or after selected
+            dateParameter which are missing metrics info */
+        let queryQuotes = {
+          tableName: 'companyQuotes',
+          keyConditionExpression: 'symbol = :symbol',
+          filterExpression: 'quoteDate >= :quoteDate and ' +
+            'attribute_not_exists(EPS) and ' +
+            'attribute_not_exists(BookValuePerShareYear) and ' +
+            'attribute_not_exists(MarketCap)',
+          expressionAttributeValues: {
+            ':symbol': workingRecord['symbol'],
+            ':quoteDate': quoteDate,
+          },
+          projectionExpression: 'symbol, quoteDate',
+        };
+
+        let qResult = awaitify(dynamodb.queryTable(queryQuotes));
+
+        if (qResult.length) {
+          qResult.forEach((result) => {
+            quoteDates.push(qResult['quoteDate']);
+          });
+        }
+      } else {
+        quoteDates.push(quoteDate);
+      }
+
+      // Work through quote dates to execute update for
+      quoteDates.forEach((qDate) => {
+        // Check that quote record exists
+        queryQuotes = {
+          tableName: 'companyQuotes',
+          keyConditionExpression: 'symbol = :symbol',
+          filterExpression: 'quoteDate = :quoteDate',
+          expressionAttributeValues: {
+            ':symbol': workingRecord['symbol'],
+            ':quoteDate': quoteDate,
+          },
+          projectionExpression: 'symbol, quoteDate',
+        };
+
+        let qLookup = awaitify(dynamodb.queryTable(queryQuotes));
+
+        // Check if the company quote record exists and contiue if it does
+        if (qLookup.length) {
+          // Set up the key: symbol and quoteDate
+          updateDetails.key = {
+            symbol: workingRecord['symbol'],
+            quoteDate: qDate,
+          };
+
+          // Remove the attributes which should not be copied into cpmanyQuotes
+          delete workingRecord['symbol'];
+          delete workingRecord['metricsDate'];
+          delete workingRecord['yearMonth'];
+          delete workingRecord['created'];
+
+          // Get a list of fields and values to copy
+          Object.keys(workingRecord).forEach((field) => {
+            expressionAttributeValues[(':' + field)] = workingRecord[field];
+            expressionAttributeNames[('#' + field)] = field;
+            fieldsPresent.push('#' + field + '=:' + field);
+          });
+
+          // Enure that at least one field is present to update
+          if (fieldsPresent.length) {
+            updateExpression = 'set ' + fieldsPresent.join(',');
+
+            updateDetails.updateExpression = updateExpression;
+            updateDetails.expressionAttributeValues = expressionAttributeValues;
+            updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+            try {
+              awaitify(dynamodb.updateRecord(updateDetails));
+            } catch (err) {
+              conosle.log(err);
+            }
+          }
+        }
+      });
+    });
+  }
+});
+
+let getCurrentExecutionDate = asyncify(function() {
+  // Get current dat based on last index quote for All Ordinaries
+  let queryDetails = {
+    tableName: 'indexQuotes',
+    keyConditionExpression: 'symbol = :symbol',
+    reverseOrder: true,
+    expressionAttributeValues: {
+      ':symbol': 'ALLORD',
+    },
+    limit: 1,
+    projectionExpression: 'symbol, quoteDate',
+  };
+
+  let indexLookup = awaitify(dynamodb.queryTable(queryDetails));
+  if (indexLookup.length) {
+    return indexLookup['quoteDate'];
+  } else {
+    return null;
+  }
 });
 
 let executeFinancialIndicators = asyncify(function() {
@@ -531,79 +790,110 @@ let executeQuoteRetrieval = asyncify(function() {
     .returnIndicatorValuesForDate(todayString));
 
   console.log('----- Start retrieve index quotes -----');
+  try {
+    let results = awaitify(retrieveSnapshot(indices, indiceFieldsToRetrieve));
+    awaitify(processIndexResults(results));
+    // Write data to index tables
+    indexData = resultData;
 
-  retrieveSnapshot(indices, indiceFieldsToRetrieve)
-    .then((results) => {
-      return processResults(results);
-    })
-    .then(function() {
-      // Write data to index tables
-      indexData = resultData;
-
-      if (indexData.length > 0) {
-        indexDataToAppend = convertIndexDatatoAppendData(indexData);
-        writeIndexResults(indexData);
-      } else {
-        console.log('No new index data to save');
-      }
-
-      return true;
-    }).then(function() {
-    // Reset fields for companies
-    resultFields = [];
-    resultData = [];
-
-    console.log('----- Start retrieve company quotes -----');
-
-    // Split companies into groups of 10 so each request contains 10
-    for (companyCounter = 0; companyCounter < companies.length;
-      companyCounter += 10) {
-      symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
+    if (indexData.length > 0) {
+      indexDataToAppend = convertIndexDatatoAppendData(indexData);
+      writeIndexResults(indexData);
+    } else {
+      console.log('No new index data to save');
     }
+  } catch (err) {
+    console.log(err);
+  }
+  // Reset fields for companies
+  resultFields = [];
+  resultData = [];
 
-    symbolGroups.forEach((symbolGroup) => {
-      shareRetrievals.push(retrieveSnapshot(symbolGroup,
+  // create append array from indicators and index data
+  dataToAppend = addObjectProperties(financialIndicatos,
+    indexDataToAppend);
+
+
+  console.log('----- Start retrieve company quotes -----');
+
+  /*
+  // Split companies into groups of 10 so each request contains 10
+  for (companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 10) {
+    symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
+  }
+
+  symbolGroups.forEach((symbolGroup) => {
+    shareRetrievals.push(retrieveSnapshot(symbolGroup,
+      companyFieldsToRetrieve));
+  });
+
+  // When all returns are back, process the results
+  Promise.all(shareRetrievals).then((results) => {
+    results.forEach((result) => {
+      awaitify(processCompanyResults(result, dataToAppend));
+    });*/
+
+  companies.forEach((company) => {
+    try {
+      let result = awaitify(retrieveSnapshot(company,
         companyFieldsToRetrieve));
-    });
-
-    // When all returns are back, process the results
-    Promise.all(shareRetrievals).then((results) => {
-      results.forEach((result) => {
-        processResults(result);
-      });
-
-      if (resultData.length > 0) {
-        // create append array from indicators and index data
-        dataToAppend = addObjectProperties(financialIndicatos,
-          indexDataToAppend);
-
-        let updatedResults = addAppendDataToRows({
-          data: resultData,
-          fields: resultFields,
-          append: dataToAppend,
-        });
-
-        addMetricDataToRows(updatedResults)
-          .then((resultsWithMetrics) => {
-            // console.log(resultsWithMetrics.fields);
-
-            console.log('----- Start write company quotes -----');
-
-            writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
-
-            utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
-              'companies', maxResultDate);
-          });
-      } else {
-        console.log('No new company data to save');
-      }
-    }).catch((err) => {
+      awaitify(processCompanyResults(result, dataToAppend));
+    } catch (err) {
       console.log(err);
+    }
+  });
+
+  /* if (resultData.length > 0) {
+    let updatedResults = {
+      data: resultData,
+      fields: resultFields,
+    };
+
+    updatedResults.fields = appendDataFieldNamesToDataSet({
+      fields: resultFields,
+      append: dataToAppend,
     });
-  })
-    .catch((err) => {
-      console.log(err);
-    });
+
+    let resultsWithMetrics = addMetricsFieldNamesToDataSet(updatedResults);
+
+    // console.log('----- Start write company quotes -----');
+
+    // writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
+
+    /* utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
+      'companies', maxResultDate); */
+
+/* addMetricDataToRows(updatedResults)
+  .then((resultsWithMetrics) => {
+    // console.log(resultsWithMetrics.fields);
+
+    console.log('----- Start write company quotes -----');
+
+    writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
+
+    utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
+      'companies', maxResultDate);
+  });
+} else {
+  console.log('No new company data to save');
+} */
+/* }).catch((err) => {
+  console.log(err);
+});
+ })
+.catch((err) => {
+  console.log(err);
+}); */
+});
+
+let executeMetricsUpdate = asyncify(function() {
+  // Get current dat based on last index quote for All Ordinaries
+  let metricsDate = awaitify(getCurrentExecutionDate());
+
+  if (metricsDate) {
+    awaitify(updateQuotesWithMetrics(metricsDate));
+  }
 });
 
 program
@@ -612,6 +902,7 @@ program
   .option('-f, --financial', 'Retrieve financial indicators')
   .option('-m, --metrics', 'Retrieve company metrics')
   .option('-q, --quotes', 'Retrieve index and company quotes')
+  .option('-u, --updates', 'Update company quotes with metrics data')
   .parse(process.argv);
 
 if (program.financial) {
@@ -626,7 +917,12 @@ if (program.quotes) {
   console.log('Executing retrieve index and company quotes');
   executeQuoteRetrieval();
 }
+if (program.quotes) {
+  console.log('Executing update company quotes with metrics');
+  executeMetricsUpdate();
+}
 
 module.exports = {
   setupSymbols: setupSymbols,
-}
+  updateQuotesWithMetrics: updateQuotesWithMetrics,
+};

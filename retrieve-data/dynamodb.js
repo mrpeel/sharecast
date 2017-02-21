@@ -57,28 +57,24 @@ let insertRecord = function(insertDetails) {
 
     client.put(params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {
-        console.error('Skipping add to ', insertDetails.tableName, ': ',
-          JSON.stringify(insertDetails.primaryKey), ' already exists.',
-          ', values: ', JSON.stringify(insertDetails.values));
+        console.log(`Skipping add to ${insertDetails.tableName} : `,
+          JSON.stringify(insertDetails.primaryKey), ' already exists');
         resolve({
           result: 'skipped',
-          message: 'Skipping add to ' + insertDetails.tableName + ': ' +
-            JSON.stringify(insertDetails.primaryKey) + ' already exists.' +
-            ', values: ' + JSON.stringify(insertDetails.values),
+          message: `Skipping add to ${insertDetails.tableName} : ` +
+            JSON.stringify(insertDetails.primaryKey) + ' already exists.',
         });
       } else if (err) {
-        console.error('Unable to add to ', insertDetails.tableName,
-          ', values: ', JSON.stringify(insertDetails.values), '. Error JSON:',
-          JSON.stringify(err, null, 2));
+        console.error(`Unable to add to ${insertDetails.tableName} values: `,
+          '. Error JSON:', JSON.stringify(err, null, 2));
         reject({
           result: 'failed',
           message: JSON.stringify(err, null, 2),
         });
       } else {
-        console.log('PutItem to ', insertDetails.tableName, ' succeeded.');
+        console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
         resolve({
           result: 'inserted',
-          data: JSON.stringify(insertDetails.values),
         });
       }
     });
@@ -105,6 +101,7 @@ let insertRecord = function(insertDetails) {
 */
 let queryTable = function(queryDetails) {
   return new Promise(function(resolve, reject) {
+    let queryDataItems = [];
     let params = {
       TableName: queryDetails.tableName,
       KeyConditionExpression: queryDetails.keyConditionExpression,
@@ -136,17 +133,31 @@ let queryTable = function(queryDetails) {
 
     console.log('Query table request: ', JSON.stringify(params));
 
-    client.query(params, function(err, data) {
+    let onQuery = function(err, data) {
       if (err) {
-        console.error('Unable to query ', queryDetails.tableName,
-          '. Error:', JSON.stringify(err, null, 2));
+        console.error(`Unable to query ${queryDetails.tableName}. Error: `,
+          JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Query table ', queryDetails.tableName, ' succeeded.  ',
-          data.Items.length, ' returned.');
-        resolve(data.Items || []);
+        console.log(`Query table ${queryDetails.tableName} succeeded.  `,
+          `${data.Items.length} records returned.`);
+
+        queryDataItems = queryDataItems.concat(data.Items);
+
+        // continue scanning if we have more movies, because
+        // scan can retrieve a maximum of 1MB of data
+        if (typeof data.LastEvaluatedKey !== 'undefined' &&
+          (!queryDetails.limit || data.Count < queryDetails.limit)) {
+          console.log('Querying for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.query(params, onQuery);
+        } else {
+          resolve(queryDataItems || []);
+        }
       }
-    });
+    };
+
+    client.query(params, onQuery);
   });
 };
 
@@ -167,6 +178,7 @@ let queryTable = function(queryDetails) {
 */
 let scanTable = function(scanDetails) {
   return new Promise(function(resolve, reject) {
+    let scanDataItems = [];
     let params = {
       TableName: scanDetails.tableName,
       FilterExpression: scanDetails.filterExpression,
@@ -183,18 +195,31 @@ let scanTable = function(scanDetails) {
 
     console.log('Scan table request: ', JSON.stringify(params));
 
-
-    client.scan(params, (err, data) => {
+    let onScan = function(err, data) {
       if (err) {
-        console.error('Unable to scan ', scanDetails.tableName,
-          '. Error:', JSON.stringify(err, null, 2));
+        console.error(`Unable to scan ${scanDetails.tableName}. Error: `,
+          JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Scan table ', scanDetails.tableName, ' succeeded.',
-          data.Items.length, ' returned.');
-        resolve(data.Items || []);
+        console.log(`Scan table ${scanDetails.tableName} succeeded. `,
+          `${data.Items.length} records returned.`);
+
+        scanDataItems = scanDataItems.concat(data.Items);
+
+        // continue scanning if we have more movies, because
+        // scan can retrieve a maximum of 1MB of data
+        if (typeof data.LastEvaluatedKey !== 'undefined' &&
+          (!scanDetails.limit || data.Count < scanDetails.limit)) {
+          console.log('Scanning for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.scan(params, onScan);
+        } else {
+          resolve(scanDataItems || []);
+        }
       }
-    });
+    };
+
+    client.scan(params, onScan);
   });
 };
 
@@ -215,6 +240,7 @@ let getTable = function(tableDetails) {
       TableName: tableDetails.tableName,
     };
 
+    let scanDataItems = [];
 
     if (tableDetails.reverseOrder) {
       params.ScanIndexForward = false;
@@ -226,17 +252,29 @@ let getTable = function(tableDetails) {
 
     console.log('Get table request: ', JSON.stringify(params));
 
-    client.scan(params, function(err, data) {
+    let onScan = function(err, data) {
       if (err) {
-        console.error('Unable to get table  ', tableDetails.tableName,
-          '. Error:', JSON.stringify(err, null, 2));
+        console.error(`Unable to get table  ${tableDetails.tableName}. Error: `,
+          JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Get table ', tableDetails.tableName, ' succeeded.',
-          data.Items.length, ' returned.');
-        resolve(data.Items || []);
+        console.log(`Get table ${tableDetails.tableName} succeeded.  `,
+          `${data.Items.length} records returned.`);
+        scanDataItems = scanDataItems.concat(data.Items);
+
+        // continue scanning if we have more movies, because
+        // scan can retrieve a maximum of 1MB of data
+        if (typeof data.LastEvaluatedKey !== 'undefined') {
+          console.log('Scanning for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.scan(params, onScan);
+        } else {
+          resolve(scanDataItems || []);
+        }
       }
-    });
+    };
+
+    client.scan(params, onScan);
   });
 };
 
@@ -257,6 +295,8 @@ let getTable = function(tableDetails) {
   *  expressionAttributeNames: (optional) {
       '#sentTime': 'SentTime',
     },
+    conditionExpression: 'attribute_exists(symbol)' (optional expression to
+      perform update)
 * };
 @return {Promise} which resolves with:
 *   array of data items
@@ -274,17 +314,29 @@ let updateRecord = function(updateDetails) {
       params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
     }
 
+    if (updateDetails.conditionExpression) {
+      params.ConditionExpression = updateDetails.conditionExpression;
+    }
+
     params.ReturnValues = 'UPDATED_NEW';
 
     console.log('Update table request: ', JSON.stringify(params));
 
     client.update(params, function(err, data) {
-      if (err) {
-        console.error('Unable to update table  ', updateDetails.tableName,
-          '. Error:', JSON.stringify(err, null, 2));
+      if (err && err.code === 'ConditionalCheckFailedException') {
+        console.log(`Skipping update to table  ${updateDetails.tableName}.`,
+          ` Condition expression not satisifed`);
+        resolve({
+          result: 'skipped',
+          message: `Skipping update to table  ${updateDetails.tableName}.` +
+            ' Condition expression not satisifed',
+        });
+      } else if (err) {
+        console.error(`Unable to update table  ${updateDetails.tableName}.` +
+          ' Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log('Update table ', updateDetails.tableName, ' succeeded.');
+        console.log(`Update table ${updateDetails.tableName} succeeded.`);
         resolve(data || null);
       }
     });

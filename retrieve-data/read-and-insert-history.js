@@ -2,6 +2,7 @@ const csv = require('csvtojson');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const dynamoMetrics = require('./dynamo-retrieve-google-company-data');
+const retrieveShareData = require('./dynamo-retrieve-share-data');
 // const metrics = require('./retrieve-google-company-data');
 const companyHistory = require('../data/company-history.json');
 const historyTranslation = require('./history-translation.json');
@@ -711,6 +712,14 @@ let calculateYearDividends = asyncify(function() {
   });
 });
 
+let fixMissingMetrics = asyncify(function() {
+  let missingDates = ['2017-02-16', '2017-02-17'];
+
+  missingDates.forEach((missingDate) => {
+    awaitify(retrieveShareData.updateQuotesWithMetrics(missingDate));
+  });
+});
+
 // readAndInsertIndexHistory();
 
 // readAndInsertDividendHistory();
@@ -723,4 +732,6 @@ let calculateYearDividends = asyncify(function() {
 
 // extractAndInsertCompanyHistory();
 
-calculateYearDividends();
+// calculateYearDividends();
+
+fixMissingMetrics();
