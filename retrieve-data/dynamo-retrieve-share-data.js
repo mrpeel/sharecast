@@ -85,7 +85,6 @@ let companies = [];
 let lastResultDate;
 const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
 const companyFieldsToRetrieve = utils.createFieldArray(fields);
-let symbolGroups = [];
 let shareRetrievals = [];
 let resultFields = [];
 let resultData = [];
@@ -781,6 +780,7 @@ let executeCompanyMetrics = asyncify(function() {
 let executeQuoteRetrieval = asyncify(function() {
   let dataToAppend = {};
   let indexDataToAppend = {};
+  let symbolGroups = [];
   let symbolResult = awaitify(setupSymbols());
 
   symbolLookup = symbolResult.symbolLookup;
@@ -841,7 +841,24 @@ let executeQuoteRetrieval = asyncify(function() {
       awaitify(processCompanyResults(result, dataToAppend));
     });*/
 
-  companies.forEach((company) => {
+  /* Split companies into groups of 15 to ensure request doesn't exceed api
+      url length */
+  for (companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 15) {
+    symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
+  }
+
+  symbolGroups.forEach((symbolGroup) => {
+    try {
+      let result = awaitify(retrieveSnapshot(symbolGroup,
+        companyFieldsToRetrieve));
+      awaitify(processCompanyResults(result, dataToAppend));
+    } catch (err) {
+      console.log(err);
+    }
+  });
+
+  /* companies.forEach((company) => {
     try {
       let result = awaitify(retrieveSnapshot(company,
         companyFieldsToRetrieve));
@@ -849,7 +866,7 @@ let executeQuoteRetrieval = asyncify(function() {
     } catch (err) {
       console.log(err);
     }
-  });
+  }); */
 
   /* if (resultData.length > 0) {
     let updatedResults = {
@@ -911,60 +928,90 @@ let executeMetricsUpdate = asyncify(function() {
 
 let executeAll = asyncify(function() {
   let t0 = new Date();
+
+  console.log('Executing retrieve financial indicators');
   awaitify(executeFinancialIndicators());
   let tf = new Date();
-  console.log('Retrieve financial indicators completed.  ',
-    utils.dateDiff(t0, tf), ' seconds to execute.');
 
-  executeCompanyMetrics();
+  console.log('Executing retrieve company metrics');
+  awaitify(executeCompanyMetrics());
   let tm = new Date();
-  console.log('Retrieve company metrics completed.  ',
-    utils.dateDiff(tf, tm), ' seconds to execute.');
 
-  executeQuoteRetrieval();
+  console.log('Executing retrieve index and company quotes');
+  awaitify(executeQuoteRetrieval());
   let tq = new Date();
-  console.log('Retrieve index and company quotes completed.  ',
-    utils.dateDiff(tm, tq), ' seconds to execute.');
 
-  executeMetricsUpdate();
+  console.log('Executing update company quotes with metrics');
+  awaitify(executeMetricsUpdate());
   let tu = new Date();
-  console.log('Update company quotes with metrics data completed.  ',
-    utils.dateDiff(tq, tu), ' seconds to execute.');
+
+  console.log('--------- All done --------');
+
+  console.log('Retrieve financial indicators: ',
+    utils.dateDiff(t0, tf, 'seconds'), ' seconds to execute.');
+
+  console.log('Retrieve company metrics: ',
+    utils.dateDiff(tf, tm, 'seconds'), ' seconds to execute.');
+
+  console.log('Retrieve index and company quotes: ',
+    utils.dateDiff(tm, tq, 'seconds'), ' seconds to execute.');
+
+  console.log('Update company quotes with metrics data: ',
+    utils.dateDiff(tq, tu, 'seconds'), ' seconds to execute.');
+
 
   console.log('Total time for all operations: ',
-    utils.dateDiff(t0, tu), ' seconds to execute.');
+    utils.dateDiff(t0, tu, 'seconds'), ' seconds to execute.');
 });
 
-program
-  .version('0.0.1')
-  .description('Sharecast share data retrieval')
-  .option('-f, --financial', 'Retrieve financial indicators')
-  .option('-m, --metrics', 'Retrieve company metrics')
-  .option('-q, --quotes', 'Retrieve index and company quotes')
-  .option('-u, --updates', 'Update company quotes with metrics data')
-  .option('-a', '--all', 'Perform complete series of operations')
-  .parse(process.argv);
+let executeCommand = asyncify(function() {
+  program
+    .version('0.0.1')
+    .description('Sharecast share data retrieval')
+    .option('-f, --financial', 'Retrieve financial indicators')
+    .option('-m, --metrics', 'Retrieve company metrics')
+    .option('-q, --quotes', 'Retrieve index and company quotes')
+    .option('-u, --updates', 'Update company quotes with metrics data')
+    .option('-a, --all', 'Perform complete series of operations')
+    .parse(process.argv);
 
-if (program.financial) {
-  console.log('Executing retrieve financial indicators');
-  executeFinancialIndicators();
-}
-if (program.metrics) {
-  console.log('Executing retrieve company metrics');
-  executeCompanyMetrics();
-}
-if (program.quotes) {
-  console.log('Executing retrieve index and company quotes');
-  executeQuoteRetrieval();
-}
-if (program.updates) {
-  console.log('Executing update company quotes with metrics');
-  executeMetricsUpdate();
-}
-if (program.all) {
-  console.log('Executing complete series');
-  executeAll();
-}
+  let t0 = new Date();
+
+  if (program.financial) {
+    console.log('Executing retrieve financial indicators');
+    awaitify(executeFinancialIndicators());
+    let tf = new Date();
+    console.log('Retrieve financial indicators: ',
+      utils.dateDiff(t0, tf, 'seconds'), ' seconds to execute.');
+  }
+  if (program.metrics) {
+    console.log('Executing retrieve company metrics');
+    awaitify(executeCompanyMetrics());
+    let tm = new Date();
+    console.log('Retrieve company metrics: ',
+      utils.dateDiff(tf, tm, 'seconds'), ' seconds to execute.');
+  }
+  if (program.quotes) {
+    console.log('Executing retrieve index and company quotes');
+    awaitify(executeQuoteRetrieval());
+    let tq = new Date();
+    console.log('Retrieve index and company quotes: ',
+      utils.dateDiff(tm, tq, 'seconds'), ' seconds to execute.');
+  }
+  if (program.updates) {
+    console.log('Executing update company quotes with metrics');
+    awaitify(executeMetricsUpdate());
+    let tu = new Date();
+    console.log('Update company quotes with metrics data: ',
+      utils.dateDiff(tq, tu, 'seconds'), ' seconds to execute.');
+  }
+  if (program.all) {
+    console.log('Executing complete series');
+    executeAll();
+  }
+});
+
+executeCommand();
 
 module.exports = {
   setupSymbols: setupSymbols,

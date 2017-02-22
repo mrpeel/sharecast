@@ -149,13 +149,12 @@ let queryTable = function(queryDetails) {
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
           (!queryDetails.limit || data.Count < queryDetails.limit)) {
-          console.log('Pausing for 500ms');
+          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
           setTimeout(function() {
             console.log('Querying for more data...');
             params.ExclusiveStartKey = data.LastEvaluatedKey;
             client.query(params, onQuery);
-          }
-            , 500);
+          }, data.ScannedCount * 4);
         } else {
           resolve(queryDataItems || []);
         }
@@ -215,12 +214,12 @@ let scanTable = function(scanDetails) {
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
           (!scanDetails.limit || data.Count < scanDetails.limit)) {
-          console.log('Pausing for 500ms');
+          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
           setTimeout(function() {
             console.log('Scanning for more data...');
             params.ExclusiveStartKey = data.LastEvaluatedKey;
             client.scan(params, onScan);
-          }, 500);
+          }, data.ScannedCount * 4);
         } else {
           resolve(scanDataItems || []);
         }
@@ -273,12 +272,12 @@ let getTable = function(tableDetails) {
         // continue scanning if we have more movies, because
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined') {
-          console.log('Pausing for 500ms');
+          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
           setTimeout(function() {
             console.log('Scanning for more data...');
             params.ExclusiveStartKey = data.LastEvaluatedKey;
             client.scan(params, onScan);
-          }, 500);
+          }, data.ScannedCount * 4);
         } else {
           resolve(scanDataItems || []);
         }

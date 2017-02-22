@@ -409,6 +409,63 @@ let openAndInsertIndexHistory = asyncify(function() {
   });
 });
 
+let openAndInsertCompanyQuotes = asyncify(function() {
+  let insertDetails = {
+    tableName: 'companyQuotes',
+    values: {},
+    primaryKey: [
+      'symbol', 'quoteDate',
+    ],
+  };
+
+  let csvFileNames = ['companies-2017-02-02.csv',
+    'companies-2017-02-03.csv',
+    'companies-2017-02-06.csv',
+    'companies-2017-02-07.csv',
+    'companies-2017-02-08.csv',
+    'companies-2017-02-09.csv',
+  ];
+
+  csvFileNames.forEach((csvFileName) => {
+    if (utils.doesDataFileExist(csvFileName)) {
+      try {
+        let csvFilePath = '../data/' + csvFileName;
+        let quoteValues = awaitify(retrieveCsv(csvFilePath));
+
+        quoteValues.forEach((quoteValue) => {
+          quoteValue['quoteDate'] = utils.returnDateAsString(
+            quoteValue['lastTradeDate'] /* , 'D/M/YYYY' */ );
+          quoteValue['yearMonth'] = quoteValue['quoteDate']
+            .substring(0, 7)
+            .replace('-', '');
+
+          // Remove nulls, empty values and -
+          // Check through for values with null and remove from object
+          Object.keys(quoteValue).forEach((field) => {
+            let holdingVal = quoteValue[field];
+            if (holdingVal === null || holdingVal === '' ||
+              holdingVal === '-') {
+              delete quoteValue[field];
+            } else if (typeof (holdingVal) === 'string' &&
+              !isNaN(holdingVal.replace(',', ''))) {
+              quoteValue[field] = Number(holdingVal.replace(',', ''));
+            }
+          });
+
+          insertDetails.values = quoteValue;
+
+          awaitify(dynamodb.insertRecord(insertDetails));
+          // Pause to prevent exceeding write capacity
+          awaitify(utils.sleep(75));
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  });
+});
+
+
 let extractAndInsertCompanyHistory = asyncify(function() {
   let queryDetails = {
     tableName: 'companyMetrics',
@@ -647,6 +704,7 @@ let calculateYearDividends = asyncify(function() {
     filterExpression: 'attribute_exists(DividendPerShare) and ' +
       'attribute_not_exists(DividendYield) and ' +
       'attribute_not_exists(DPSRecentYear)',
+    projectionExpression: 'symbol, metricsDate',
   };
 
   let updateDetails = {
@@ -734,4 +792,10 @@ let fixMissingMetrics = asyncify(function() {
 
 // calculateYearDividends();
 
-fixMissingMetrics();
+// fixMissingMetrics();
+
+openAndInsertCompanyQuotes();
+
+
+/* Add metrics to companyQuotes - all revcords up to and including
+   2017-02-07 need metrics added */

@@ -189,28 +189,31 @@ let returnEndOfMonth = function(dateValue, dateFormat) {
 /**
  * converts the date string used for querying to a formated date string which
  *  can be displayed
- * @param {String} dateValue a date or string in a format which can be
+ * @param {String} dateValue1 a date or string in a format which can be
+ *   converted to a date
+ * @param {String} dateValue2 a date or string in a format which can be
  *   converted to a date
  * @param {string} unit the unit to change by "seconds", "minutes", "hours",
  "days" , "weeks", "months", "years"
- * @param {number} number to change, positive number for futures, negative
- *    number for past
- * @return {Date} a date with the new value
+ * @return {Number} the difference as a number
  */
 let dateDiff = function(dateValue1, dateValue2, unit) {
   // Check that this really is a date
   if (!moment(dateValue1).isValid()) {
-    throw new Error('dateValue1 invalid: ' + dateValue1);
+    console.error('dateValue1 invalid: ' + dateValue1);
+    return null;
   }
 
   if (!moment(dateValue2).isValid()) {
-    throw new Error('dateValue2 invalid: ' + dateValue2);
+    console.error('dateValue2 invalid: ' + dateValue2);
+    return null;
   }
 
   if (!(unit === 'seconds' || unit === 'minutes' || unit === 'hours' ||
     unit === 'days' || unit === 'weeks' || unit === 'months' ||
     unit === 'years')) {
-    throw new Error('unit invalid: ' + unit);
+    console.error('unit invalid: ' + unit);
+    return null;
   }
 
   return Math.abs(dateValue1.diff(dateValue2, unit));
@@ -231,14 +234,17 @@ let dateDiff = function(dateValue1, dateValue2, unit) {
 let dateAdd = function(dateValue, unit, number) {
   // Check that this really is a date
   if (!moment(dateValue).isValid()) {
-    throw new Error('dateValue invalid: ' + dateValue);
+    console.error('dateValue invalid: ' + dateValue);
+    return null;
   }
   if (!(unit === 'days' || unit === 'weeks' || unit === 'months' ||
     unit === 'years')) {
-    throw new Error('unit invalid: ' + unit);
+    console.error('unit invalid: ' + unit);
+    return null;
   }
   if (typeof number !== 'number') {
-    throw new Error('number invalid: ' + number);
+    console.error('number invalid: ' + number);
+    return null;
   }
 
   return moment(dateValue).add(number, unit).format('YYYY-MM-DD');
