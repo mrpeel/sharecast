@@ -216,7 +216,10 @@ let dateDiff = function(dateValue1, dateValue2, unit) {
     return null;
   }
 
-  return Math.abs(dateValue1.diff(dateValue2, unit));
+  let md1 = moment(dateValue1);
+  let md2 = moment(dateValue2);
+
+  return Math.abs(md1.diff(md2, unit));
 };
 
 

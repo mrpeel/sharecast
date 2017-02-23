@@ -7,6 +7,33 @@ const moment = require('moment-timezone');
 AWS.config.loadFromPath('../credentials/aws.json');
 
 const client = new AWS.DynamoDB.DocumentClient();
+let dynamoTables = {};
+
+/** Gets all the dynamo tables and records their provisioned capacity
+*/
+let getTableInfo = function() {
+  let db = new AWS.DynamoDB();
+
+  db.listTables({}, function(err, data) {
+    if (err) {
+      console.log(err);
+    } else {
+      data.TableNames.forEach((tableName) => {
+        db.describeTable({
+          TableName: tableName,
+        }, function(err, data) {
+          if (err) {
+            console.log(err);
+          } else {
+            dynamoTables[tableName] = {};
+            dynamoTables[tableName]['readCapacity'] = data.Table.ProvisionedThroughput.ReadCapacityUnits;
+            dynamoTables[tableName]['writeCapacity'] = data.Table.ProvisionedThroughput.WriteCapacityUnits;
+          }
+        });
+      });
+    }
+  });
+};
 
 /** Insert record into dynamodb if it doesn't already exist
 * @param {Object} insertDetails - an object with all the details for insert
@@ -34,6 +61,13 @@ let insertRecord = function(insertDetails) {
   return new Promise(function(resolve, reject) {
     // Set-up item details for insert
     let item = {};
+    let maxCapacity = 5; // default write capacity to 5
+
+    // Set-up max write capacity
+    if (dynamoTables[insertDetails.tableName] &&
+      dynamoTables[insertDetails.tableName]['writeCapacity']) {
+      maxCapacity = dynamoTables[insertDetails.tableName]['writeCapacity'];
+    }
 
     Object.keys(insertDetails.values).forEach((valueKey) => {
       item[valueKey] = insertDetails.values[valueKey];
@@ -47,6 +81,7 @@ let insertRecord = function(insertDetails) {
     let params = {
       TableName: insertDetails.tableName,
       Item: item,
+      ReturnConsumedCapacity: 'TOTAL',
     };
 
     if (insertDetails.primaryKey) {
@@ -54,30 +89,39 @@ let insertRecord = function(insertDetails) {
         insertDetails.primaryKey[0] + ')';
     }
 
+
     console.log('Put table request: ', JSON.stringify(params));
 
     client.put(params, function(err, data) {
-      if (err && err.code === 'ConditionalCheckFailedException') {
-        console.log(`Skipping add to ${insertDetails.tableName} : `,
-          JSON.stringify(insertDetails.primaryKey), ' already exists');
-        resolve({
-          result: 'skipped',
-          message: `Skipping add to ${insertDetails.tableName} : ` +
-            JSON.stringify(insertDetails.primaryKey) + ' already exists.',
-        });
-      } else if (err) {
-        console.error(`Unable to add to ${insertDetails.tableName} values: `,
-          '. Error JSON:', JSON.stringify(err, null, 2));
-        reject({
-          result: 'failed',
-          message: JSON.stringify(err, null, 2),
-        });
-      } else {
-        console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
-        resolve({
-          result: 'inserted',
-        });
+      let timeout = 0;
+      // Retrieved used capacity and check if it's over allowed
+      if (data && data.ConsumedCapacity &&
+        data.ConsumedCapacity.CapacityUnits > maxCapacity) {
+        timeout = 1000 / data.ConsumedCapacity.CapacityUnits;
       }
+      setTimeout(function() {
+        if (err && err.code === 'ConditionalCheckFailedException') {
+          console.log(`Skipping add to ${insertDetails.tableName} : `,
+            JSON.stringify(insertDetails.primaryKey), ' already exists');
+          resolve({
+            result: 'skipped',
+            message: `Skipping add to ${insertDetails.tableName} : ` +
+              JSON.stringify(insertDetails.primaryKey) + ' already exists.',
+          });
+        } else if (err) {
+          console.error(`Unable to add to ${insertDetails.tableName} values: `,
+            '. Error JSON:', JSON.stringify(err, null, 2));
+          reject({
+            result: 'failed',
+            message: JSON.stringify(err, null, 2),
+          });
+        } else {
+          console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
+          resolve({
+            result: 'inserted',
+          });
+        }
+      }, timeout);
     });
   });
 };
@@ -109,8 +153,22 @@ let queryTable = function(queryDetails) {
       ExpressionAttributeValues: queryDetails.expressionAttributeValues,
     };
 
+    let maxCapacity = 5; // default read capacity to 5
+    let resultsLimit;
+
+    // Set-up max write capacity
+    if (dynamoTables[queryDetails.tableName] &&
+      dynamoTables[queryDetails.tableName]['readCapacity']) {
+      maxCapacity = dynamoTables[queryDetails.tableName]['readCapacity'];
+    }
+
+    params.Limit = maxCapacity;
+
     if (queryDetails.limit) {
-      params.Limit = queryDetails.limit;
+      resultsLimit = queryDetails.limit;
+      if (resultsLimit < maxCapacity) {
+        params.Limit = resultsLimit;
+      }
     }
 
     if (queryDetails.indexName) {
@@ -148,13 +206,10 @@ let queryTable = function(queryDetails) {
         // continue scanning if we have more movies, because
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
-          (!queryDetails.limit || data.Count < queryDetails.limit)) {
-          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
-          setTimeout(function() {
-            console.log('Querying for more data...');
-            params.ExclusiveStartKey = data.LastEvaluatedKey;
-            client.query(params, onQuery);
-          }, data.ScannedCount * 4);
+          (!resultsLimit || queryDataItems.length < resultsLimit)) {
+          console.log('Querying for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.query(params, onQuery);
         } else {
           resolve(queryDataItems || []);
         }
@@ -189,8 +244,22 @@ let scanTable = function(scanDetails) {
       ExpressionAttributeValues: scanDetails.expressionAttributeValues,
     };
 
+    let maxCapacity = 5; // default read capacity to 5
+    let resultsLimit;
+
+    // Set-up max write capacity
+    if (dynamoTables[scanDetails.tableName] &&
+      dynamoTables[scanDetails.tableName]['readCapacity']) {
+      maxCapacity = dynamoTables[scanDetails.tableName]['readCapacity'];
+    }
+
+    params.Limit = maxCapacity;
+
     if (scanDetails.limit) {
-      params.Limit = scanDetails.limit;
+      resultsLimit = scanDetails.limit;
+      if (resultsLimit < maxCapacity) {
+        params.Limit = resultsLimit;
+      }
     }
 
     if (scanDetails.projectionExpression) {
@@ -213,13 +282,10 @@ let scanTable = function(scanDetails) {
         // continue scanning if we have more movies, because
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
-          (!scanDetails.limit || data.Count < scanDetails.limit)) {
-          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
-          setTimeout(function() {
-            console.log('Scanning for more data...');
-            params.ExclusiveStartKey = data.LastEvaluatedKey;
-            client.scan(params, onScan);
-          }, data.ScannedCount * 4);
+          (!resultsLimit || scanDataItems.length < resultsLimit)) {
+          console.log('Scanning for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.scan(params, onScan);
         } else {
           resolve(scanDataItems || []);
         }
@@ -249,6 +315,16 @@ let getTable = function(tableDetails) {
 
     let scanDataItems = [];
 
+    let maxCapacity = 5; // default read capacity to 5
+
+    // Set-up max write capacity
+    if (dynamoTables[tableDetails.tableName] &&
+      dynamoTables[tableDetails.tableName]['readCapacity']) {
+      maxCapacity = dynamoTables[tableDetails.tableName]['readCapacity'];
+    }
+
+    params.Limit = maxCapacity;
+
     if (tableDetails.reverseOrder) {
       params.ScanIndexForward = false;
     }
@@ -272,12 +348,9 @@ let getTable = function(tableDetails) {
         // continue scanning if we have more movies, because
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined') {
-          console.log(`Pausing for ${data.ScannedCount * 4} ms...`);
-          setTimeout(function() {
-            console.log('Scanning for more data...');
-            params.ExclusiveStartKey = data.LastEvaluatedKey;
-            client.scan(params, onScan);
-          }, data.ScannedCount * 4);
+          console.log('Scanning for more data...');
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          client.scan(params, onScan);
         } else {
           resolve(scanDataItems || []);
         }
@@ -353,45 +426,9 @@ let updateRecord = function(updateDetails) {
   });
 };
 
-/* let testQuery = function() {
-  let queryDetails = {
-    tableName: 'financialIndicatorValues',
-    indexName: 'symbol-created-index',
-    keyConditionExpression: 'symbol = :symbol and created <= :created',
-    expressionAttributeValues: {
-      ':symbol': 'T1',
-      ':created': '2017-05-02',
-    },
-    reverseOrder: true,
-    limit: 1,
-  };
 
-  queryTable(queryDetails).then((result) => {
-    console.log(JSON.stringify(result));
-  }).catch((err) => {
-    console.log(err);
-  });
-}; */
-
-/* let testScan = function() {
-  let scanDetails = {
-    tableName: 'financialIndicatorValues',
-    filterExpression: 'symbol = :symbol and created <= :created',
-    expressionAttributeValues: {
-      ':symbol': 'T1',
-      ':created': '2017-05-02',
-    },
-    limit: 1,
-  };
-
-  scanTable(scanDetails).then((result) => {
-    console.log(JSON.stringify(result));
-  }).catch((err) => {
-    console.log(err);
-  });
-}; */
-
-// testQuery();
+// Always set-up table info on load
+getTableInfo();
 
 module.exports = {
   insertRecord: insertRecord,
