@@ -54,6 +54,7 @@ credentials
 # Node modules
 # =========================
 node_modules
+dynamo-backup/node_modules
 
 # gh-pages
 # =========================
