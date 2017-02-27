@@ -5,9 +5,13 @@ let aws = require('aws-sdk');
 let ReadableStream = require('./readable-stream');
 let zlib = require('zlib');
 let async = require('async');
+const lambda = new aws.Lambda({
+  region: 'ap-southeast-2',
+});
 
-let dateFormat = require('dateformat');
-let ts = dateFormat(new Date(), 'yyyymmdd-HHMMss');
+const moment = require('moment-timezone');
+
+let ts = moment().tz('Australia/Sydney').format('YYYYMMDD');
 
 aws.config.update({
   region: 'ap-southeast-2',
@@ -15,9 +19,11 @@ aws.config.update({
 
 aws.config.loadFromPath('../credentials/aws.json');
 
+
 let dynamo = new aws.DynamoDB();
 
-let backupTable = function(tablename, callback) {
+let backupTable = function(tablename, lts, callback) {
+  let md1 = moment();
   let dataStream = new ReadableStream(); // new stream.Readable();
   let gzip = zlib.createGzip();
 
@@ -30,11 +36,18 @@ let backupTable = function(tablename, callback) {
 
   // body will contain the compressed content to ship to s3
   let body = dataStream.pipe(gzip);
+  let bucket;
+
+  if (lts) {
+    bucket = 'sharecast-lts-backup';
+  } else {
+    bucket = 'sharecast-backup';
+  }
 
   let s3obj = new aws.S3({
     params: {
-      Bucket: 'sharecast-files',
-      Key: 'backup/' + tablename + '/' + tablename + '-' + ts + '.gz',
+      Bucket: bucket,
+      Key: tablename + '/' + tablename + '-' + ts + '.gz',
     },
   });
   s3obj.upload({
@@ -58,6 +71,9 @@ let backupTable = function(tablename, callback) {
         dynamo.scan(params, onScan);
       } else {
         dataStream.end();
+        let md2 = moment();
+        let seconds = Math.abs(md1.diff(md2, 'seconds'));
+        console.log(`Backup ${tablename} took ${seconds} seconds.`);
       }
     }
   };
@@ -82,26 +98,42 @@ let backupTable = function(tablename, callback) {
   });
 };
 
-let backupAll = function(context) {
+let backupAll = function(context, lts) {
+  lts = lts || false;
+
   dynamo.listTables({}, function(err, data) {
     if (err) console.log(err, err.stack); // an error occurred
     else {
       // Temporarily re-set to one table
-      data.TableNames = ['companies'];
+      data.TableNames = ['companyMetrics'];
 
       async.each(data.TableNames, function(table, callback) {
         console.log('Backing up ' + table);
-        backupTable(table, callback);
+        backupTable(table, lts, callback);
       }, function(err) {
         if (err) {
           console.log('A table failed to process');
         } else {
           console.log('All tables have been processed successfully');
         }
-        context.done(err);
+      // context.done(err);
       });
     }
   });
 };
 
-module.exports.backupAll = backupAll;
+let invokeLambda = function(lambdaName) {
+  lambda.invoke({
+    FunctionName: lambdaName,
+    InvocationType: 'Event',
+    Payload: JSON.stringify(event, null, 2),
+  }, function(err, data) {
+    if (err) {
+      console.log(err); // an error occurred
+    } else {
+      console.log(`Function ${lambdaName} executed.`);
+    }
+  });
+};
+
+module.exports.backupAll = backupAll({}, false);

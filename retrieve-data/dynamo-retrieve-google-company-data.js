@@ -9,14 +9,14 @@ const awaitify = require('asyncawait/await');
 let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
 let suffixUrl = ']&restype=company&ei=X6iZWMmFIMGW0AThhLPoCw';
 
-let fields = {
-  'earnings_per_share': 'earnings_per_share%20%3E%3D%20-8121%29%20%26%20%28earnings_per_share%20%3C%3D%203679%29',
+/* let fields = {
+  'market_cap': 'market_cap%20%3E%3D%2010000000%29%20%26%20%28market_cap%20%3C%3D%2014039000000000%29',
   'last_price': 'last_price%20%3E%3D%200%29%20%26%20%28last_price%20%3C%3D%2030400%29',
+  'earnings_per_share': 'earnings_per_share%20%3E%3D%20-8121%29%20%26%20%28earnings_per_share%20%3C%3D%203679%29',
   'average_200day_price': 'average_200day_price%20%3E%3D%20-1000%29%20%26%20%28average_200day_price%20%3C%3D%20199000%29',
   'price_change_52week': 'price_change_52week%20%3E%3D%20-9947%29%20%26%20%28price_change_52week%20%3C%3D%201420100%29',
   'average_200day_price': 'average_200day_price%20%3E%3D%200%29%20%26%20%28average_200day_price%20%3C%3D%2019900%29',
   'price_to_book': 'price_to_book%20%3E%3D%200%29%20%26%20%28price_to_book%20%3C%3D%20266400%29',
-  'market_cap': 'market_cap%20%3E%3D%200%29%20%26%20%28market_cap%20%3C%3D%2014039000000000%29',
   'pe_ratio': 'pe_ratio%20%3E%3D%200%29%20%26%20%28pe_ratio%20%3C%3D%201630100%29',
   'dividend_recent_quarter%': 'dividend_recent_quarter%20%3E%3D%200%29%20%26%20%28dividend_recent_quarter%20%3C%3D%20913%29',
   'dividend_next_quarter': 'dividend_next_quarter%20%3E%3D%200%29%20%26%20%28dividend_next_quarter%20%3C%3D%20223%29',
@@ -60,10 +60,62 @@ let fields = {
   'eps_growth_rate_10years': 'eps_growth_rate_10years%20%3E%3D%20-5000%29%20%26%20%28eps_growth_rate_10years%20%3C%3D%2012600%29',
   'volume': 'volume%20%3E%3D%200%29%20%26%20%28volume%20%3C%3D%2015212000000%29',
   'average_volume': 'average_volume%20%3E%3D%200%29%20%26%20%28average_volume%20%3C%3D%2014683000000%29',
+}; */
+
+// %20%26%20%28
+
+let fields = {
+  'base': 'market_cap%20%3E%3D%2010000000%29%20%26%20%28market_cap%20%3C%3D%2014039000000000%29' +
+    '%20%26%20%28last_price%20%3E%3D%200%29%20%26%20%28last_price%20%3C%3D%2030400%29',
+  'agg1': 'earnings_per_share%20%3E%3D%20-8121%29%20%26%20%28earnings_per_share%20%3C%3D%203679%29' +
+    '%20%26%20%28average_200day_price%20%3E%3D%20-1000%29%20%26%20%28average_200day_price%20%3C%3D%20199000%29' +
+    '%20%26%20%28price_change_52week%20%3E%3D%20-9947%29%20%26%20%28price_change_52week%20%3C%3D%201420100%29' +
+    '%20%26%20%28dividend_recent_quarter%20%3E%3D%200%29%20%26%20%28dividend_recent_quarter%20%3C%3D%20913%29' +
+    '%20%26%20%28price_to_book%20%3E%3D%200%29%20%26%20%28price_to_book%20%3C%3D%20266400%29',
+  'agg2': 'pe_ratio%20%3E%3D%200%29%20%26%20%28pe_ratio%20%3C%3D%201630100%29' +
+    '%20%26%20%28dividend_per_share_trailing_12months%20%3E%3D%200%29%20%26%20%28dividend_per_share_trailing_12months%20%3C%3D%20913%29' +
+    '%20%26%20%28dividend_next_quarter%20%3E%3D%200%29%20%26%20%28dividend_next_quarter%20%3C%3D%20223%29' +
+    '%20%26%20%28dividend_per_share%20%3E%3D%200%29%20%26%20%28dividend_per_share%20%3C%3D%20913%29' +
+    '%20%26%20%28dividend_next_year%20%3E%3D%200%29%20%26%20%28dividend_next_year%20%3C%3D%20598%29',
+  'agg3': 'dividend_yield%20%3E%3D%200%29%20%26%20%28dividend_yield%20%3C%3D%2075100%29' +
+    '%20%26%20%28dividend_recent_year%20%3E%3D%200%29%20%26%20%28dividend_recent_year%20%3C%3D%20582800%29' +
+    '%20%26%20%28book_value_per_share_year%20%3E%3D%20-2298%29%20%26%20%28book_value_per_share_year%20%3C%3D%2010100%29' +
+    '%20%26%20%28cash_per_share_year%20%3E%3D%200%29%20%26%20%28cash_per_share_year%20%3C%3D%206587%29' +
+    '%20%26%20%28current_assets_to_liabilities_ratio_year%20%3E%3D%200%29%20%26%20%28current_assets_to_liabilities_ratio_year%20%3C%3D%206923200%29',
+  'agg4': 'longterm_debt_to_assets_year%20%3E%3D%200%29%20%26%20%28longterm_debt_to_assets_year%20%3C%3D%20102000000%29' +
+    '%20%26%20%28longterm_debt_to_assets_quarter%20%3E%3D%200%29%20%26%20%28longterm_debt_to_assets_quarter%20%3C%3D%20102000000%29' +
+    '%20%26%20%28total_debt_to_assets_year%20%3E%3D%200%29%20%26%20%28total_debt_to_assets_year%20%3C%3D%20208999999.99999998%29' +
+    '%20%26%20%28total_debt_to_assets_quarter%20%3E%3D%200%29%20%26%20%28total_debt_to_assets_quarter%20%3C%3D%20208999999.99999998%29' +
+    '%20%26%20%28longterm_debt_to_equity_year%20%3E%3D%200%29%20%26%20%28longterm_debt_to_equity_year%20%3C%3D%202892500%29',
+  'agg5': 'longterm_debt_to_equity_quarter%20%3E%3D%200%29%20%26%20%28longterm_debt_to_equity_quarter%20%3C%3D%202892500%29' +
+    '%20%26%20%28total_debt_to_equity_year%20%3E%3D%200%29%20%26%20%28total_debt_to_equity_year%20%3C%3D%2026631500%29' +
+    '%20%26%20%28total_debt_to_equity_quarter%20%3E%3D%200%29%20%26%20%28total_debt_to_equity_quarter%20%3C%3D%2026631500%29' +
+    '%20%26%20%28interest_coverage_year%20%3E%3D%20-38121800%29%20%26%20%28interest_coverage_year%20%3C%3D%209388700%29' +
+    '%20%26%20%28return_on_investment_trailing_12months%20%3E%3D%20-5666000%29%20%26%20%28return_on_investment_trailing_12months%20%3C%3D%2062100%29',
+  'agg6': 'return_on_investment_5years%20%3E%3D%20-343400%29%20%26%20%28return_on_investment_5years%20%3C%3D%2019800%29' +
+    '%20%26%20%28return_on_investment_year%20%3E%3D%20-5666000%29%20%26%20%28return_on_investment_year%20%3C%3D%2062100%29' +
+    '%20%26%20%28return_on_assets_trailing_12months%20%3E%3D%20-316000%29%20%26%20%28return_on_assets_trailing_12months%20%3C%3D%2013107600%29' +
+    '%20%26%20%28return_on_assets_5years%20%3E%3D%20-95800%29%20%26%20%28return_on_assets_5years%20%3C%3D%2064400%29' +
+    '%20%26%20%28return_on_assets_year%20%3E%3D%20-940500%29%20%26%20%28return_on_assets_year%20%3C%3D%2013107600%29',
+  'agg7': 'return_on_equity_trailing_12months%20%3E%3D%20-5666000%29%20%26%20%28return_on_equity_trailing_12months%20%3C%3D%20172100%29' +
+    '%20%26%20%28return_on_equity_5years%20%3E%3D%20-147700%29%20%26%20%28return_on_equity_5years%20%3C%3D%2057200%29' +
+    '%20%26%20%28return_on_equity_year%20%3E%3D%20-5666000%29%20%26%20%28return_on_equity_year%20%3C%3D%20172100%29' +
+    '%20%26%20%28beta%20%3E%3D%20-894%29%20%26%20%28beta%20%3C%3D%20927%29' +
+    '%20%26%20%28shares_floating%20%3E%3D%200%29%20%26%20%28shares_floating%20%3C%3D%202671500%29',
+  'agg8': 'gross_margin_trailing_12months%20%3E%3D%20-6216500%29%20%26%20%28gross_margin_trailing_12months%20%3C%3D%2052000%29' +
+    '%20%26%20%28ebitd_margin_trailing_12months%20%3E%3D%20-1403000000%29%20%26%20%28ebitd_margin_trailing_12months%20%3C%3D%2043043600%29' +
+    '%20%26%20%28operating_margin_trailing_12months%20%3E%3D%20-6061000000%29%20%26%20%28operating_margin_trailing_12months%20%3C%3D%20934000000%29' +
+    '%20%26%20%28net_profit_margin_percent_trailing_12months%20%3E%3D%20-5834000000%29%20%26%20%28net_profit_margin_percent_trailing_12months%20%3C%3D%20695000000%29' +
+    '%20%26%20%28net_income_growth_rate_5years%20%3E%3D%20-7156%29%20%26%20%28net_income_growth_rate_5years%20%3C%3D%2027300%29',
+  'agg9': 'revenue_growth_rate_5years%20%3E%3D%20-9184%29%20%26%20%28revenue_growth_rate_5years%20%3C%3D%20141800%29' +
+    '%20%26%20%28revenue_growth_rate_10years%20%3E%3D%20-6768%29%20%26%20%28revenue_growth_rate_10years%20%3C%3D%2024900%29' +
+    '%20%26%20%28eps_growth_rate_5years%20%3E%3D%20-7502%29%20%26%20%28eps_growth_rate_5years%20%3C%3D%2027200%29' +
+    '%20%26%20%28eps_growth_rate_10years%20%3E%3D%20-5000%29%20%26%20%28eps_growth_rate_10years%20%3C%3D%2012600%29' +
+    '%20%26%20%28volume%20%3E%3D%200%29%20%26%20%28volume%20%3C%3D%2015212000000%29',
+  'agg10': 'average_volume%20%3E%3D%200%29%20%26%20%28average_volume%20%3C%3D%2014683000000%29',
 };
 
 
-let companyResults = {};
 /** Retieve live company metrics from Google finance
 * @param {Array} existingCompanySymbols (optional) list of existing company
 *                    symbols, if a new symbol is loaded it will be added
@@ -71,6 +123,7 @@ let companyResults = {};
 **/
 let retrieveCompanies = asyncify(function(existingCompanySymbols) {
   return new Promise(function(resolve, reject) {
+    let companyResults = {};
     let resultFields = ['symbol', 'name'];
     let resultData = [];
     let checkSymbols = false;
@@ -78,52 +131,71 @@ let retrieveCompanies = asyncify(function(existingCompanySymbols) {
     if (existingCompanySymbols && existingCompanySymbols.length) {
       checkSymbols = true;
     }
-
     Object.keys(fields).forEach((lookupField) => {
       // fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
-      awaitify(fetch(baseUrl + fields[lookupField] + suffixUrl)
-        .then((response) => {
-          return response.text();
-        })
-        .then((responseBody) => {
-          let convertedResponse = responseBody
-            .replace(/\\x22/g, '&quot;')
-            .replace(/\\x27/g, '&#039;')
-            .replace(/\\x26/g, '&amp;')
-            .replace(/\\x2F/g, '&#47;')
-            .replace(/\\x3E/g, '&gt;')
-            .replace(/\\x3C/g, '&lt;');
 
-          let jsonResults = JSON.parse(convertedResponse);
+      let searchResults = awaitify(retrieveMetric(baseUrl +
+        fields[lookupField] + suffixUrl));
 
-          jsonResults.searchresults.forEach((result) => {
-            if (!companyResults[result.ticker]) {
-              companyResults[result.ticker] = {};
-            }
-            let companyVals = companyResults[result.ticker];
-            companyVals.name = result.title;
+      searchResults.forEach((result) => {
+        /* The first two returns are market cap and price.  Create filtered list
+            base don cpmanies with market cap >= 10M and price > 0 */
+
+        let companySymbol = result.ticker;
+
+
+        // Special handling for market_cap - add items to object
+        // if (lookupField === 'market_cap') {
+        if (lookupField === 'base') {
+          let marketCap = result.columns[0].value;
+          let price = result.columns[1].value;
+
+          if (marketCap === '-') {
+            marketCap = '';
+          } else {
+            marketCap = utils.checkForNumber(marketCap);
+          }
+
+          if (price === '-') {
+            price = '';
+          } else {
+            price = utils.checkForNumber(price);
+          }
+
+          // if price > 0 then add company
+          if (price > 0) {
+            companyResults[companySymbol] = {};
+            companyResults[companySymbol]['name'] = result.title;
+            companyResults[companySymbol][result.columns[0].field] = marketCap;
+            companyResults[companySymbol][result.columns[1].field] = price;
+          }
+        } else if (companyResults[companySymbol]) {
+          // for all opther fields, only add result if company already exists
+          result.columns.forEach((column) => {
+            let resultValue = column.value;
+            let resultField = column.field;
 
             // Check for empty values which are listed as '-'
-            if (result.columns[0].value === '-') {
-              companyVals[result.columns[0].field] = '';
+            if (resultValue === '-') {
+              resultValue = '';
             } else {
-              companyVals[result.columns[0].field] = utils.checkForNumber(
-                result.columns[0].value);
+              // Check and format number as required
+              resultValue = utils.checkForNumber(resultValue);
+            }
+
+            if (resultValue !== '') {
+              companyResults[companySymbol][resultField] = resultValue;
             }
           });
-        })
-        .catch((err) => {
-          cosole.log(err);
-          reject(err);
-        })
-      );
+        }
+      });
     });
 
     // Work through all values and build data
     Object.keys(companyResults).forEach((company) => {
       let companyData = {};
 
-      /* If checl symbols, then compare symbol with list and if the symbol
+      /* If check symbols, then compare symbol with list and if the symbol
          is new, call add company */
       if (checkSymbols && existingCompanySymbols.indexOf(company) < 0) {
         // Symbol not found, so add it
@@ -152,6 +224,37 @@ let retrieveCompanies = asyncify(function(existingCompanySymbols) {
   });
 });
 
+
+/**
+ * Returns company metrics which were / are active for a specific date
+ *
+ * @param {String} url the url to retrieve
+ * @return {Object}  Results object:
+ *    {
+ *      symbol: symbolValue,
+ *      ...
+ *    }
+ */
+let retrieveMetric = asyncify(function(url) {
+  try {
+    let fetchResponse = awaitify(fetch(url));
+    let responseBody = awaitify(fetchResponse.text());
+    let convertedResponse = responseBody
+      .replace(/\\x22/g, '&quot;')
+      .replace(/\\x27/g, '&#039;')
+      .replace(/\\x26/g, '&amp;')
+      .replace(/\\x2F/g, '&#47;')
+      .replace(/\\x3E/g, '&gt;')
+      .replace(/\\x3C/g, '&lt;');
+
+    let jsonResults = JSON.parse(convertedResponse);
+
+    return jsonResults.searchresults;
+  } catch (err) {
+    cosole.error(err);
+    return {};
+  }
+});
 
 /**
  * Returns company metrics which were / are active for a specific date
@@ -264,7 +367,6 @@ let updateCompanyMetrics = asyncify(function() {
       });
 
       awaitify(insertCompanyMetricsValue(companyMetricsRecord));
-      awaitify(utils.sleep(50));
     });
   } catch (err) {
     console.log(err);
@@ -273,8 +375,10 @@ let updateCompanyMetrics = asyncify(function() {
 
 // updateCompanyMetrics();
 
+
 module.exports = {
   updateCompanyMetrics: updateCompanyMetrics,
   returnCompanyMetricValuesForDate: returnCompanyMetricValuesForDate,
   insertCompanyMetricsValue: insertCompanyMetricsValue,
+  retrieveCompanies: retrieveCompanies,
 };

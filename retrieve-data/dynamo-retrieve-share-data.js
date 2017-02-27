@@ -400,11 +400,57 @@ let convertIndexDatatoAppendData = function(indexData) {
     returnVal[indexPrefix + 'change'] = indexRow['change'];
     returnVal[indexPrefix + 'dayslow'] = indexRow['daysLow'];
     returnVal[indexPrefix + 'dayshigh'] = indexRow['daysHigh'];
+    returnVal[indexPrefix + 'percebtChangeFrom52WeekHigh'] = indexRow['percebtChangeFrom52WeekHigh'];
+    returnVal[indexPrefix + 'percentChangeFrom52WeekLow'] = indexRow['percentChangeFrom52WeekLow'];
   });
 
   console.log(returnVal);
   return returnVal;
 };
+
+/**
+ * Converts individual index data records into an array of values which
+ * can be appended to every company symbol record
+ * @param {Array} indexData the data in the format:
+ *    {
+ *    symbol: ALLORD
+ *    lastTradeDate: 2017-02-03
+ *     ...
+ *    }
+ * @return {Array}  Array in the form of
+ *    {
+ *      "allordpreviousclose": 5696.4,
+ *      "allordchange": -23.9,
+ *      "allorddayslow": 5668.9,
+ *      ...
+ *    }
+ */
+let returnIndexDataForDate = function(dateVal) {
+  if (!util.isDate(dateVal)) {
+    console.error(`Invalid dateVal: ${dateVal}`);
+    return;
+  }
+  let returnVal = {};
+  let quoteDate = utils.returnDateAsString(dateVal);
+
+  let scanDetails = {
+    tableName: 'indexQuotes',
+    filterExpression: 'quoteDate = :quoteDate',
+    expressionAttributeValues: {
+      ':quoteDate': quoteDate,
+    },
+  };
+
+  let indexResults = awaitify(dynamodb.scanTable(scanDetails));
+
+  // Check we got a metrics result
+  if (indexResults.length) {
+    returnVal = convertIndexDatatoAppendData(indexResults);
+  }
+
+  return returnVal;
+};
+
 
 /**
  * Copies properties from two objects to a new object
@@ -622,7 +668,91 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   awaitify(dynamodb.insertRecord(insertDetails));
 });
 
-let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate,
+let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
+  if (!symbols) {
+    console.log('updateQuotesWithMetrics error: no symbols supplied');
+    return;
+  }
+
+  if (!quoteDate) {
+    console.log('updateQuotesWithMetrics error: no quoteDate supplied');
+    return;
+  }
+
+  console.log('Updating company quotes with metrics for ', quoteDate);
+
+  let metricsDate = quoteDate;
+
+  // Set-up update details, only update the record if it is found
+  let updateDetails = {
+    tableName: 'companyQuotes',
+    key: {
+      quoteDate: metricsDate,
+    },
+  };
+
+  symbols.forEach((companySymbol) => {
+    // If at least one quote record has been returned, continue
+    let fieldsPresent = [];
+    let updateExpression;
+    let expressionAttributeValues = {};
+    let expressionAttributeNames = {};
+
+    // Set-up query and retrieve metrics value
+    let queryDetails = {
+      tableName: 'companyMetrics',
+      keyConditionExpression: 'symbol = :symbol and ' +
+        'metricsDate = :metricsDate',
+      expressionAttributeValues: {
+        ':metricsDate': metricsDate,
+        ':symbol': companySymbol,
+      },
+      limit: 1,
+    };
+
+    let metricsResult = awaitify(dynamodb.queryTable(queryDetails));
+
+    // Check we got a metrics result
+    if (metricsResult.length) {
+      let workingRecord = metricsResult[0];
+
+      // Set up the key: symbol and quoteDate
+      updateDetails.key = {
+        symbol: companySymbol,
+      };
+
+      // Remove the attributes which should not be copied into cpmanyQuotes
+      delete workingRecord['symbol'];
+      delete workingRecord['metricsDate'];
+      delete workingRecord['yearMonth'];
+      delete workingRecord['created'];
+
+      // Get a list of fields and values to copy
+      Object.keys(workingRecord).forEach((field) => {
+        expressionAttributeValues[(':' + field)] = workingRecord[field];
+        expressionAttributeNames[('#' + field)] = field;
+        fieldsPresent.push('#' + field + '=:' + field);
+      });
+
+      // Enure that at least one field is present to update
+      if (fieldsPresent.length) {
+        updateExpression = 'set ' + fieldsPresent.join(',');
+
+        updateDetails.updateExpression = updateExpression;
+        updateDetails.expressionAttributeValues = expressionAttributeValues;
+        updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+        try {
+          awaitify(dynamodb.updateRecord(updateDetails));
+        } catch (err) {
+          conosle.log(err);
+        }
+      }
+    }
+  });
+});
+
+let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
   searchForward) {
   if (!symbols) {
     console.log('updateQuotesWithMetrics error: no symbols supplied');
@@ -742,7 +872,6 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate,
     }
   });
 });
-
 
 let getCurrentExecutionDate = asyncify(function() {
   // Get current dat based on last index quote for All Ordinaries
@@ -1017,4 +1146,6 @@ module.exports = {
   setupSymbols: setupSymbols,
   updateQuotesWithMetrics: updateQuotesWithMetrics,
   writeIndexQuote: writeIndexQuote,
+  writeCompanyQuoteData: writeCompanyQuoteData,
+  returnIndexDataForDate: returnIndexDataForDate,
 };

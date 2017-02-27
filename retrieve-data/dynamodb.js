@@ -2,6 +2,8 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
+const asyncify = require('asyncawait/async');
+const awaitify = require('asyncawait/await');
 
 
 AWS.config.loadFromPath('../credentials/aws.json');
@@ -10,30 +12,67 @@ const client = new AWS.DynamoDB.DocumentClient();
 let dynamoTables = {};
 
 /** Gets all the dynamo tables and records their provisioned capacity
+* @return {Boolean} whether the get info worked
 */
-let getTableInfo = function() {
-  let db = new AWS.DynamoDB();
+let getTableInfo = asyncify(function() {
+  // Check if already done`
+  if (!Object.keys(dynamoTables).length) {
+    let db = new AWS.DynamoDB();
 
-  db.listTables({}, function(err, data) {
-    if (err) {
-      console.log(err);
-    } else {
-      data.TableNames.forEach((tableName) => {
-        db.describeTable({
-          TableName: tableName,
-        }, function(err, data) {
-          if (err) {
-            console.log(err);
-          } else {
-            dynamoTables[tableName] = {};
-            dynamoTables[tableName]['readCapacity'] = data.Table.ProvisionedThroughput.ReadCapacityUnits;
-            dynamoTables[tableName]['writeCapacity'] = data.Table.ProvisionedThroughput.WriteCapacityUnits;
-          }
-        });
-      });
-    }
+    let tableNames = awaitify(listTables(db));
+
+    tableNames.forEach((tableName) => {
+      try {
+        let tableData = awaitify(describeTable(db, tableName));
+        dynamoTables[tableName] = {};
+        dynamoTables[tableName]['readCapacity'] = tableData.ProvisionedThroughput.ReadCapacityUnits;
+        dynamoTables[tableName]['writeCapacity'] = tableData.ProvisionedThroughput.WriteCapacityUnits;
+      } catch (err) {
+        console.error(err);
+        return false;
+      }
+    });
+    return true;
+  } else {
+    return true;
+  }
+});
+
+/** Returns tab;le info from dynamo
+* @param {Object} db - dynamo db reference
+* @param {String} tableName - name of table to describe
+* @return {Promise} promise with table info
+*/
+let describeTable = function(db, tableName) {
+  return new Promise(function(resolve, reject) {
+    db.describeTable({
+      TableName: tableName,
+    }, function(err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data.Table);
+      }
+    });
   });
 };
+
+/** Returns a list of dynamo db tables
+* @param {Object} db - dynamo db reference
+* @return {Array} table names
+*/
+let listTables = function(db) {
+  return new Promise(function(resolve, reject) {
+    db.listTables({}, function(err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(data.TableNames);
+      }
+    });
+  });
+};
+
 
 /** Insert record into dynamodb if it doesn't already exist
 * @param {Object} insertDetails - an object with all the details for insert
@@ -63,6 +102,8 @@ let insertRecord = function(insertDetails) {
     let item = {};
     let maxCapacity = 5; // default write capacity to 5
 
+    awaitify(getTableInfo());
+
     // Set-up max write capacity
     if (dynamoTables[insertDetails.tableName] &&
       dynamoTables[insertDetails.tableName]['writeCapacity']) {
@@ -90,7 +131,7 @@ let insertRecord = function(insertDetails) {
     }
 
 
-    console.log('Put table request: ', JSON.stringify(params));
+    console.log('Put table request: ', insertDetails.tableName);
 
     client.put(params, function(err, data) {
       let timeout = 0;
@@ -156,6 +197,8 @@ let queryTable = function(queryDetails) {
     let maxCapacity = 5; // default read capacity to 5
     let resultsLimit;
 
+    awaitify(getTableInfo());
+
     // Set-up max write capacity
     if (dynamoTables[queryDetails.tableName] &&
       dynamoTables[queryDetails.tableName]['readCapacity']) {
@@ -198,8 +241,8 @@ let queryTable = function(queryDetails) {
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log(`Query table ${queryDetails.tableName} succeeded.  `,
-          `${data.Items.length} records returned.`);
+        /* console.log(`Query table ${queryDetails.tableName} succeeded.  `,
+          `${data.Items.length} records returned.`);*/
 
         queryDataItems = queryDataItems.concat(data.Items);
 
@@ -207,10 +250,11 @@ let queryTable = function(queryDetails) {
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
           (!resultsLimit || queryDataItems.length < resultsLimit)) {
-          console.log('Querying for more data...');
+          // console.log('Querying for more data...');
           params.ExclusiveStartKey = data.LastEvaluatedKey;
           client.query(params, onQuery);
         } else {
+          console.log(`Querying returned ${queryDataItems.length} items`);
           resolve(queryDataItems || []);
         }
       }
@@ -247,6 +291,8 @@ let scanTable = function(scanDetails) {
     let maxCapacity = 5; // default read capacity to 5
     let resultsLimit;
 
+    awaitify(getTableInfo());
+
     // Set-up max write capacity
     if (dynamoTables[scanDetails.tableName] &&
       dynamoTables[scanDetails.tableName]['readCapacity']) {
@@ -274,8 +320,8 @@ let scanTable = function(scanDetails) {
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log(`Scan table ${scanDetails.tableName} succeeded. `,
-          `${data.Items.length} records returned.`);
+        /* console.log(`Scan table ${scanDetails.tableName} succeeded. `,
+          `${data.Items.length} records returned.`); */
 
         scanDataItems = scanDataItems.concat(data.Items);
 
@@ -283,10 +329,11 @@ let scanTable = function(scanDetails) {
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined' &&
           (!resultsLimit || scanDataItems.length < resultsLimit)) {
-          console.log('Scanning for more data...');
+          // console.log('Scanning for more data...');
           params.ExclusiveStartKey = data.LastEvaluatedKey;
           client.scan(params, onScan);
         } else {
+          console.log(`Scan returned ${scanDataItems.length} items`);
           resolve(scanDataItems || []);
         }
       }
@@ -307,7 +354,7 @@ let scanTable = function(scanDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let getTable = function(tableDetails) {
+let getTable = asyncify(function(tableDetails) {
   return new Promise(function(resolve, reject) {
     let params = {
       TableName: tableDetails.tableName,
@@ -316,6 +363,8 @@ let getTable = function(tableDetails) {
     let scanDataItems = [];
 
     let maxCapacity = 5; // default read capacity to 5
+
+    awaitify(getTableInfo());
 
     // Set-up max write capacity
     if (dynamoTables[tableDetails.tableName] &&
@@ -341,17 +390,18 @@ let getTable = function(tableDetails) {
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
-        console.log(`Get table ${tableDetails.tableName} succeeded.  `,
-          `${data.Items.length} records returned.`);
+        /* console.log(`Get table ${tableDetails.tableName} succeeded.  `,
+          `${data.Items.length} records returned.`); */
         scanDataItems = scanDataItems.concat(data.Items);
 
         // continue scanning if we have more movies, because
         // scan can retrieve a maximum of 1MB of data
         if (typeof data.LastEvaluatedKey !== 'undefined') {
-          console.log('Scanning for more data...');
+          // console.log('Scanning for more data...');
           params.ExclusiveStartKey = data.LastEvaluatedKey;
           client.scan(params, onScan);
         } else {
+          console.log(`Get table returned ${scanDataItems.length} items`);
           resolve(scanDataItems || []);
         }
       }
@@ -359,7 +409,7 @@ let getTable = function(tableDetails) {
 
     client.scan(params, onScan);
   });
-};
+});
 
 /** Update a record in a table
 * @param {Object} updateDetails - an object with all the details
@@ -393,6 +443,8 @@ let updateRecord = function(updateDetails) {
       ExpressionAttributeValues: updateDetails.expressionAttributeValues,
     };
 
+    awaitify(getTableInfo());
+
     if (updateDetails.expressionAttributeNames) {
       params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
     }
@@ -403,7 +455,8 @@ let updateRecord = function(updateDetails) {
 
     params.ReturnValues = 'UPDATED_NEW';
 
-    console.log('Update table request: ', JSON.stringify(params));
+    console.log('Update table request: ', updateDetails.tableName,
+      ' ', JSON.stringify(params.key));
 
     client.update(params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {
@@ -427,8 +480,70 @@ let updateRecord = function(updateDetails) {
 };
 
 
-// Always set-up table info on load
-getTableInfo();
+/** Delets a record from dynamodb
+* @param {Object} deleteDetails - an object with all the details for insert
+* insertDetails = {
+*  tableName: 'companies',
+*  key: [
+*    'companySymbol',
+*  ],
+*  conditionExpression: 'attribute_exists(symbol)' (optional expression to
+  perform delete)
+  expressionAttributeValues: {
+     ':sentTime': moment().tz('Australia/Sydney').format(),
+     ':sentLog': result
+   },
+    expressionAttributeNames: (optional) {
+       '#sentTime': 'SentTime',
+    };
+@return {Promise} which resolves with:
+* {
+*   result: deleted / failed
+*   message: error message (optional)
+* }
+*/
+let deleteRecord = function(deleteDetails) {
+  return new Promise(function(resolve, reject) {
+    // Set-up item details for insert
+    let params = {
+      TableName: deleteDetails.tableName,
+      Key: deleteDetails.key,
+    };
+
+    if (deleteDetails.expressionAttributeValues) {
+      params.ExpressionAttributeValues = deleteDetails.expressionAttributeValues;
+    }
+
+    if (deleteDetails.expressionAttributeNames) {
+      params.ExpressionAttributeNames = deleteDetails.expressionAttributeNames;
+    }
+
+
+    if (deleteDetails.conditionExpression) {
+      params.ConditionExpression = deleteDetails.conditionExpression;
+    }
+
+
+    console.log('Delete item request: ', JSON.stringify(params));
+
+    client.delete(params, function(err, data) {
+      if (err) {
+        console.error(`Unable to delete ${deleteDetails.key}`,
+          '. Error JSON:', JSON.stringify(err, null, 2));
+        reject({
+          result: 'failed',
+          message: JSON.stringify(err, null, 2),
+        });
+      } else {
+        console.log(`Delete item from ${deleteDetails.tableName} succeeded.`);
+        resolve({
+          result: 'deleted',
+        });
+      }
+    });
+  });
+};
+
 
 module.exports = {
   insertRecord: insertRecord,
@@ -436,4 +551,5 @@ module.exports = {
   scanTable: scanTable,
   getTable: getTable,
   updateRecord: updateRecord,
+  deleteRecord: deleteRecord,
 };

@@ -4,6 +4,10 @@ const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const shareRetrieve = require('./dynamo-retrieve-share-data');
+const metricsRetrieve = require('./dynamo-retrieve-google-company-data');
+const fiRetrieve = require('./dynamo-retrieve-financial-indicator-data');
+const stats = require('./stats');
+const jsonCompanies = require('../data/verified-companies-to-remove.json');
 
 const fields = {
   // b: 'bid',
@@ -168,7 +172,6 @@ let processIndexHistoryResults = asyncify(function(results) {
       // Multiple  symbols returned
       results[symbolResults].forEach(function(indResult) {
         awaitify(processIndexHistoryResult(indResult));
-        awaitify(utils.sleep(175));
       });
     });
   }
@@ -403,4 +406,545 @@ let getIndexHistory = asyncify(function() {
 });
 
 
-getIndexHistory();
+let getCompanyHistory = asyncify(function() {
+  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
+
+  // Work through companies one by one and retrieve values
+  companies.forEach((companySymbol) => {
+    let results = awaitify(retrieveHistory(companySymbol,
+      companyFieldsToRetrieve, '2006-07-01', '2017-01-29', 'd'));
+
+    processCompanyHistoryResults(results);
+  });
+});
+
+let processCompanyHistoryResults = asyncify(function(results) {
+  if (results) {
+    Object.keys(results).forEach(function(symbolResults) {
+      // Multiple  symbols returned
+      results[symbolResults].forEach(function(indResult) {
+        awaitify(processCompanyHistoryResult(indResult));
+      });
+    });
+  }
+});
+
+let processCompanyHistoryResult = asyncify(function(result) {
+  let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
+    'quoteDate'];
+  result.lastTradeDate = utils.returnDateAsString(result.date);
+  // Convert yahoo symbol to generic symbol
+  result.symbol = symbolLookup[result.symbol];
+
+  // Remove oriingal date field
+  delete result['date'];
+
+  Object.keys(result).forEach(function(field) {
+    // Reset number here required
+    result[field] = utils.checkForNumber(result[field]);
+  });
+
+  // Get index values for date
+  let indexVals = awaitify(
+    shareRetrieve.returnIndexDataForDate(result.lastTradeDate));
+
+  Object.keys(indexVals).forEach((indexKey) => {
+    // Check if value should be ignored.  If not add to quoteVal
+    if (ignoreVals.indexOf(indexKey) === -1) {
+      result[indexKey] = indexVals[indexKey];
+    }
+  });
+
+  // Get financial indicator values for date
+  let fiVals = awaitify(
+    fiRetrieve.returnIndicatorValuesForDate(result.lastTradeDate));
+
+  Object.keys(fiVals).forEach((fiKey) => {
+    // Check if value should be ignored.  If not add to quoteVal
+    if (ignoreVals.indexOf(fiKey) === -1) {
+      result[fiKey] = fiVals[fiKey];
+    }
+  });
+
+  // Get metric values for date
+  let metricsVals = awaitify(
+    metricsRetrieve.returnCompanyMetricValuesForDate(result.lastTradeDate));
+
+  Object.keys(metricsVals).forEach((metricsKey) => {
+    // Check if value should be ignored.  If not add to quoteVal
+    if (ignoreVals.indexOf(metricsKey) === -1) {
+      result[metricsKey] = metricsVals[metricsKey];
+    }
+  });
+
+  // Insert result in dynamodb
+  awaitify(shareRetrieve.writeCompanyQuoteData(result));
+});
+
+/* companyQuote data
+History
+Date -> quoteDate, lastTradeDate
+Open	-> open
+High -> daysHigh
+Low -> daysLow
+Close	-> lastTradePriceOnly
+Volume-> volume
+
+
+Current
+{
+  "52WeekHigh": 0.006,
+  "52WeekLow": 0.002,
+  "bookValue": 0.003,
+  "change": 0.001,
+  "changeInPercent": 0.5,
+  "created": "2017-02-23T05:46:31+11:00",
+  "daysHigh": 0.003,
+  "daysLow": 0.003,
+  "earningsPerShare": 0,
+  "ebitda": -673892,
+  "lastTradeDate": "30/1/17",
+  "lastTradePriceOnly": 0.003,
+  "marketCapitalization": 9070000,
+  "open": 0.003,
+  "pegRatio": 0,
+  "previousClose": 0.002,
+  "pricePerBook": 0.667,
+  "pricePerSales": 6046156,
+  "quoteDate": "2017-01-30",
+  "shortRatio": 0,
+  "stockExchange": "ASX",
+  "symbol": "LNY",
+  "volume": 4659784,
+  "yearMonth": 201701
+}
+*/
+
+/* Index history data
+
+History:
+open -> previousClose
+high -> daysHigh
+low -> daysLow
+change -> open - close
+changeInPercent -> change / open
+
+{
+  "adjClose": 4901.100098,
+  "close": 4901.100098,
+  "created": "2017-02-22T08:50:00+11:00",
+  "high": 4930.399902,
+  "lastTradeDate": "2011-02-24",
+  "low": 4896.700195,
+  "open": 4929.799805,
+  "quoteDate": "2011-02-24",
+  "symbol": "ALLORD",
+  "volume": 1305370200,
+  "yearMonth": "201102"
+}
+
+Current
+{
+  "52WeekHigh": {
+    "N": "5880.9"
+  },
+  "52WeekLow": {
+    "N": "4905.5"
+  },
+  "change": {
+    "N": "-45.6"
+  },
+  "changeFrom52WeekHigh": {
+    "N": "-94"
+  },
+  "changeFrom52WeekLow": {
+    "N": "881.4"
+  },
+  "changeInPercent": {
+    "N": "-0.0078000000000000005"
+  },
+  "created": {
+    "S": "2017-02-24T20:29:25+11:00"
+  },
+  "daysHigh": {
+    "N": "5832.5"
+  },
+  "daysLow": {
+    "N": "5778.8"
+  },
+  "lastTradeDate": {
+    "S": "2017-02-24"
+  },
+  "name": {
+    "S": "ALL ORDINARIES"
+  },
+  "percebtChangeFrom52WeekHigh": {
+    "N": "-0.016"
+  },
+  "percentChangeFrom52WeekLow": {
+    "N": "0.1797"
+  },
+  "previousClose": {
+    "N": "5832.5"
+  },
+  "quoteDate": {
+    "S": "2017-02-24"
+  },
+  "symbol": {
+    "S": "ALLORD"
+  },
+  "yearMonth": {
+    "S": "201702"
+  }
+}
+*/
+
+let fixIndexHistory = asyncify(function() {
+  let symbol = 'ASX';
+  let queryDetails = {
+    tableName: 'indexQuotes',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'quoteDate between :startDate and :endDate',
+    expressionAttributeValues: {
+      ':startDate': '2006-07-03',
+      ':endDate': '2011-12-30',
+      ':symbol': symbol,
+    },
+  };
+
+  let updateDetails = {
+    tableName: 'indexQuotes',
+  };
+
+
+  let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+
+  indexQuotes.forEach((indexQuote) => {
+    // Set up the key: symbol and quoteDate
+    updateDetails.key = {
+      symbol: symbol,
+      quoteDate: indexQuote['quoteDate'],
+    };
+
+    let updateExpression = 'set previousClose = :open, daysHigh = :high, ' +
+      'daysLow = :low, change = :change, ' +
+      'changeInPercent = :changeInPercent';
+
+    let expressionAttributeValues = {
+      ':open': indexQuote['open'],
+      ':high': indexQuote['high'],
+      ':low': indexQuote['low'],
+      ':change': (indexQuote['open'] - indexQuote['close']),
+      ':changeInPercent': ((indexQuote['open'] - indexQuote['close']) /
+        indexQuote['open']),
+    };
+
+    updateDetails.updateExpression = updateExpression;
+    updateDetails.expressionAttributeValues = expressionAttributeValues;
+
+    try {
+      awaitify(dynamodb.updateRecord(updateDetails));
+    } catch (err) {
+      console.log(err);
+    }
+  });
+});
+
+let addYearResultsToIndexHistory = asyncify(function() {
+  let symbols = ['ALLORD', 'ASX'];
+
+  symbols.forEach((symbol) => {
+    let queryDetails = {
+      tableName: 'indexQuotes',
+      keyConditionExpression: 'symbol = :symbol and ' +
+        'quoteDate between :startDate and :endDate',
+      expressionAttributeValues: {
+        ':startDate': '2007-07-01',
+        ':endDate': '2017-01-29',
+        ':symbol': symbol,
+      },
+    };
+
+    let updateDetails = {
+      tableName: 'indexQuotes',
+    };
+
+
+    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+
+    indexQuotes.forEach((indexQuote) => {
+      // Set up the key: symbol and quoteDate
+      updateDetails.key = {
+        symbol: symbol,
+        quoteDate: indexQuote['quoteDate'],
+      };
+
+      let referenceValue = indexQuote['previousClose'] || 0;
+
+      let startDate = utils.dateAdd(indexQuote['quoteDate'], 'weeks', -52);
+
+      let query2Details = {
+        tableName: 'indexQuotes',
+        keyConditionExpression: 'symbol = :symbol and ' +
+          'quoteDate between :startDate and :endDate',
+        expressionAttributeValues: {
+          ':startDate': startDate,
+          ':endDate': indexQuote['quoteDate'],
+          ':symbol': symbol,
+        },
+        projectionExpression: 'previousClose',
+      };
+
+      let quotesYear = awaitify(dynamodb.queryTable(query2Details));
+
+      if (quotesYear.length) {
+        let valArray = [];
+        quotesYear.forEach((dayVal) => {
+          valArray.push(dayVal['previousClose']);
+        });
+
+        let maxVal = stats.max(valArray);
+        let minVal = stats.min(valArray);
+        let changeMax = referenceValue - maxVal;
+        let changeMin = referenceValue - minVal;
+        let percentChangeMax = (referenceValue - maxVal) / maxVal;
+        let percentChangeMin = (referenceValue - minVal) / minVal;
+
+        let updateExpression = 'set #52WeekHigh = :52WeekHigh, ' +
+          '#52WeekLow = :52WeekLow, ' +
+          '#changeFrom52WeekHigh = :changeFrom52WeekHigh, ' +
+          '#changeFrom52WeekLow = :changeFrom52WeekLow, ' +
+          '#percebtChangeFrom52WeekHigh = :percebtChangeFrom52WeekHigh, ' +
+          '#percentChangeFrom52WeekLow = :percentChangeFrom52WeekLow';
+
+        let expressionAttributeNames = {
+          '#52WeekHigh': '52WeekHigh',
+          '#52WeekLow': '52WeekLow',
+          '#changeFrom52WeekHigh': 'changeFrom52WeekHigh',
+          '#changeFrom52WeekLow': 'changeFrom52WeekLow',
+          '#percebtChangeFrom52WeekHigh': 'percebtChangeFrom52WeekHigh',
+          '#percentChangeFrom52WeekLow': 'percentChangeFrom52WeekLow',
+        };
+
+        let expressionAttributeValues = {
+          ':52WeekHigh': maxVal,
+          ':52WeekLow': minVal,
+          ':changeFrom52WeekHigh': changeMax,
+          ':changeFrom52WeekLow': changeMin,
+          ':percebtChangeFrom52WeekHigh': percentChangeMax,
+          ':percentChangeFrom52WeekLow': percentChangeMin,
+        };
+
+        updateDetails.updateExpression = updateExpression;
+        updateDetails.expressionAttributeValues = expressionAttributeValues;
+        updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+        try {
+          awaitify(dynamodb.updateRecord(updateDetails));
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    });
+  });
+});
+
+
+let addDailyChangeToIndexHistory = asyncify(function() {
+  let symbols = ['ALLORD', 'ASX'];
+
+  symbols.forEach((symbol) => {
+    let queryDetails = {
+      tableName: 'indexQuotes',
+      keyConditionExpression: 'symbol = :symbol and ' +
+        'quoteDate between :startDate and :endDate',
+      expressionAttributeValues: {
+        ':startDate': '2007-07-01',
+        ':endDate': '2017-01-29',
+        ':symbol': symbol,
+      },
+      projectionExpression: 'symbol, quoteDate, previousClose',
+    };
+
+    let updateDetails = {
+      tableName: 'indexQuotes',
+    };
+
+
+    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+
+    indexQuotes.forEach((indexQuote) => {
+      // Set up the key: symbol and quoteDate
+      updateDetails.key = {
+        symbol: symbol,
+        quoteDate: indexQuote['quoteDate'],
+      };
+
+      let currentValue = indexQuote['previousClose'] || 0;
+
+      let query2Details = {
+        tableName: 'indexQuotes',
+        keyConditionExpression: 'symbol = :symbol and ' +
+          'quoteDate < :quoteDate',
+        expressionAttributeValues: {
+          ':quoteDate': indexQuote['quoteDate'],
+          ':symbol': symbol,
+        },
+        reverseOrder: true,
+        limit: 1,
+        projectionExpression: 'previousClose',
+      };
+
+      let yesterdayQuote = awaitify(dynamodb.queryTable(query2Details));
+
+      if (yesterdayQuote.length) {
+        let previousValue = yesterdayQuote[0]['previousClose'];
+
+        let change = currentValue - previousValue;
+        let changeInPercent = (currentValue - previousValue) / previousValue;
+
+        let updateExpression = 'set #change = :change, ' +
+          '#changeInPercent = :changeInPercent';
+
+        let expressionAttributeNames = {
+          '#change': 'change',
+          '#changeInPercent': 'changeInPercent',
+        };
+
+        let expressionAttributeValues = {
+          ':change': change,
+          ':changeInPercent': changeInPercent,
+        };
+
+        updateDetails.updateExpression = updateExpression;
+        updateDetails.expressionAttributeValues = expressionAttributeValues;
+        updateDetails.expressionAttributeNames = expressionAttributeNames;
+
+        try {
+          awaitify(dynamodb.updateRecord(updateDetails));
+        } catch (err) {
+          console.log(err);
+        }
+      }
+    });
+  });
+});
+
+let fixCompaniesList = asyncify(function() {
+  let currentCompanySymbols = [];
+  let companiesToRemove = [];
+  let currentMetricsCompanies = [];
+  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
+
+  Object.keys(companyLookup).forEach((companyKey) => {
+    currentCompanySymbols.push(companyLookup[companyKey]);
+  });
+
+  let allCompanyMetrics = awaitify(metricsRetrieve.retrieveCompanies());
+
+  allCompanyMetrics.forEach((companyMetric) => {
+    currentMetricsCompanies.push(companyMetric['symbol']);
+  });
+
+  currentCompanySymbols.forEach((companySymbol) => {
+    if (currentMetricsCompanies.indexOf(companySymbol) === -1) {
+      companiesToRemove.push(companySymbol);
+    }
+  });
+
+  utils.writeJSONfile(companiesToRemove, '../data/companies-to-remove.json');
+});
+
+let verifyCompaniesList = asyncify(function() {
+  let queryDetails = {
+    tableName: 'companyQuotes',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'quoteDate >= :quoteDate',
+    expressionAttributeValues: {
+      ':quoteDate': '2017-01-25',
+    },
+    limit: 1,
+  };
+
+  let verifiedRemovalList = [];
+
+  jsonCompanies.forEach((symbol) => {
+    queryDetails['expressionAttributeValues'][':symbol'] = symbol;
+    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+
+    // if no records, then verify that this should be removed
+    if (!indexQuotes.length) {
+      verifiedRemovalList.push(symbol);
+    }
+  });
+
+  utils.writeJSONfile(verifiedRemovalList, '../data/verified-companies-to-remove.json');
+});
+
+
+let removeCompanies = asyncify(function() {
+  let deleteDetails = {
+    tableName: 'companies',
+  };
+
+  jsonCompanies.forEach((symbol) => {
+    deleteDetails.key = {
+      'symbol': symbol,
+    };
+
+    awaitify(dynamodb.deleteRecord(deleteDetails));
+  });
+});
+
+let removeMetrics = asyncify(function() {
+  let deleteDetails = {
+    tableName: 'companyMetrics',
+  };
+
+  let queryDetails = {
+    tableName: 'companyMetrics',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'metricsDate >= :metricsDate',
+    expressionAttributeValues: {
+      ':metricsDate': '2017-01-25',
+    },
+    projectionExpression: 'symbol, metricsDate',
+  };
+
+  jsonCompanies.forEach((symbol) => {
+    queryDetails['expressionAttributeValues'][':symbol'] = symbol;
+
+    let queryResults = awaitify(dynamodb.queryTable(queryDetails));
+
+    queryResults.forEach((result) => {
+      deleteDetails.key = {
+        'symbol': symbol,
+        'metricsDate': result['metricsDate'],
+      };
+
+      awaitify(dynamodb.deleteRecord(deleteDetails));
+    });
+  });
+});
+
+removeMetrics();
+
+// getIndexHistory();
+
+// getCompanyHistory();
+
+// addDailyChangeToIndexHistory();

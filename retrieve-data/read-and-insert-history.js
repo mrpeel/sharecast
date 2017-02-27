@@ -6,15 +6,15 @@ const retrieveShareData = require('./dynamo-retrieve-share-data');
 // const metrics = require('./retrieve-google-company-data');
 const companyHistory = require('../data/company-history.json');
 const historyTranslation = require('./history-translation.json');
-const dbConn = require('./mysql-connection');
+// const dbConn = require('./mysql-connection');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
-const credentials = require('../credentials/credentials.json');
+/* const credentials = require('../credentials/credentials.json');
 const host = credentials.host;
 const db = credentials.db;
 const username = credentials.username;
 const password = credentials.password;
-
+*/
 
 /** Example SQL insert for index quotes table **
 INSERT INTO `sharecast`.`index_quotes`
@@ -455,8 +455,7 @@ let openAndInsertCompanyQuotes = asyncify(function() {
           insertDetails.values = quoteValue;
 
           awaitify(dynamodb.insertRecord(insertDetails));
-          // Pause to prevent exceeding write capacity
-          awaitify(utils.sleep(75));
+        // Pause to prevent exceeding write capacity
         });
       } catch (err) {
         console.log(err);
