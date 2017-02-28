@@ -13,6 +13,7 @@ const fields = {
   y: 'dividend-yield',
   d: 'dividend-per-share',
   q: 'ex-dividend-date',
+  r1: 'dividend-pay-date',
   c1: 'change',
   p2: 'change-in-percent',
   d1: 'last-trade-date',
@@ -105,7 +106,6 @@ let maxResultDate = '';
 *    indexSymbols: [], (array of the index symbols used)
 *  }
 */
-
 let setupSymbols = asyncify(function() {
   try {
     console.log('----- Start setup symbols -----');
@@ -250,22 +250,24 @@ let processResult = function(result) {
   }
 };
 
-let processCompanyResults = asyncify(function(results, dataToAppend) {
+let processCompanyResults = asyncify(function(results, dataToAppend,
+  dividends) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
       // Multiple  symbols returned
       results.forEach((indResult) => {
-        awaitify(processResultAndMetric(indResult, dataToAppend));
+        awaitify(processCompanyResult(indResult, dataToAppend, dividends));
       });
     } else {
       // Single symbol returned
-      awaitify(processResultAndMetric(results, dataToAppend));
+      awaitify(processCompanyResult(results, dataToAppend, dividends));
     }
   }
 });
 
-let processResultAndMetric = asyncify(function(result, dataToAppend) {
+let processCompanyResult = asyncify(function(result, dataToAppend,
+  dividends) {
   // Retrieve last trade date to check whether to output this value
   result.lastTradeDate = utils.returnDateAsString(result.lastTradeDate);
   if (result.lastTradeDate > lastResultDate) {
@@ -296,15 +298,46 @@ let processResultAndMetric = asyncify(function(result, dataToAppend) {
       });
     }
 
+    // Add dividends details if located
+    if (dividends && dividends[result.symbol]) {
+      result['exDividendDate'] = dividends[result.symbol]['exDividendDate'];
+      result['exDividendPayout'] = dividends[result.symbol]['exDividendPayout'];
+    }
+
+    // Remove lastTradeDate (duplication of quoteDate)
+    if (result['lastTradeDate']) {
+      delete result['lastTradeDate'];
+    }
+
     // Write value
     writeCompanyQuoteData(result);
 
-    // console.log(result);
-
-  // Add result to csv data
-  // resultData.push(result);
+  // console.log(result);
   }
 });
+
+let retrieveDividends = function(symbol, startDate, endDate) {
+  return new Promise(function(resolve, reject) {
+    let historyOptions = {
+      from: startDate,
+      to: endDate,
+      period: 'v',
+    };
+
+    // Check if one or many symbols
+    if (Array.isArray(symbol)) {
+      historyOptions.symbols = symbol;
+    } else {
+      historyOptions.symbol = symbol;
+    }
+
+    yahooFinance.historical(historyOptions).then(function(result) {
+      resolve(result);
+    }).catch(function(err) {
+      reject(err);
+    });
+  });
+};
 
 let addMetricsToQuote = function(quote) {
   if (!quote['symbol']) {
@@ -345,7 +378,7 @@ let writeIndexResults = asyncify(function(indexDataSet) {
 });
 
 let writeIndexQuote = asyncify(function(indexQuote) {
-  console.log('----- Write index quote  -----');
+  // console.log('----- Write index quote  -----');
   try {
     // Set up the basic insert structure for dynamo
     let insertDetails = {
@@ -961,9 +994,6 @@ let executeQuoteRetrieval = asyncify(function() {
   } catch (err) {
     console.log(err);
   }
-  // Reset fields for companies
-  resultFields = [];
-  resultData = [];
 
   // create append array from indicators and index data
   dataToAppend = addObjectProperties(financialIndicatos,
@@ -971,24 +1001,6 @@ let executeQuoteRetrieval = asyncify(function() {
 
 
   console.log('----- Start retrieve company quotes -----');
-
-  /*
-  // Split companies into groups of 10 so each request contains 10
-  for (companyCounter = 0; companyCounter < companies.length;
-    companyCounter += 10) {
-    symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
-  }
-
-  symbolGroups.forEach((symbolGroup) => {
-    shareRetrievals.push(retrieveSnapshot(symbolGroup,
-      companyFieldsToRetrieve));
-  });
-
-  // When all returns are back, process the results
-  Promise.all(shareRetrievals).then((results) => {
-    results.forEach((result) => {
-      awaitify(processCompanyResults(result, dataToAppend));
-    });*/
 
   /* Split companies into groups of 15 to ensure request doesn't exceed api
       url length */
@@ -1001,63 +1013,76 @@ let executeQuoteRetrieval = asyncify(function() {
     try {
       let result = awaitify(retrieveSnapshot(symbolGroup,
         companyFieldsToRetrieve));
-      awaitify(processCompanyResults(result, dataToAppend));
+
+      // Retrieve dividends
+      let dividends = awaitify(getDividendsforDate(symbolGroup,
+        todayString, symbolLookup));
+
+      awaitify(processCompanyResults(result, dataToAppend, dividends));
     } catch (err) {
       console.log(err);
     }
   });
-
-  /* companies.forEach((company) => {
-    try {
-      let result = awaitify(retrieveSnapshot(company,
-        companyFieldsToRetrieve));
-      awaitify(processCompanyResults(result, dataToAppend));
-    } catch (err) {
-      console.log(err);
-    }
-  }); */
-
-  /* if (resultData.length > 0) {
-    let updatedResults = {
-      data: resultData,
-      fields: resultFields,
-    };
-
-    updatedResults.fields = appendDataFieldNamesToDataSet({
-      fields: resultFields,
-      append: dataToAppend,
-    });
-
-    let resultsWithMetrics = addMetricsFieldNamesToDataSet(updatedResults);
-
-    // console.log('----- Start write company quotes -----');
-
-    // writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
-
-    /* utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
-      'companies', maxResultDate); */
-
-/* addMetricDataToRows(updatedResults)
-  .then((resultsWithMetrics) => {
-    // console.log(resultsWithMetrics.fields);
-
-    console.log('----- Start write company quotes -----');
-
-    writeCompanyQuoteData(resultsWithMetrics.data, maxResultDate);
-
-    utils.writeToCsv(resultsWithMetrics.data, resultsWithMetrics.fields,
-      'companies', maxResultDate);
-  });
-} else {
-  console.log('No new company data to save');
-} */
-/* }).catch((err) => {
-  console.log(err);
 });
- })
-.catch((err) => {
-  console.log(err);
-}); */
+
+let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
+  symbolLookup) {
+  if (!symbolGroup) {
+    console.error('getDividendsforDate error: no symbolGroup supplied');
+    return;
+  }
+
+  if (!retrievalDate) {
+    console.error('getDividendsforDate error: no retrievalDate supplied');
+    return;
+  }
+
+  if (!symbolLookup) {
+    console.error('getDividendsforDate error: no symbolLookup supplied');
+    return;
+  }
+
+
+  // Retrieve dividends
+  dividendEndDate = utils.returnDateAsString(retrievalDate);
+  dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -1);
+  dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
+  let dividends = awaitify(retrieveDividends(symbolGroup,
+    dividendStartDate, dividendEndDate));
+
+  // Convert dividend results array to results object
+  let dividendResults = {};
+
+  // Single company result is returned as an array
+  if (Array.isArray(dividends) && dividends.length > 0) {
+    // Multiple  symbols returned
+    dividends.forEach((dividendRecord) => {
+      processDividend(dividendRecord);
+    });
+  } else {
+    // Multi-company result is returned as an object
+    Object.keys(dividends).forEach((dividendCompany) => {
+      dividends[dividendCompany].forEach((dividendRecord) => {
+        processDividend(dividendRecord);
+      });
+    });
+  }
+
+  function processDividend(dividendRecord) {
+    let symbol = symbolLookup[dividendRecord.symbol];
+    let exDividendDate = utils.returnDateAsString(dividendRecord['date']);
+    let exDividendPayout = dividendRecord['dividends'];
+
+    /* Check if symbol has already been recorded, or recorded with an earlier
+      date */
+    if (!dividendResults[symbol] ||
+      dividendResults[symbol]['exDividendDate'] < exDividendDate)
+      dividendResults[symbol] = {};
+    dividendResults[symbol]['exDividendDate'] = exDividendDate;
+    dividendResults[symbol]['exDividendPayout'] = exDividendPayout;
+  }
+
+  return dividendResults;
 });
 
 let executeMetricsUpdate = asyncify(function(recLimits) {
@@ -1184,6 +1209,40 @@ let executeCommand = asyncify(function() {
 });
 
 executeCommand();
+
+/* let testDividends = asyncify(function() {
+  let symbolResult = awaitify(setupSymbols());
+
+  symbolLookup = symbolResult.symbolLookup;
+  indexLookup = symbolResult.indexLookup;
+  indexSymbols = symbolResult.indexSymbols;
+  companyLookup = symbolResult.companyLookup;
+  indices = symbolResult.indices;
+  companies = symbolResult.companies;
+
+  let todayString = utils.returnDateAsString(Date.now());
+
+  let symbolGroups = [];
+
+  for (companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 15) {
+    symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
+  }
+
+  symbolGroups.forEach((symbolGroup) => {
+    try {
+      // Retrieve dividends
+      let dividends = awaitify(getDividendsforDate(symbolGroup,
+        todayString, symbolLookup));
+
+      console.log(dividends);
+    } catch (err) {
+      console.error(err);
+    }
+  });
+});
+
+testDividends(); */
 
 module.exports = {
   setupSymbols: setupSymbols,

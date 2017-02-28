@@ -104,9 +104,6 @@ let backupAll = function(context, lts) {
   dynamo.listTables({}, function(err, data) {
     if (err) console.log(err, err.stack); // an error occurred
     else {
-      // Temporarily re-set to one table
-      data.TableNames = ['companyMetrics'];
-
       async.each(data.TableNames, function(table, callback) {
         console.log('Backing up ' + table);
         backupTable(table, lts, callback);

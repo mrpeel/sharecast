@@ -1,7 +1,7 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
-const finIndicators = require('./retrieve-financial-indicator-data');
-const metrics = require('./retrieve-google-company-data');
+// const finIndicators = require('./retrieve-financial-indicator-data');
+// const metrics = require('./retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
@@ -12,7 +12,7 @@ const fields = {
   // o: 'open',
   y: 'dividend-yield',
   d: 'dividend-per-share',
-  // r1: 'dividend-pay-date',
+  r1: 'dividend-pay-date',
   q: 'ex-dividend-date',
   c1: 'change',
   // c: 'change-and-percent-change',
@@ -569,4 +569,9 @@ let executeRetrieval = asyncify(function() {
 });
 
 
-executeRetrieval();
+// executeRetrieval();
+
+retrieveSnapshot(['JBH.AX', 'IMF.AX'], companyFieldsToRetrieve)
+  .then((snap) => {
+    console.log(JSON.stringify(snap));
+  });
