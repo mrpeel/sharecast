@@ -134,35 +134,27 @@ let insertRecord = function(insertDetails) {
     console.log('Put table request: ', insertDetails.tableName);
 
     client.put(params, function(err, data) {
-      let timeout = 0;
-      // Retrieved used capacity and check if it's over allowed
-      if (data && data.ConsumedCapacity &&
-        data.ConsumedCapacity.CapacityUnits > maxCapacity) {
-        timeout = 1000 / data.ConsumedCapacity.CapacityUnits;
+      if (err && err.code === 'ConditionalCheckFailedException') {
+        console.log(`Skipping add to ${insertDetails.tableName} : `,
+          JSON.stringify(insertDetails.primaryKey), ' already exists');
+        resolve({
+          result: 'skipped',
+          message: `Skipping add to ${insertDetails.tableName} : ` +
+            JSON.stringify(insertDetails.primaryKey) + ' already exists.',
+        });
+      } else if (err) {
+        console.error(`Unable to add to ${insertDetails.tableName} values: `,
+          '. Error JSON:', JSON.stringify(err, null, 2));
+        reject({
+          result: 'failed',
+          message: JSON.stringify(err, null, 2),
+        });
+      } else {
+        console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
+        resolve({
+          result: 'inserted',
+        });
       }
-      setTimeout(function() {
-        if (err && err.code === 'ConditionalCheckFailedException') {
-          console.log(`Skipping add to ${insertDetails.tableName} : `,
-            JSON.stringify(insertDetails.primaryKey), ' already exists');
-          resolve({
-            result: 'skipped',
-            message: `Skipping add to ${insertDetails.tableName} : ` +
-              JSON.stringify(insertDetails.primaryKey) + ' already exists.',
-          });
-        } else if (err) {
-          console.error(`Unable to add to ${insertDetails.tableName} values: `,
-            '. Error JSON:', JSON.stringify(err, null, 2));
-          reject({
-            result: 'failed',
-            message: JSON.stringify(err, null, 2),
-          });
-        } else {
-          console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
-          resolve({
-            result: 'inserted',
-          });
-        }
-      }, timeout);
     });
   });
 };

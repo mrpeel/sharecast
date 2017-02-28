@@ -1,3 +1,4 @@
+'use strict';
 
 const fetch = require('node-fetch');
 const utils = require('./utils');
@@ -319,7 +320,7 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
     return;
   }
 
-  console.log('----- Start write company metrics -----');
+  // console.log('----- Start write company metrics -----');
 
   try {
     metricValue['yearMonth'] = metricValue['metricsDate']
@@ -347,6 +348,8 @@ let updateCompanyMetrics = asyncify(function() {
     let metricsData = awaitify(retrieveCompanies());
 
     // console.log(metricsData);
+
+    console.log('----- Start write company metrics -----');
 
     metricsData.forEach((companyMetricsRecord) => {
       companyMetricsRecord['metricsDate'] = utils.returnDateAsString(

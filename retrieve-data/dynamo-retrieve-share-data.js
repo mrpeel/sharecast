@@ -668,7 +668,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   awaitify(dynamodb.insertRecord(insertDetails));
 });
 
-let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
+let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
   if (!symbols) {
     console.log('updateQuotesWithMetrics error: no symbols supplied');
     return;
@@ -679,7 +679,23 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
     return;
   }
 
-  console.log('Updating company quotes with metrics for ', quoteDate);
+  let startRec = 0;
+  let endRec = symbols.length - 1;
+
+  if (recLimits && recLimits.startRec) {
+    startRec = recLimits.startRec;
+  }
+
+  if (recLimits && recLimits.endRec && recLimits.endRec < endRec) {
+    endRec = recLimits.endRec;
+  }
+
+  if (startRec > endRec) {
+    return;
+  }
+
+  console.log('Updating company quotes with metrics for ', quoteDate, ' from ',
+    startRec, ' to ', endRec);
 
   let metricsDate = quoteDate;
 
@@ -689,9 +705,13 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
     key: {
       quoteDate: metricsDate,
     },
+    conditionExpression: 'attribute_exists(symbol) and ' +
+      'attribute_exists(quoteDate)',
   };
 
-  symbols.forEach((companySymbol) => {
+  for (let c = startRec; c <= endRec; c++) {
+    let companySymbol = symbols[c];
+    // symbols.forEach((companySymbol) => {
     // If at least one quote record has been returned, continue
     let fieldsPresent = [];
     let updateExpression;
@@ -702,11 +722,12 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
     let queryDetails = {
       tableName: 'companyMetrics',
       keyConditionExpression: 'symbol = :symbol and ' +
-        'metricsDate = :metricsDate',
+        'metricsDate <= :metricsDate',
       expressionAttributeValues: {
         ':metricsDate': metricsDate,
         ':symbol': companySymbol,
       },
+      reverseOrder: true,
       limit: 1,
     };
 
@@ -717,9 +738,7 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
       let workingRecord = metricsResult[0];
 
       // Set up the key: symbol and quoteDate
-      updateDetails.key = {
-        symbol: companySymbol,
-      };
+      updateDetails.key.symbol = companySymbol;
 
       // Remove the attributes which should not be copied into cpmanyQuotes
       delete workingRecord['symbol'];
@@ -745,11 +764,12 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate) {
         try {
           awaitify(dynamodb.updateRecord(updateDetails));
         } catch (err) {
-          conosle.log(err);
+          console.log(err);
         }
       }
     }
-  });
+  }
+// });
 });
 
 let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
@@ -864,7 +884,7 @@ let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
             try {
               awaitify(dynamodb.updateRecord(updateDetails));
             } catch (err) {
-              conosle.log(err);
+              console.log(err);
             }
           }
         });
@@ -1040,7 +1060,7 @@ let executeQuoteRetrieval = asyncify(function() {
 }); */
 });
 
-let executeMetricsUpdate = asyncify(function() {
+let executeMetricsUpdate = asyncify(function(recLimits) {
   // Get current dat based on last index quote for All Ordinaries
   let metricsDate = awaitify(getCurrentExecutionDate());
   let companies = [];
@@ -1051,7 +1071,7 @@ let executeMetricsUpdate = asyncify(function() {
   });
 
   if (metricsDate) {
-    awaitify(updateQuotesWithMetrics(companies, metricsDate));
+    awaitify(updateQuotesWithMetrics(companies, metricsDate, recLimits || {}));
   }
 });
 
@@ -1070,9 +1090,26 @@ let executeAll = asyncify(function() {
   awaitify(executeQuoteRetrieval());
   let tq = new Date();
 
-  console.log('Executing update company quotes with metrics');
-  awaitify(executeMetricsUpdate());
+  console.log('Executing update company quotes with metrics - phase 1');
+  awaitify(executeMetricsUpdate({
+    startRec: 0,
+    endRec: 999,
+  }));
   let tu = new Date();
+
+  console.log('Executing update company quotes with metrics - phase 2');
+  awaitify(executeMetricsUpdate({
+    startRec: 1000,
+    endRec: 1999,
+  }));
+  let tu2 = new Date();
+
+  console.log('Executing update company quotes with metrics - phase 3');
+  awaitify(executeMetricsUpdate({
+    startRec: 2000,
+  }));
+  let tu3 = new Date();
+
 
   console.log('--------- All done --------');
 
@@ -1085,8 +1122,14 @@ let executeAll = asyncify(function() {
   console.log('Retrieve index and company quotes: ',
     utils.dateDiff(tm, tq, 'seconds'), ' seconds to execute.');
 
-  console.log('Update company quotes with metrics data: ',
+  console.log('Update company quotes with metrics data - phase 1: ',
     utils.dateDiff(tq, tu, 'seconds'), ' seconds to execute.');
+
+  console.log('Update company quotes with metrics data - phase 2: ',
+    utils.dateDiff(ttu, tu2, 'seconds'), ' seconds to execute.');
+
+  console.log('Update company quotes with metrics data - phase 3: ',
+    utils.dateDiff(tu2, tu3, 'seconds'), ' seconds to execute.');
 
 
   console.log('Total time for all operations: ',
@@ -1118,21 +1161,21 @@ let executeCommand = asyncify(function() {
     awaitify(executeCompanyMetrics());
     let tm = new Date();
     console.log('Retrieve company metrics: ',
-      utils.dateDiff(tf, tm, 'seconds'), ' seconds to execute.');
+      utils.dateDiff(t0, tm, 'seconds'), ' seconds to execute.');
   }
   if (program.quotes) {
     console.log('Executing retrieve index and company quotes');
     awaitify(executeQuoteRetrieval());
     let tq = new Date();
     console.log('Retrieve index and company quotes: ',
-      utils.dateDiff(tm, tq, 'seconds'), ' seconds to execute.');
+      utils.dateDiff(t0, tq, 'seconds'), ' seconds to execute.');
   }
   if (program.updates) {
     console.log('Executing update company quotes with metrics');
     awaitify(executeMetricsUpdate());
     let tu = new Date();
     console.log('Update company quotes with metrics data: ',
-      utils.dateDiff(tq, tu, 'seconds'), ' seconds to execute.');
+      utils.dateDiff(t0, tu, 'seconds'), ' seconds to execute.');
   }
   if (program.all) {
     console.log('Executing complete series');
