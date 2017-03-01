@@ -304,11 +304,6 @@ let processCompanyResult = asyncify(function(result, dataToAppend,
       result['exDividendPayout'] = dividends[result.symbol]['exDividendPayout'];
     }
 
-    // Remove lastTradeDate (duplication of quoteDate)
-    if (result['lastTradeDate']) {
-      delete result['lastTradeDate'];
-    }
-
     // Write value
     writeCompanyQuoteData(result);
 
@@ -427,7 +422,7 @@ let convertIndexDatatoAppendData = function(indexData) {
   let returnVal = {};
 
   indexData.forEach((indexRow) => {
-    console.log(indexRow);
+    // console.log(indexRow);
     indexPrefix = indexRow['symbol'].toLowerCase();
     returnVal[indexPrefix + 'previousclose'] = indexRow['previousClose'];
     returnVal[indexPrefix + 'change'] = indexRow['change'];
@@ -442,14 +437,8 @@ let convertIndexDatatoAppendData = function(indexData) {
 };
 
 /**
- * Converts individual index data records into an array of values which
- * can be appended to every company symbol record
- * @param {Array} indexData the data in the format:
- *    {
- *    symbol: ALLORD
- *    lastTradeDate: 2017-02-03
- *     ...
- *    }
+ * Retrieves index values for a specific date stored in dynamodb
+ * @param {String} dateVal the date
  * @return {Array}  Array in the form of
  *    {
  *      "allordpreviousclose": 5696.4,
@@ -689,6 +678,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   quoteData.quoteDate = quoteData['lastTradeDate'];
   quoteData.yearMonth = quoteData.quoteDate.substring(0, 7).replace('-', '');
 
+  delete quoteData['lastTradeDate'];
 
   // Check through for values with null and remove from object
   Object.keys(quoteData).forEach((field) => {
