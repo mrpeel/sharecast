@@ -82,20 +82,6 @@ let runNightmare = function() {
     }).catch((err) => {
     console.log(err);
   });
-
-/*    .then((tables) => {
-      console.log(tables);
-      tables.forEach((table) => {
-        tableJson = tableHtmlList.map(function(table) {
-          return tabletojson.convert(table.outerHTML)[0];
-        });
-
-        console.log(JSON.stringify(tableJson));
-      })
-        .catch((err) => {
-          console.log(err);
-        });
-    });*/
 };
 
 module.exports = {

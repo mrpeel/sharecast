@@ -1,15 +1,6 @@
 const json2csv = require('json2csv');
 const fs = require('fs');
-const symbols = require('./symbols.json');
-const dbConn = require('./mysql-connection');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 const moment = require('moment-timezone');
-const credentials = require('../credentials/credentials.json');
-const host = credentials.host;
-const db = credentials.db;
-const username = credentials.username;
-const password = credentials.password;
 
 let sleep = function(ms) {
   if (!ms) {
@@ -20,120 +11,6 @@ let sleep = function(ms) {
   });
 };
 
-let getLastRetrievalDate = function() {
-  return new Promise(function(resolve, reject) {
-    let connection;
-    let retrievalDate;
-    dbConn.connectToDb(host, username, password, db)
-      .then((conn) => {
-        connection = conn;
-
-        return dbConn.selectQuery(connection, 'SELECT last_retrieval_date ' +
-          'FROM `sharecast`.`last_retrieval_date` ' +
-          'LIMIT 1;');
-      })
-      .then((rows) => {
-        // console.log(rows);
-        if (rows.length > 0) {
-          retrievalDate = rows[0]['last_retrieval_date'];
-        } else {
-          retrievalDate = '';
-        }
-        dbConn.closeConnection(connection);
-        resolve(retrievalDate);
-      })
-      .catch((err) => {
-        console.log(err);
-        dbConn.closeConnection(connection);
-        reject(err);
-      });
-  });
-};
-
-let setLastRetrievalDate = asyncify(function(retrievalDate) {
-  let connection;
-
-  if (!retrievalDate) {
-    console.log('Parameter retrievalDate not supplied');
-    return;
-  }
-  try {
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
-
-    awaitify(dbConn.executeQuery(connection, 'DELETE  ' +
-      'FROM `sharecast`.`last_retrieval_date`;'));
-
-    awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
-      '`sharecast`.`last_retrieval_date`  VALUES(' +
-      '\'' + retrievalDate + '\'); '));
-  } catch (err) {
-    console.log(err);
-  } finally {
-    if (connection) {
-      dbConn.closeConnection(connection);
-    }
-  }
-});
-
-let getCompanies = function() {
-  return new Promise(function(resolve, reject) {
-    let connection;
-    let companies = [];
-    dbConn.connectToDb(host, username, password, db)
-      .then((conn) => {
-        connection = conn;
-
-        return dbConn.selectQuery(connection, 'SELECT CompanySymbol, ' +
-          'CompanySymbolYahoo FROM sharecast.companies;');
-      })
-      .then((rows) => {
-        // console.log(rows);
-        rows.forEach((row) => {
-          companies.push({
-            'symbol': row.CompanySymbol,
-            'yahoo-symbol': row.CompanySymbolYahoo,
-          });
-        });
-        dbConn.closeConnection(connection);
-        resolve(companies);
-      })
-      .catch((err) => {
-        console.log(err);
-        dbConn.closeConnection(connection);
-        reject(err);
-      });
-  });
-};
-
-let getIndices = function() {
-  return new Promise(function(resolve, reject) {
-    let connection;
-    let indices = [];
-    dbConn.connectToDb(host, username, password, db)
-      .then((conn) => {
-        connection = conn;
-
-        return dbConn.selectQuery(connection, 'SELECT IndexSymbol, ' +
-          'IndexSymbolYahoo FROM sharecast.indices;');
-      })
-      .then((rows) => {
-        console.log(rows);
-        rows.forEach((row) => {
-          indices.push({
-            'symbol': row.IndexSymbol,
-            'yahoo-symbol': row.IndexSymbolYahoo,
-          });
-        });
-        dbConn.closeConnection(connection);
-        resolve(indices);
-      })
-      .catch((err) => {
-        console.log(err);
-        dbConn.closeConnection(connection);
-        reject(err);
-      });
-  });
-};
 
 /** Returns a date in a set format: YYYY-MM-DD
 * @param {String} dateValue - the date string to parse
@@ -330,10 +207,6 @@ let checkForNumber = function(value) {
 
 module.exports = {
   sleep: sleep,
-  getLastRetrievalDate: getLastRetrievalDate,
-  setLastRetrievalDate: setLastRetrievalDate,
-  getCompanies: getCompanies,
-  getIndices: getIndices,
   returnDateAsString: returnDateAsString,
   dateAdd: dateAdd,
   dateDiff: dateDiff,
