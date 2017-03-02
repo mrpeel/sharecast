@@ -58,7 +58,7 @@ const indiceFields = {
   n: 'name',
 };
 
-let metricsFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
+/* let metricsFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
   'DividendRecentQuarter', 'DividendNextQuarter', 'DPSRecentYear',
   'IAD', 'DividendPerShare', 'DividendYield', 'Dividend',
   'BookValuePerShareYear', 'CashPerShareYear', 'CurrentRatioYear',
@@ -73,24 +73,11 @@ let metricsFields = ['EPS', 'PriceToBook', 'MarketCap', 'PE',
   'OperatingMargin', 'NetProfitMarginPercent',
   'NetIncomeGrowthRate5Years', 'RevenueGrowthRate5Years',
   'RevenueGrowthRate10Years', 'EPSGrowthRate5Years',
-  'EPSGrowthRate10Years'];
-
-let symbolLookup = {};
-let indexLookup = {};
-let indexSymbols = [];
-let companyLookup = {};
-let indices = [];
-let companies = [];
+  'EPSGrowthRate10Years']; */
 
 /* Retrieve index values */
-let lastResultDate;
 const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
 const companyFieldsToRetrieve = utils.createFieldArray(fields);
-let shareRetrievals = [];
-let resultFields = [];
-let resultData = [];
-let indexData = [];
-let maxResultDate = '';
 
 /**  Retrieve company and index symbols and sets them up for retrieval
 * @return {Object} coninating values in the format:
@@ -106,17 +93,17 @@ let maxResultDate = '';
 *    indexSymbols: [], (array of the index symbols used)
 *  }
 */
-let setupSymbols = asyncify(function() {
+let setupSymbols = asyncify(function(indicesOnly) {
   try {
     console.log('----- Start setup symbols -----');
     let indexValues = awaitify(symbols.getIndices());
-    let companyValues = awaitify(symbols.getCompanies());
     let wSymbolLookup = {};
     let wIndexLookup = {};
     let wIndexSymbols = [];
     let wCompanyLookup = {};
     let wIndices = [];
     let wCompanies = [];
+    let returnVal = {};
 
 
     indexValues.forEach((indexValue) => {
@@ -128,21 +115,28 @@ let setupSymbols = asyncify(function() {
 
     wIndices = utils.createFieldArray(wIndexLookup);
 
-    companyValues.forEach((companyValue) => {
-      wCompanyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-      wSymbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
-    });
-
-    wCompanies = utils.createFieldArray(wCompanyLookup);
-
-    return {
+    returnVal = {
       indexLookup: wIndexLookup,
       indices: wIndices,
-      companyLookup: wCompanyLookup,
-      companies: wCompanies,
       symbolLookup: wSymbolLookup,
       indexSymbols: wIndexSymbols,
     };
+
+    if (!indicesOnly) {
+      let companyValues = awaitify(symbols.getCompanies());
+
+      companyValues.forEach((companyValue) => {
+        wCompanyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+        wSymbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+      });
+
+      wCompanies = utils.createFieldArray(wCompanyLookup);
+
+      returnVal.companyLookup = wCompanyLookup;
+      returnVal.companies = wCompanies;
+    }
+
+    return returnVal;
   } catch (err) {
     console.log(err);
   }
@@ -153,7 +147,7 @@ let setupSymbols = asyncify(function() {
 * @param {Array} indexSymbols - one or more index symbols to look up
 * @return {String} with date formatted as 'YYYY-MM-DD'
 */
-let getLastRetrievalDate = function(indexSymbols) {
+/* let getLastRetrievalDate = function(indexSymbols) {
   console.log('----- Start get last retrieval date -----');
   return new Promise(function(resolve, reject) {
     try {
@@ -186,7 +180,7 @@ let getLastRetrievalDate = function(indexSymbols) {
       reject(err);
     }
   });
-};
+}; */
 
 
 let retrieveSnapshot = function(symbol, fields) {
@@ -209,106 +203,79 @@ let retrieveSnapshot = function(symbol, fields) {
   });
 };
 
-let processIndexResults = function(results) {
+let processIndexResults = asyncify(function(results, symbolLookup) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
       // Multiple  symbols returned
       results.forEach((indResult) => {
-        processResult(indResult);
+        awaitify(processResult(indResult, symbolLookup));
       });
     } else {
       // Single symbol returned
-      processResult(results);
-    }
-  }
-};
-
-let processResult = function(result) {
-  // Retrieve last trade date to check whether to output this value
-  result.lastTradeDate = utils.returnDateAsString(result.lastTradeDate);
-  if (result.lastTradeDate > lastResultDate) {
-    if (result.lastTradeDate > maxResultDate) {
-      maxResultDate = result.lastTradeDate;
-    }
-
-    // Convert yahoo symbol to generic symbol
-    result.symbol = symbolLookup[result.symbol];
-
-    Object.keys(result).forEach((field) => {
-      // Check the field is in the csv list
-      if (resultFields.indexOf(field) === -1) {
-        resultFields.push(field);
-      }
-
-      // Reset number here required
-      result[field] = utils.checkForNumber(result[field]);
-    });
-
-    // Add result to csv data
-    resultData.push(result);
-  }
-};
-
-let processCompanyResults = asyncify(function(results, dataToAppend,
-  dividends) {
-  if (results) {
-    // Check if multi-dimensional
-    if (Array.isArray(results)) {
-      // Multiple  symbols returned
-      results.forEach((indResult) => {
-        awaitify(processCompanyResult(indResult, dataToAppend, dividends));
-      });
-    } else {
-      // Single symbol returned
-      awaitify(processCompanyResult(results, dataToAppend, dividends));
+      awaitify(processResult(results, symbolLookup));
     }
   }
 });
 
-let processCompanyResult = asyncify(function(result, dataToAppend,
-  dividends) {
-  // Retrieve last trade date to check whether to output this value
-  result.lastTradeDate = utils.returnDateAsString(result.lastTradeDate);
-  if (result.lastTradeDate > lastResultDate) {
-    if (result.lastTradeDate > maxResultDate) {
-      maxResultDate = result.lastTradeDate;
-    }
+let processResult = asyncify(function(result, symbolLookup) {
+  // Convert yahoo symbol to generic symbol
+  result.symbol = symbolLookup[result.symbol];
 
-    // Convert yahoo symbol to generic symbol
-    result.symbol = symbolLookup[result.symbol];
+  Object.keys(result).forEach((field) => {
+    // Reset number here required
+    result[field] = utils.checkForNumber(result[field]);
+  });
 
-    Object.keys(result).forEach((field) => {
-      // Check the field is in the csv list
-      if (resultFields.indexOf(field) === -1) {
-        resultFields.push(field);
-      }
+  awaitify(writeIndexQuote(result));
+});
 
-      // Reset number here required
-      result[field] = utils.checkForNumber(result[field]);
-    });
-
-    // Add metric data to this result
-    // result = awaitify(addMetricsToQuote(result));
-
-    // If data to append,ietrate through keys and add it to the record
-    if (dataToAppend) {
-      Object.keys(dataToAppend).forEach((dataKey) => {
-        result[dataKey] = dataToAppend[dataKey];
+let processCompanyResults = asyncify(function(results, symbolLookup,
+  dataToAppend, dividends) {
+  if (results) {
+    // Check if multi-dimensional
+    if (Array.isArray(results)) {
+      // Multiple  symbols returned
+      results.forEach((indResult) => {
+        awaitify(processCompanyResult(indResult, symbolLookup,
+          dataToAppend, dividends));
       });
+    } else {
+      // Single symbol returned
+      awaitify(processCompanyResult(results, symbolLookup,
+        dataToAppend, dividends));
     }
-
-    // Add dividends details if located
-    if (dividends && dividends[result.symbol]) {
-      result['exDividendDate'] = dividends[result.symbol]['exDividendDate'];
-      result['exDividendPayout'] = dividends[result.symbol]['exDividendPayout'];
-    }
-
-    // Write value
-    writeCompanyQuoteData(result);
-
-  // console.log(result);
   }
+});
+
+let processCompanyResult = asyncify(function(result, symbolLookup,
+  dataToAppend, dividends) {
+  // Convert yahoo symbol to generic symbol
+  result.symbol = symbolLookup[result.symbol];
+
+  Object.keys(result).forEach((field) => {
+    // Reset number here required
+    result[field] = utils.checkForNumber(result[field]);
+  });
+
+  // Add metric data to this result
+  // result = awaitify(addMetricsToQuote(result));
+
+  // If data to append,ietrate through keys and add it to the record
+  if (dataToAppend) {
+    Object.keys(dataToAppend).forEach((dataKey) => {
+      result[dataKey] = dataToAppend[dataKey];
+    });
+  }
+
+  // Add dividends details if located
+  if (dividends && dividends[result.symbol]) {
+    result['exDividendDate'] = dividends[result.symbol]['exDividendDate'];
+    result['exDividendPayout'] = dividends[result.symbol]['exDividendPayout'];
+  }
+
+  // Write value
+  writeCompanyQuoteData(result);
 });
 
 let retrieveDividends = function(symbol, startDate, endDate) {
@@ -334,6 +301,7 @@ let retrieveDividends = function(symbol, startDate, endDate) {
   });
 };
 
+/*
 let addMetricsToQuote = function(quote) {
   if (!quote['symbol']) {
     console.log('Call addMetricsToQuote missing quote.symbol element');
@@ -370,7 +338,7 @@ let writeIndexResults = asyncify(function(indexDataSet) {
       }
     });
   }
-});
+}); */
 
 let writeIndexQuote = asyncify(function(indexQuote) {
   // console.log('----- Write index quote  -----');
@@ -384,8 +352,10 @@ let writeIndexQuote = asyncify(function(indexQuote) {
       ],
     };
 
-    indexQuote.quoteDate = utils.returnDateAsString(indexQuote['lastTradeDate']);
-    indexQuote.yearMonth = indexQuote.quoteDate.substring(0, 7).replace('-', '');
+    indexQuote.quoteDate = utils
+      .returnDateAsString(indexQuote['lastTradeDate']);
+    indexQuote.yearMonth = indexQuote.quoteDate
+      .substring(0, 7).replace('-', '');
 
     // Check through for values with null and remove from object
     Object.keys(indexQuote).forEach((field) => {
@@ -448,26 +418,40 @@ let convertIndexDatatoAppendData = function(indexData) {
  *    }
  */
 let returnIndexDataForDate = function(dateVal) {
-  if (!util.isDate(dateVal)) {
+  if (!utils.isDate(dateVal)) {
     console.error(`Invalid dateVal: ${dateVal}`);
     return;
   }
   let returnVal = {};
   let quoteDate = utils.returnDateAsString(dateVal);
+  let allIndiceResults = [];
 
-  let scanDetails = {
+  let queryDetails = {
     tableName: 'indexQuotes',
-    filterExpression: 'quoteDate = :quoteDate',
+    keyConditionExpression: 'symbol = :symbol and quoteDate <= :quoteDate',
     expressionAttributeValues: {
       ':quoteDate': quoteDate,
     },
+    reverseOrder: true,
+    limit: 1,
   };
 
-  let indexResults = awaitify(dynamodb.scanTable(scanDetails));
+
+  let symbolResult = awaitify(setupSymbols(true));
+  let indexSymbols = symbolResult.indexSymbols;
+
+  indexSymbols.forEach((index) => {
+    queryDetails.expressionAttributeValues[':symbol'] = index;
+    let indexResults = awaitify(dynamodb.queryTable(queryDetails));
+    if (indexResults.length) {
+      allIndiceResults = allIndiceResults.concat(indexResults);
+    }
+  });
+
 
   // Check we got a metrics result
-  if (indexResults.length) {
-    returnVal = convertIndexDatatoAppendData(indexResults);
+  if (allIndiceResults.length) {
+    returnVal = convertIndexDatatoAppendData(allIndiceResults);
   }
 
   return returnVal;
@@ -511,7 +495,7 @@ let addObjectProperties = function(object1, object2) {
  *    fields: updated fields list array
  *    }
  */
-let addAppendDataToRows = function(dataVals) {
+/* let addAppendDataToRows = function(dataVals) {
   let workingData = dataVals;
   // Check if data is present to append
   if (!workingData.append) {
@@ -536,7 +520,7 @@ let addAppendDataToRows = function(dataVals) {
   }
 
   return workingData;
-};
+}; */
 
 /**
  * Appends data to every compamy row
@@ -547,7 +531,7 @@ let addAppendDataToRows = function(dataVals) {
  *    }
  * @return {Array}  Updated field list
  */
-let appendDataFieldNamesToDataSet = function(fieldData) {
+/* let appendDataFieldNamesToDataSet = function(fieldData) {
   // Check if fields have been supplied
   if (fieldData.fields && fieldData.appendFields) {
     // Work through array and retrieve the key of each value
@@ -559,7 +543,7 @@ let appendDataFieldNamesToDataSet = function(fieldData) {
   }
 
   return fieldData.fields;
-};
+}; */
 
 /**
  * Looks up current company Metrics and appends them to each company row
@@ -574,7 +558,7 @@ let appendDataFieldNamesToDataSet = function(fieldData) {
  *    fields: updated fields list array
  *    }
  */
-let addMetricDataToRows = asyncify(function(dataVals) {
+/* let addMetricDataToRows = asyncify(function(dataVals) {
   return new Promise(function(resolve, reject) {
     try {
       let wkData = dataVals;
@@ -664,9 +648,14 @@ let writeCompanyQuoteDataSet = asyncify(function(quoteObject, quoteDate) {
     insertDetails.values = quote;
     awaitify(dynamodb.insertRecord(insertDetails));
   });
-});
+});*/
 
 let writeCompanyQuoteData = asyncify(function(quoteData) {
+  // If unexpected r3cords come back with no trade data, skop them
+  if (!quoteData['lastTradeDate']) {
+    return;
+  }
+
   let insertDetails = {
     tableName: 'companyQuotes',
     values: {},
@@ -675,14 +664,14 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
     ],
   };
 
-  quoteData.quoteDate = quoteData['lastTradeDate'];
-  quoteData.yearMonth = quoteData.quoteDate.substring(0, 7).replace('-', '');
+  quoteData.quoteDate = utils.returnDateAsString(quoteData['lastTradeDate']);
+  quoteData.yearMonth = quoteData['quoteDate'].substring(0, 7).replace('-', '');
 
   delete quoteData['lastTradeDate'];
 
   // Check through for values with null and remove from object
   Object.keys(quoteData).forEach((field) => {
-    if (quoteData[field] === null) {
+    if (quoteData[field] === null || quoteData[field] === '') {
       delete quoteData[field];
     }
   });
@@ -795,7 +784,7 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
 // });
 });
 
-let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
+/* let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
   searchForward) {
   if (!symbols) {
     console.log('updateQuotesWithMetrics error: no symbols supplied');
@@ -831,12 +820,12 @@ let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
     };
 
     if (searchForward) {
-      /* Need to search forwards for any records on or after selected
-          dateParameter which are missing metrics info */
+      // Need to search forwards for any records on or after selected
+      //    dateParameter which are missing metrics info
       queryQuotes.keyConditionExpression = 'symbol = :symbol and ' +
         ' quoteDate >= :quoteDate';
     } else {
-      /* only look for quotes on the selected day */
+      // only look for quotes on the selected day
       queryQuotes.keyConditionExpression = 'symbol = :symbol and ' +
         ' quoteDate = :quoteDate';
     }
@@ -914,7 +903,7 @@ let updateQuotesWithMetricsOld = asyncify(function(symbols, quoteDate,
       }
     }
   });
-});
+}); */
 
 let getCurrentExecutionDate = asyncify(function() {
   // Get current dat based on last index quote for All Ordinaries
@@ -949,46 +938,38 @@ let executeCompanyMetrics = asyncify(function() {
 });
 
 
-let executeQuoteRetrieval = asyncify(function() {
-  let dataToAppend = {};
-  let indexDataToAppend = {};
-  let symbolGroups = [];
-  let symbolResult = awaitify(setupSymbols());
+let executeIndexQuoteRetrieval = asyncify(function() {
+  let symbolResult = awaitify(setupSymbols(true));
 
-  symbolLookup = symbolResult.symbolLookup;
-  indexLookup = symbolResult.indexLookup;
-  indexSymbols = symbolResult.indexSymbols;
-  companyLookup = symbolResult.companyLookup;
-  indices = symbolResult.indices;
-  companies = symbolResult.companies;
+  let symbolLookup = symbolResult.symbolLookup;
+  let indices = symbolResult.indices;
 
-  lastResultDate = awaitify(getLastRetrievalDate(indexSymbols));
-
-  let todayString = utils.returnDateAsString(Date.now());
-  let financialIndicatos = awaitify(finIndicators
-    .returnIndicatorValuesForDate(todayString));
 
   console.log('----- Start retrieve index quotes -----');
   try {
     let results = awaitify(retrieveSnapshot(indices, indiceFieldsToRetrieve));
-    awaitify(processIndexResults(results));
-    // Write data to index tables
-    indexData = resultData;
-
-    if (indexData.length > 0) {
-      indexDataToAppend = convertIndexDatatoAppendData(indexData);
-      writeIndexResults(indexData);
-    } else {
-      console.log('No new index data to save');
-    }
+    awaitify(processIndexResults(results, symbolLookup));
   } catch (err) {
     console.log(err);
   }
+});
+
+let executeCompanyQuoteRetrieval = asyncify(function() {
+  let dataToAppend = {};
+  let symbolGroups = [];
+  let symbolResult = awaitify(setupSymbols());
+
+  let symbolLookup = symbolResult.symbolLookup;
+  let companies = symbolResult.companies;
+
+  let todayString = utils.returnDateAsString(Date.now());
+  let financialIndicatos = awaitify(finIndicators
+    .returnIndicatorValuesForDate(todayString));
+  let indexDataToAppend = awaitify(returnIndexDataForDate(todayString));
 
   // create append array from indicators and index data
   dataToAppend = addObjectProperties(financialIndicatos,
     indexDataToAppend);
-
 
   console.log('----- Start retrieve company quotes -----');
 
@@ -1008,7 +989,8 @@ let executeQuoteRetrieval = asyncify(function() {
       let dividends = awaitify(getDividendsforDate(symbolGroup,
         todayString, symbolLookup));
 
-      awaitify(processCompanyResults(result, dataToAppend, dividends));
+      awaitify(processCompanyResults(result, symbolLookup,
+        dataToAppend, dividends));
     } catch (err) {
       console.log(err);
     }
@@ -1058,6 +1040,10 @@ let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
     });
   }
 
+  /** Check if dividend record is the latest record for each symbol.  If it is
+  *    pdate the recorded dividend
+  * @param {Object} dividendRecord record to process
+  */
   function processDividend(dividendRecord) {
     let symbol = symbolLookup[dividendRecord.symbol];
     let exDividendDate = utils.returnDateAsString(dividendRecord['date']);
@@ -1101,9 +1087,13 @@ let executeAll = asyncify(function() {
   awaitify(executeCompanyMetrics());
   let tm = new Date();
 
-  console.log('Executing retrieve index and company quotes');
-  awaitify(executeQuoteRetrieval());
-  let tq = new Date();
+  console.log('Executing retrieve index quotes');
+  awaitify(executeIndexQuoteRetrieval());
+  let ti = new Date();
+
+  console.log('Executing retrieve company quotes');
+  awaitify(executeCompanyQuoteRetrieval());
+  let tc = new Date();
 
   console.log('Executing update company quotes with metrics - phase 1');
   awaitify(executeMetricsUpdate({
@@ -1134,8 +1124,11 @@ let executeAll = asyncify(function() {
   console.log('Retrieve company metrics: ',
     utils.dateDiff(tf, tm, 'seconds'), ' seconds to execute.');
 
-  console.log('Retrieve index and company quotes: ',
-    utils.dateDiff(tm, tq, 'seconds'), ' seconds to execute.');
+  console.log('Retrieve index quotes: ',
+    utils.dateDiff(tm, ti, 'seconds'), ' seconds to execute.');
+
+  console.log('Retrieve company quotes: ',
+    utils.dateDiff(ti, tc, 'seconds'), ' seconds to execute.');
 
   console.log('Update company quotes with metrics data - phase 1: ',
     utils.dateDiff(tq, tu, 'seconds'), ' seconds to execute.');
@@ -1157,7 +1150,8 @@ let executeCommand = asyncify(function() {
     .description('Sharecast share data retrieval')
     .option('-f, --financial', 'Retrieve financial indicators')
     .option('-m, --metrics', 'Retrieve company metrics')
-    .option('-q, --quotes', 'Retrieve index and company quotes')
+    .option('-i, --indices', 'Retrieve index quotes')
+    .option('-c, --companies', 'Retrieve company quotes')
     .option('-u, --updates', 'Update company quotes with metrics data')
     .option('-a, --all', 'Perform complete series of operations')
     .parse(process.argv);
@@ -1178,12 +1172,19 @@ let executeCommand = asyncify(function() {
     console.log('Retrieve company metrics: ',
       utils.dateDiff(t0, tm, 'seconds'), ' seconds to execute.');
   }
-  if (program.quotes) {
-    console.log('Executing retrieve index and company quotes');
-    awaitify(executeQuoteRetrieval());
-    let tq = new Date();
-    console.log('Retrieve index and company quotes: ',
-      utils.dateDiff(t0, tq, 'seconds'), ' seconds to execute.');
+  if (program.indices) {
+    console.log('Executing retrieve index quotes');
+    awaitify(executeIndexQuoteRetrieval());
+    let ti = new Date();
+    console.log('Retrieve index quotes: ',
+      utils.dateDiff(t0, ti, 'seconds'), ' seconds to execute.');
+  }
+  if (program.companies) {
+    console.log('Executing retrieve company quotes');
+    awaitify(executeCompanyQuoteRetrieval());
+    let tc = new Date();
+    console.log('Retrieve company quotes: ',
+      utils.dateDiff(t0, tc, 'seconds'), ' seconds to execute.');
   }
   if (program.updates) {
     console.log('Executing update company quotes with metrics');
