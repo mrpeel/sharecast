@@ -322,16 +322,6 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
       .substring(0, 7)
       .replace('-', '');
 
-    // Special one-off functionality for dealing with historical data
-      /* indicatorValue['created'] = utils.dateAdd(indicatorValue['valueDate'],
-      'months', indicatorRetrievalValues[indicatorValue['symbol']]['monthLag']);
-
-      indicatorValue['created'] = utils.dateAdd(indicatorValue['created'], 'days',
-        indicatorRetrievalValues[indicatorValue['symbol']]['dayLag']);
-
-      indicatorValue['created'] = utils.returnDateAsString(
-        indicatorValue['created']); */
-
     let insertDetails = {
       tableName: 'financialIndicatorValues',
       values: indicatorValue,
@@ -344,28 +334,6 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
   }
 });
 
-/* Special one-off functionality for adding indicators to dynamodb
-let oneOffInsert = asyncify(function() {
-  try {
-    // Set up the basic insert structure for dynamo
-    let insertDetails = {
-      tableName: 'financialIndicators',
-      values: {},
-      primaryKey: [
-        'symbol',
-      ],
-    };
-
-    Object.keys(indicatorRetrievalValues).forEach((indicator) => {
-      let insertValues = indicatorRetrievalValues[indicator];
-      insertValues['symbol'] = indicator;
-      insertDetails.values = insertValues;
-      awaitify(dynamodb.insertRecord(insertDetails));
-    });
-  } catch (err) {
-    console.log(err);
-  }
-});*/
 
 module.exports = {
   updateIndicatorValues: updateIndicatorValues,
