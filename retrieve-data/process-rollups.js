@@ -124,3 +124,21 @@ let calculateTotalReturnForPeriod = asyncify(function(symbol, startDate,
   //
 
 });
+
+/** Calculates the risk adjusted return for a time period as a return and
+*    as a yield of the purchase price.
+*    Formula return: total return / std deviation
+*    Formular percentage: purchase price / total return / std deviation
+* @param {Number} purchasePrice - purchase price
+* @param {Number} totalReturn - return for time period
+* @param {Number} stdDeviation - the standard deviation for the time period
+* @return {Object} in form of:
+*       {
+*       'riskAdjustedReturn': 23.8977, (dollar amount)
+*       'riskAdjustedYield': 0.23, (percentage of purchase price )
+*/
+let calculateRiskAdjustedReturnForPeriod = asyncify(function(purchasePrice,
+  totalReturn, stdDeviation) {
+  //
+
+});

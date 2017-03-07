@@ -83,6 +83,7 @@ let setupSymbols = asyncify(function(indicesOnly) {
     console.log('----- Start setup symbols -----');
     let indexValues = awaitify(symbols.getIndices());
     let wSymbolLookup = {};
+    let wSymbolLastAdjustedDate = {};
     let wIndexLookup = {};
     let wIndexSymbols = [];
     let wCompanyLookup = {};
@@ -690,7 +691,7 @@ let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
 
   /* Split companies into groups of 15 to ensure request doesn't exceed api
       url length */
-  for (companyCounter = startRec; companyCounter < endRec;
+  for (let companyCounter = startRec; companyCounter < endRec;
     companyCounter += 15) {
     symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
   }
