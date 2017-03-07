@@ -93,3 +93,34 @@ let calculatePriceChanges = asyncify(function(symbol, quoteDate,
   //
 
 });
+
+/** Determines whether dividencs were paid during time period, and, if paid,
+*   returns them
+* @param {String} symbol - the company symbol
+* @param {String} startDate - the quote date
+* @param {Number} endDate - current day price
+* @return {Number} dividends paid
+*/
+let returnDividendsPaidForPeriod = asyncify(function(symbol, startDate,
+  endDate) {
+  //
+
+});
+
+/** Calculates the return for a company from a startDate to an endDate.  Adds
+*    the capital gain and any dividends paid out and returns the raw number
+*    as well as the yield (percentage of the price at the start Date)
+* @param {String} symbol - the company symbol
+* @param {String} startDate - the quote date
+* @param {Number} endDate - current day price
+* @param {Number} currentPrice - current day price
+* @return {Object} in form of:
+*       {
+*       'totalReturn': 23.8977, (dollar amount)
+*       'totalYield': 0.23, (percentage of purchase price )
+*/
+let calculateTotalReturnForPeriod = asyncify(function(symbol, startDate,
+  endDate, currenPrice) {
+  //
+
+});

@@ -1,3 +1,5 @@
+'use strict';
+
 const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
@@ -428,8 +430,8 @@ let addObjectProperties = function(object1, object2) {
 };
 
 /**  Write a conpany quote record to dynamodb.
-*    Converts lastTradeDate -> quoteDate and checks and removes anu invalid
-*     values are.
+*    Converts lastTradeDate -> quoteDate, copies lastTradePriceOnly ->
+*     adjustedPrice, and checks and removes any invalid values.
 * @param {Object} quoteData - the company quote to write
 */
 let writeCompanyQuoteData = asyncify(function(quoteData) {
@@ -448,6 +450,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
 
   quoteData.quoteDate = utils.returnDateAsString(quoteData['lastTradeDate']);
   quoteData.yearMonth = quoteData['quoteDate'].substring(0, 7).replace('-', '');
+  quoteData.adjustedPrice = quoteData['lastTradePriceOnly'];
 
   delete quoteData['lastTradeDate'];
 
@@ -833,43 +836,56 @@ let executeAll = asyncify(function() {
   console.log('Executing retrieve company quotes - phase 1');
   awaitify(executeCompanyQuoteRetrieval({
     startRec: 0,
-    endRec: 899,
+    endRec: 599,
   }));
   let tc = new Date();
 
   console.log('Executing retrieve company quotes - phase 2');
   awaitify(executeCompanyQuoteRetrieval({
-    startRec: 900,
-    endRec: 1799,
+    startRec: 600,
+    endRec: 1199,
   }));
   let tc2 = new Date();
 
   console.log('Executing retrieve company quotes - phase 3');
   awaitify(executeCompanyQuoteRetrieval({
-    startRec: 1800,
+    startRec: 1200,
+    endRec: 1799,
   }));
   let tc3 = new Date();
+
+  console.log('Executing retrieve company quotes - phase 3');
+  awaitify(executeCompanyQuoteRetrieval({
+    startRec: 1800,
+  }));
+  let tc4 = new Date();
 
   console.log('Executing update company quotes with metrics - phase 1');
   awaitify(executeMetricsUpdate({
     startRec: 0,
-    endRec: 799,
+    endRec: 599,
   }));
   let tu = new Date();
 
   console.log('Executing update company quotes with metrics - phase 2');
   awaitify(executeMetricsUpdate({
-    startRec: 800,
-    endRec: 1799,
+    startRec: 600,
+    endRec: 1199,
   }));
   let tu2 = new Date();
 
   console.log('Executing update company quotes with metrics - phase 3');
   awaitify(executeMetricsUpdate({
-    startRec: 1800,
+    startRec: 1200,
+    startRec: 1799,
   }));
   let tu3 = new Date();
 
+  console.log('Executing update company quotes with metrics - phase 4');
+  awaitify(executeMetricsUpdate({
+    startRec: 1800,
+  }));
+  let tu4 = new Date();
 
   console.log('--------- All done --------');
 
@@ -891,14 +907,20 @@ let executeAll = asyncify(function() {
   console.log('Retrieve company quotes - phase 3: ',
     utils.dateDiff(tc2, tc3, 'seconds'), ' seconds to execute.');
 
+  console.log('Retrieve company quotes - phase 4: ',
+    utils.dateDiff(tc3, tc4, 'seconds'), ' seconds to execute.');
+
   console.log('Update company quotes with metrics data - phase 1: ',
-    utils.dateDiff(tc3, tu, 'seconds'), ' seconds to execute.');
+    utils.dateDiff(tc4, tu, 'seconds'), ' seconds to execute.');
 
   console.log('Update company quotes with metrics data - phase 2: ',
-    utils.dateDiff(ttu, tu2, 'seconds'), ' seconds to execute.');
+    utils.dateDiff(tu, tu2, 'seconds'), ' seconds to execute.');
 
   console.log('Update company quotes with metrics data - phase 3: ',
     utils.dateDiff(tu2, tu3, 'seconds'), ' seconds to execute.');
+
+  console.log('Update company quotes with metrics data - phase 4: ',
+    utils.dateDiff(tu3, tu4, 'seconds'), ' seconds to execute.');
 
 
   console.log('Total time for all operations: ',
@@ -963,7 +985,7 @@ let executeCommand = asyncify(function() {
   }
 });
 
-executeCommand();
+// executeCommand();
 
 
 module.exports = {
@@ -972,4 +994,9 @@ module.exports = {
   writeIndexQuote: writeIndexQuote,
   writeCompanyQuoteData: writeCompanyQuoteData,
   returnIndexDataForDate: returnIndexDataForDate,
+  executeFinancialIndicators: executeFinancialIndicators,
+  executeCompanyMetrics: executeCompanyMetrics,
+  executeIndexQuoteRetrieval: executeIndexQuoteRetrieval,
+  executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
+  executeMetricsUpdate: executeMetricsUpdate,
 };
