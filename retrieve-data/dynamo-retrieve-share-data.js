@@ -8,7 +8,7 @@ const finIndicators = require('./dynamo-retrieve-financial-indicator-data');
 const metrics = require('./dynamo-retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
-const program = require('commander');
+// const program = require('commander');
 
 const fields = {
   p: 'previous-close',
@@ -342,7 +342,7 @@ let convertIndexDatatoAppendData = function(indexData) {
 
   indexData.forEach((indexRow) => {
     // console.log(indexRow);
-    indexPrefix = indexRow['symbol'].toLowerCase();
+    let indexPrefix = indexRow['symbol'].toLowerCase();
     returnVal[indexPrefix + 'previousclose'] = indexRow['previousClose'];
     returnVal[indexPrefix + 'change'] = indexRow['change'];
     returnVal[indexPrefix + 'dayslow'] = indexRow['daysLow'];
@@ -819,7 +819,7 @@ let executeMetricsUpdate = asyncify(function(recLimits) {
 
 /**  Executes all retrieval and update logic for the day's data
 */
-let executeAll = asyncify(function() {
+/* let executeAll = asyncify(function() {
   let t0 = new Date();
 
   console.log('Executing retrieve financial indicators');
@@ -926,12 +926,12 @@ let executeAll = asyncify(function() {
 
   console.log('Total time for all operations: ',
     utils.dateDiff(t0, tu, 'seconds'), ' seconds to execute.');
-});
+}); */
 
 /**  Check the command line option specified and execute the appropriate
 *     function(s).
 */
-let executeCommand = asyncify(function() {
+/* let executeCommand = asyncify(function() {
   program
     .version('0.0.1')
     .description('Sharecast share data retrieval')
@@ -984,7 +984,7 @@ let executeCommand = asyncify(function() {
     console.log('Executing complete series');
     executeAll();
   }
-});
+}); */
 
 // executeCommand();
 
