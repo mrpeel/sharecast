@@ -8,11 +8,11 @@ let min = function(array) {
 };
 
 let range = function(array) {
-  return arr.max(array) - arr.min(array);
+  return max(array) - min(array);
 };
 
 let midrange = function(array) {
-  return arr.range(array) / 2;
+  return range(array) / 2;
 };
 
 let sum = function(array) {
@@ -22,7 +22,7 @@ let sum = function(array) {
 };
 
 let mean = function(array) {
-  return arr.sum(array) / array.length;
+  return sum(array) / array.length;
 };
 
 let average = function(array) {
@@ -66,29 +66,29 @@ let modes = function(array) {
 };
 
 let variance = function(array) {
-  let mean = arr.mean(array);
+  let mean = mean(array);
 
-  return arr.mean(array.map((num) => {
+  return mean(array.map((num) => {
     return Math.pow(num - mean, 2);
   }));
 };
 
 let standardDeviation = function(array) {
-  return Math.sqrt(arr.variance(array));
+  return Math.sqrt(variance(array));
 };
 
 let meanAbsoluteDeviation = function(array) {
-  let mean = arr.mean(array);
+  let mean = mean(array);
 
-  return arr.mean(array.map((num) => {
+  return mean(array.map((num) => {
     return Math.abs(num - mean);
   }));
 };
 
 let zScores = function(array) {
-  let mean = arr.mean(array);
+  let mean = mean(array);
 
-  let standardDeviation = arr.standardDeviation(array);
+  let standardDeviation = standardDeviation(array);
 
   return array.map((num) => {
     return (num - mean) / standardDeviation;

@@ -747,8 +747,8 @@ let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
 
 
   // Retrieve dividends
-  dividendEndDate = utils.returnDateAsString(retrievalDate);
-  dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -1);
+  let dividendEndDate = utils.returnDateAsString(retrievalDate);
+  let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -1);
   dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
   let dividends = awaitify(retrieveDividends(symbolGroup,
     dividendStartDate, dividendEndDate));

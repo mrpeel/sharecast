@@ -198,7 +198,7 @@ let retrieveMetric = asyncify(function(url) {
 
     return jsonResults.searchresults;
   } catch (err) {
-    cosole.error(err);
+    console.error(err);
     return {};
   }
 });

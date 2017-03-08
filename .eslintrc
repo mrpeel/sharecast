@@ -13,5 +13,11 @@
           "ignoreStrings": true,
           "ignorePattern": "'.*': '.*',",
         }],
-    "extends": "eslint-config-google"
+    "extends": "eslint-config-google",
+     "rules": {
+        "no-undef": 1
+    },
+    "globals": {
+        "Promise": true
+    }
 }

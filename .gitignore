@@ -50,6 +50,10 @@ data
 # =========================
 credentials
 
+# Dist directory
+# =========================
+dist
+
 
 # Node modules
 # =========================

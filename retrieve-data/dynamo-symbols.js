@@ -29,8 +29,10 @@ let getCompanies = asyncify(function() {
 
 let addCompany = asyncify(function(companyDetails) {
   if (!companyDetails.symbol) {
-    reject('companyDetails missing symbol: ' +
+    console.error('companyDetails missing symbol: ' +
       JSON.stringify(companyDetails));
+    return 'companyDetails missing symbol: ' +
+      JSON.stringify(companyDetails);
   }
 
   try {
@@ -50,7 +52,7 @@ let addCompany = asyncify(function(companyDetails) {
 
     awaitify(dynamodb.insertRecord(insertDetails));
   } catch (err) {
-    console.log(err);
+    console.error(err);
   }
 });
 
@@ -78,30 +80,6 @@ let getIndices = asyncify(function() {
   });
 });
 
-/* let migrateData = asyncify(function() {
-  symbols.forEach((symbolVal) => {
-    let companyDetails = {
-      symbol: symbolVal.CompanySymbol,
-      companyName: symbolVal.CompanyName,
-      symbolYahoo: symbolVal.CompanySymbolYahoo,
-      symbolGoogle: symbolVal.CompanySymbolGoogle,
-    };
-    try {
-      awaitify(addCompany(companyDetails));
-    } catch (err) {
-      console.log(err);
-    }
-  });
-}); */
-
-/* let testRetrieve = asyncify(function() {
-  let symbols = awaitify(getIndices());
-  console.log(symbols);
-  symbols = awaitify(getCompanies());
-  console.log(symbols);
-});
-
-testRetrieve();*/
 
 module.exports = {
   getCompanies: getCompanies,

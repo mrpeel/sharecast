@@ -3,6 +3,7 @@
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const retrieveData = require('./dynamo-retrieve-share-data');
+const yahooFinance = require('yahoo-finance');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
@@ -55,10 +56,11 @@ let checkForAdjustments = asyncify(function() {
   let endDate = utils.returnDateAsString(Date.now());
   let startDate = utils.dateAdd(endDate, 'weeks', -2);
   let symbolResult = awaitify(retrieveData.setupSymbols());
+  let symbolGroups = [];
 
   let companies = symbolResult.companies;
 
-  for (let companyCounter = startRec; companyCounter < endRec;
+  for (let companyCounter = 0; companyCounter < companies.length;
     companyCounter += 15) {
     symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
   }
@@ -66,7 +68,7 @@ let checkForAdjustments = asyncify(function() {
   symbolGroups.forEach((symbolGroup) => {
     try {
       let result = awaitify(retrieveDailyHistory(symbolGroup,
-        companyFieldsToRetrieve));
+        startDate, endDate));
 
       result.forEach((historyRecord) => {
         // Check whether adjClose is different to close

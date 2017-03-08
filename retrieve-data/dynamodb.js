@@ -100,15 +100,9 @@ let insertRecord = function(insertDetails) {
   return new Promise(function(resolve, reject) {
     // Set-up item details for insert
     let item = {};
-    let maxCapacity = 5; // default write capacity to 5
 
     awaitify(getTableInfo());
 
-    // Set-up max write capacity
-    if (dynamoTables[insertDetails.tableName] &&
-      dynamoTables[insertDetails.tableName]['writeCapacity']) {
-      maxCapacity = dynamoTables[insertDetails.tableName]['writeCapacity'];
-    }
 
     Object.keys(insertDetails.values).forEach((valueKey) => {
       item[valueKey] = insertDetails.values[valueKey];
