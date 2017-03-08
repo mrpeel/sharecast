@@ -6,7 +6,7 @@ const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
 
-AWS.config.loadFromPath('../credentials/aws.json');
+// AWS.config.loadFromPath('../credentials/aws.json');
 
 const client = new AWS.DynamoDB.DocumentClient();
 let dynamoTables = {};

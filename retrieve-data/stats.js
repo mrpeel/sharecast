@@ -1,3 +1,5 @@
+'use strict';
+
 
 let max = function(array) {
   return Math.max.apply(null, array);

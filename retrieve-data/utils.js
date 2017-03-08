@@ -1,3 +1,5 @@
+'use strict';
+
 const json2csv = require('json2csv');
 const fs = require('fs');
 const moment = require('moment-timezone');

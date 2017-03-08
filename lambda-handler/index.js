@@ -4,6 +4,9 @@ const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const retrieval = require('./retrieve/dynamo-retrieve-share-data');
 const utils = require('./retrieve/utils');
+const sns = require('./publish-sns');
+
+const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 
 /**  Executes function
 */
@@ -91,14 +94,26 @@ let handler = asyncify(function(event, context) {
     }
 
     let t1 = new Date();
+    let numSeconds = utils.dateDiff(t0, t1, 'seconds');
 
-    console.log(event.executeFunction + ' took ' +
-      utils.dateDiff(t0, t1, 'seconds') + ' seconds to execute.');
+    console.log(event.executeFunction + ' took ' + numSeconds +
+      ' seconds to execute.');
+
+    awaitify(
+      sns.publishMsg(snsArn,
+        event.executeFunction + ' took ' + numSeconds + ' seconds to execute.',
+        'Lambda ' + event.executeFunction + ' completed'));
 
     context.succeed(event.executeFunction);
   } catch (err) {
     console.error(event.executeFunction, ' function failed: ', err);
-    context.fail(event.executeFunction + ' function failed: ');
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          'Lambda ' + event.executeFunction + ' failed'));
+    } catch (err) {}
+    context.fail(event.executeFunction + ' function failed');
   }
 });
 

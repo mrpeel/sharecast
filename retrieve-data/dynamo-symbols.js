@@ -1,3 +1,5 @@
+'use strict';
+
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const dynamodb = require('./dynamodb');
