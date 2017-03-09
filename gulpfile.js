@@ -10,7 +10,7 @@ const credentials = require('./credentials/aws.json');
 const lambdaParams = {
   FunctionName: 'retrieveShareData',
   Handler: 'index.handler',
-  Role: 'arn:aws:iam::815588223950:role/lambda_backp_dynamo_to_s3',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs',
   Description: 'Retrieve share data and store in dynamodb',
   MemorySize: 1024,
