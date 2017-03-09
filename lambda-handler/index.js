@@ -5,16 +5,79 @@ const awaitify = require('asyncawait/await');
 const retrieval = require('./retrieve/dynamo-retrieve-share-data');
 const utils = require('./retrieve/utils');
 const sns = require('./publish-sns');
+const aws = require('aws-sdk');
+
+const lambda = new aws.Lambda({
+  region: 'ap-southeast-2',
+});
 
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
+
+let invokeLambda = function(lambdaName, event) {
+  return new Promise(function(resolve, reject) {
+    lambda.invoke({
+      FunctionName: lambdaName,
+      InvocationType: 'Event',
+      Payload: JSON.stringify(event, null, 2),
+    }, function(err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`Function ${lambdaName} executed with event: `,
+          `${JSON.stringify(event)}`);
+        resolve(true);
+      }
+    });
+  });
+};
 
 /**  Executes function
 */
 let handler = asyncify(function(event, context) {
   try {
+    let lastExecuted;
+    let executionList;
+    let execute;
+    let executionOrder = ['executeFinancialIndicators',
+      'executeCompanyMetrics',
+      'executeIndexQuoteRetrieval',
+      'executeCompanyQuoteRetrieval1',
+      'executeCompanyQuoteRetrieval2',
+      'executeCompanyQuoteRetrieval3',
+      'executeCompanyQuoteRetrieval4',
+      'executeMetricsUpdate1',
+      'executeMetricsUpdate2',
+      'executeMetricsUpdate3',
+      'executeMetricsUpdate4',
+    ];
+
+    // Check if there is a previously executed function in the chain
+    if (event && event.lastExecuted) {
+      lastExecuted = event.lastExecuted;
+    }
+
+    // Copy across the execution list if it exists
+    if (event && event.executionList) {
+      executionList = event.executionList;
+    } else {
+      executionList = [];
+    }
+
+    // Set-up the index for which share retrieval function to execute
+    if (lastExecuted && executionOrder.indexOf(lastExecuted) === -1) {
+      console.error('Unexpected value for lastExecuted function: ',
+        lastExecuted);
+      return;
+    } else if (lastExecuted && executionOrder.indexOf(lastExecuted) > -1) {
+      execute = executionOrder.indexOf(lastExecuted) + 1;
+    } else {
+      execute = 0;
+    }
+
     let t0 = new Date();
 
-    switch (event.executeFunction) {
+    // Execute the specified function
+    switch (executionOrder[execute]) {
       case 'executeFinancialIndicators':
         console.log('Executing retrieve financial indicators');
         awaitify(retrieval.executeFinancialIndicators());
@@ -99,12 +162,37 @@ let handler = asyncify(function(event, context) {
     console.log(event.executeFunction + ' took ' + numSeconds +
       ' seconds to execute.');
 
+    // Send a confirmation email
     awaitify(
       sns.publishMsg(snsArn,
         event.executeFunction + ' took ' + numSeconds + ' seconds to execute.',
         'Lambda ' + event.executeFunction + ' completed'));
 
-    context.succeed(event.executeFunction);
+    // Update the last executed function
+    lastExecuted = executionOrder[execute];
+
+    // Add completed function to execution list
+    executionList.push(lastExecuted + ' took ' +
+      utils.dateDiff(t0, t1, 'seconds') + ' seconds to execute.');
+
+    // Check whether there are more functions in the chain to execute
+    if (execute >= (executionOrder.length - 1)) {
+      // Finished the last item, log what happened
+      console.log('--------- All done --------');
+      executionList.forEach((execution) => {
+        console.log(execution);
+      });
+
+      context.succeed(event.executeFunction);
+    } else {
+      // More functions to execute, so call same lambda with updated details
+      awaitify(invokeLambda('retrieveShareData',
+        {
+          lastExecuted: lastExecuted,
+          executionList: executionList,
+        }));
+      context.succeed(event.executeFunction);
+    }
   } catch (err) {
     console.error(event.executeFunction, ' function failed: ', err);
     try {
