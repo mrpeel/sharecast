@@ -159,6 +159,9 @@ let handler = asyncify(function(event, context) {
     let t1 = new Date();
 
     // Update the last executed function
+    lastExecuted = executionOrder[execute];
+
+    // Update the last executed function
     let logMessage = executionOrder[execute] + ' took ' +
       utils.dateDiff(t0, t1, 'seconds') + ' seconds to execute.';
     let msgSubject = 'Lambda ' + executionOrder[execute] + ' completed';
