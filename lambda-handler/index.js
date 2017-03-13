@@ -157,23 +157,23 @@ let handler = asyncify(function(event, context) {
     }
 
     let t1 = new Date();
-    let numSeconds = utils.dateDiff(t0, t1, 'seconds');
 
-    console.log(event.executeFunction + ' took ' + numSeconds +
-      ' seconds to execute.');
+    // Update the last executed function
+    let logMessage = executionOrder[execute] + ' took ' +
+      utils.dateDiff(t0, t1, 'seconds') + ' seconds to execute.';
+    let msgSubject = 'Lambda ' + executionOrder[execute] + ' completed';
+
+    console.log(logMessage);
 
     // Send a confirmation email
     awaitify(
       sns.publishMsg(snsArn,
-        event.executeFunction + ' took ' + numSeconds + ' seconds to execute.',
-        'Lambda ' + event.executeFunction + ' completed'));
+        logMessage,
+        msgSubject));
 
-    // Update the last executed function
-    lastExecuted = executionOrder[execute];
 
     // Add completed function to execution list
-    executionList.push(lastExecuted + ' took ' +
-      utils.dateDiff(t0, t1, 'seconds') + ' seconds to execute.');
+    executionList.push(logMessage);
 
     // Check whether there are more functions in the chain to execute
     if (execute >= (executionOrder.length - 1)) {
@@ -194,14 +194,14 @@ let handler = asyncify(function(event, context) {
       context.succeed(event.executeFunction);
     }
   } catch (err) {
-    console.error(event.executeFunction, ' function failed: ', err);
+    console.error('retrieveShareData function failed: ', err);
     try {
       awaitify(
         sns.publishMsg(snsArn,
           err,
-          'Lambda ' + event.executeFunction + ' failed'));
+          'Lambda retrieveShareData failed'));
     } catch (err) {}
-    context.fail(event.executeFunction + ' function failed');
+    context.fail('retrieveShareData function failed');
   }
 });
 

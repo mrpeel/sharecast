@@ -442,7 +442,7 @@ let updateRecord = function(updateDetails) {
     params.ReturnValues = 'UPDATED_NEW';
 
     console.log('Update table request: ', updateDetails.tableName,
-      ' ', JSON.stringify(params.key));
+      ' ', JSON.stringify(params.Key));
 
     client.update(params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {
