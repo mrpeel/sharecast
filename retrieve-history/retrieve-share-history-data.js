@@ -319,7 +319,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'CJT.AX') {
+      if (companySymbol >= 'MCXN.AX') {
         let results = awaitify(retrieveHistory(companySymbol,
           '2006-07-01', '2007-06-30', 'd'));
 
