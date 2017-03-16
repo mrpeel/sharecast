@@ -451,7 +451,9 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
 
   quoteData.quoteDate = utils.returnDateAsString(quoteData['lastTradeDate']);
   quoteData.yearMonth = quoteData['quoteDate'].substring(0, 7).replace('-', '');
-  quoteData.adjustedPrice = quoteData['lastTradePriceOnly'];
+  if (!quoteData.adjustedPrice) {
+    quoteData.adjustedPrice = quoteData['lastTradePriceOnly'];
+  }
 
   delete quoteData['lastTradeDate'];
 

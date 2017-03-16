@@ -1,127 +1,69 @@
 const yahooFinance = require('yahoo-finance');
-const utils = require('./utils');
-const dynamodb = require('./dynamodb');
+const utils = require('../retrieve-data/utils');
+const dynamodb = require('../retrieve-data/dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
-const shareRetrieve = require('./dynamo-retrieve-share-data');
-const metricsRetrieve = require('./dynamo-retrieve-google-company-data');
-const fiRetrieve = require('./dynamo-retrieve-financial-indicator-data');
-const stats = require('./stats');
+const shareRetrieve = require('../retrieve-data/dynamo-retrieve-share-data');
+const metricsRetrieve = require('../retrieve-data/dynamo-retrieve-google-company-data');
+const fiRetrieve = require('../retrieve-data/dynamo-retrieve-financial-indicator-data');
+const stats = require('../retrieve-data/stats');
+const processRollups = require('../retrieve-data/process-rollups');
+const histSymbols = require('./symbols.json');
 const jsonCompanies = require('../data/verified-companies-to-remove.json');
 
-const fields = {
-  // b: 'bid',
-  // a: 'ask',
-  p: 'previous-close',
-  o: 'open',
-  y: 'dividend-yield',
-  d: 'dividend-per-share',
-  r1: 'dividend-pay-date',
-  q: 'ex-dividend-date',
-  c1: 'change',
-  // c: 'change-and-percent-change',
-  p2: 'change-in-percent',
-  d1: 'last-trade-date',
-  // d2: 'trade-date',
-  // t1: 'last-trade-time',
-  // c3: 'commission',
-  g: 'day-low',
-  h: 'day-high',
-  // l: 'last-trade-with-time',
-  l1: 'last-trade-price-only',
-  t8: '1-yr-target-price',
-  // m5: 'change-from-200-day-moving-average',
-  // m6: 'percent-change-from-200-day-moving-average',
-  // m7: 'change-from-50-day-moving-average',
-  // m8: 'percent-change-from-50-day-moving-average',
-  // m3: '50-day-moving-average',
-  // m4: '200-day-moving-average',
-  w1: 'day-value-change',
-  p1: 'price-paid',
-  // m: 'day-range',
-  g1: 'holdings-gain-percent',
-  g3: 'annualized-gain',
-  g4: 'holdings-gain',
-  k: '52-week-high',
-  j: '52-week-low',
-  // j5: 'change-from-52-week-low',
-  // k4: 'change-from-52-week-high',
-  // j6: 'percent-change-from-52-week-low',
-  // k5: 'percent-change-from-52-week-high',
-  // w: '52-week-range',
-  j1: 'market-capitalization',
-  f6: 'float-shares',
-  // n: 'name',
-  // n4: 'notes',
-  s1: 'shares-owned',
-  x: 'stock-exchange',
-  j2: 'shares-outstanding',
-  v: 'volume',
-  // a5: 'ask-size',
-  // b6: 'bid-size',
-  // k3: 'last-trade-size',
-  // a2: 'average-daily-volume',
-  e: 'earnings-per-share',
-  e7: 'EPS-estimate-current-year',
-  e8: 'EPS-estimate-next-year',
-  e9: 'EPS-estimate-next-quarter',
-  b4: 'book-value',
-  j4: 'EBITDA',
-  p5: 'price-per-sales',
-  p6: 'price-per-book',
-  r: 'PE-ratio',
-  r5: 'PEG-ratio',
-  r6: 'price-per-EPS-estimate-current-year',
-  r7: 'price-per-EPS-estimate-next-year',
-  s7: 'short-ratio',
-  t7: 'ticker-trend',
-  // t6: 'trade-links',
-  // l2: 'high-limit',
-  // l3: 'low-limit',
-  v1: 'holdings-value',
-  s6: 'revenue',
+let indexValsLookup = {};
+let fiValsLookup = {};
+
+let setupHistorySymbols = function() {
+  try {
+    console.log('----- Start setup symbols -----');
+    let indexValues = histSymbols.indices;
+    let wSymbolLookup = {};
+    let wIndexLookup = {};
+    let wIndexSymbols = [];
+    let wCompanyLookup = {};
+    let wIndices = [];
+    let wCompanies = [];
+    let returnVal = {};
+
+
+    indexValues.forEach((indexValue) => {
+      console.log(indexValue);
+      wIndexLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      wSymbolLookup[indexValue['yahoo-symbol']] = indexValue['symbol'];
+      wIndexSymbols.push(indexValue['symbol']);
+    });
+
+    wIndices = utils.createFieldArray(wIndexLookup);
+
+    returnVal = {
+      indexLookup: wIndexLookup,
+      indices: wIndices,
+      symbolLookup: wSymbolLookup,
+      indexSymbols: wIndexSymbols,
+    };
+
+    let companyValues = histSymbols.companies;
+
+    companyValues.forEach((companyValue) => {
+      wCompanyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+      wSymbolLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
+    });
+
+    wCompanies = utils.createFieldArray(wCompanyLookup);
+
+    returnVal.companyLookup = wCompanyLookup;
+    returnVal.companies = wCompanies;
+
+    return returnVal;
+  } catch (err) {
+    console.log(err);
+  }
 };
 
-const indiceFields = {
-  d1: 'last-trade-date',
-  p: 'previous-close',
-  o: 'open',
-  c1: 'change',
-  c: 'change-and-percent-change',
-  p2: 'change-in-percent',
-  g: 'day-low',
-  h: 'day-high',
-  w1: 'day-value-change',
-  m: 'day-range',
-  k: '52-week-high',
-  j: '52-week-low',
-  j5: 'change-from-52-week-low',
-  k4: 'change-from-52-week-high',
-  j6: 'percent-change-from-52-week-low',
-  k5: 'percent-change-from-52-week-high',
-  n: 'name',
-  x: 'stock-exchange',
-  j2: 'shares-outstanding',
-};
-
-let symbolLookup = {};
-let indexLookup = {};
-let companyLookup = {};
-let indices = [];
-let companies = [];
-
-/* Retrieve index values */
-const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
-const companyFieldsToRetrieve = utils.createFieldArray(fields);
-// let symbolGroups = [];
-// let shareRetrievals = [];
-let dataFields = [];
-let data = [];
-
-let retrieveHistory = function(symbol, fields, startDate, endDate, interval) {
+let retrieveHistory = function(symbol, startDate, endDate, interval) {
   return new Promise(function(resolve, reject) {
     let historyOptions = {
-      fields: fields,
       from: startDate,
       to: endDate,
       period: interval,
@@ -237,62 +179,19 @@ for (companyCounter = 0; companyCounter < companies.length;
   }
 } */
 
-/**
- * Returns a dividend value for a company date combination (if exists)
- * specific date
- * @param {String} companySymbol the companySymbol to look up
- * @param {String} valueDate the date to check
- * @return {Number}  the dividend value / null if not found
- */
-let returnDividendValueForDate = asyncify(function(companySymbol, valueDate) {
-  if (!valueDate || !utils.isDate(valueDate)) {
-    throw new Error('valueDate supplied is invalid: ' + valueDate);
-  }
-
-  if (!companySymbol) {
-    throw new Error('companySymbol not supplied');
-  }
-
-  let connection;
-  try {
-    // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
-
-    let result = awaitify(dbConn.selectQuery(connection,
-      'SELECT `value` ' +
-      'FROM `sharecast`.`dividend_history` ' +
-      'WHERE `company_symbol` = \'' + companySymbol + '\' ' +
-      'AND `dividend_date` <= \'' + valueDate + '\' ' +
-      'ORDER BY `dividend_date` desc ' +
-      'LIMIT 1;'
-    ));
-    if (result.length > 0) {
-      return result[0]['value'];
-    } else {
-      return null;
-    }
-  } catch (err) {
-    console.log(err);
-  } finally {
-    if (connection) {
-      dbConn.closeConnection(connection);
-    }
-  }
-});
-
 
 let getDividendHistory = asyncify(function() {
   let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
-  symbolLookup = symbolResult.symbolLookup;
-  indexLookup = symbolResult.indexLookup;
-  indexSymbols = symbolResult.indexSymbols;
-  companyLookup = symbolResult.companyLookup;
-  indices = symbolResult.indices;
-  companies = symbolResult.companies;
+  let symbolLookup = symbolResult.symbolLookup;
+  let indexLookup = symbolResult.indexLookup;
+  let indexSymbols = symbolResult.indexSymbols;
+  let companyLookup = symbolResult.companyLookup;
+  let indices = symbolResult.indices;
+  let companies = symbolResult.companies;
 
   // Split companies into groups of 10 so each request contains 10
-  for (companyCounter = 0; companyCounter < companies.length;
+  for (let companyCounter = 0; companyCounter < companies.length;
     companyCounter += 10) {
     // symbolGroups.push(companies.slice(companyCounter, companyCounter + 10));
     let companySymbols = companies.slice(companyCounter, companyCounter + 10);
@@ -305,13 +204,13 @@ let getDividendHistory = asyncify(function() {
 
 
     console.log('Processing companyCounter: ' + internalCounter);
-    /* awaitify(retrieveHistory(companySymbols, companyFieldsToRetrieve,
+    /* awaitify(retrieveHistory(companySymbols,
       '2006-01-01', '2017-01-29', 'd') */
     try {
       let results = awaitify(retrieveDividendHistory(companySymbols,
         '2006-01-01', '2017-01-29'));
       // Reset fields for companies
-      data = [];
+      let data = [];
 
       processHistoryResults(results);
 
@@ -340,7 +239,7 @@ let getDividendHistory = asyncify(function() {
   }
 });
 
-/* retrieveHistory(indices, indiceFieldsToRetrieve, '2012-01-01',
+/* retrieveHistory(indices, '2012-01-01',
   '2017-01-29', 'd')
   .then(function(results) {
     return processHistoryResults(results);
@@ -364,7 +263,7 @@ for (companyCounter = 0; companyCounter < companies.length;
 
   setTimeout(function() {
     console.log('companyCounter: ' + internalCounter);
-    retrieveHistory(companySymbols, companyFieldsToRetrieve, '2012-01-01',
+    retrieveHistory(companySymbols, '2012-01-01',
       '2017-01-29', 'd')
       .then(function(results) {
         // Reset fields for companies
@@ -392,14 +291,14 @@ for (companyCounter = 0; companyCounter < companies.length;
 let getIndexHistory = asyncify(function() {
   let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
-  symbolLookup = symbolResult.symbolLookup;
-  indexLookup = symbolResult.indexLookup;
-  indexSymbols = symbolResult.indexSymbols;
-  companyLookup = symbolResult.companyLookup;
-  indices = symbolResult.indices;
-  companies = symbolResult.companies;
+  let symbolLookup = symbolResult.symbolLookup;
+  let indexLookup = symbolResult.indexLookup;
+  let indexSymbols = symbolResult.indexSymbols;
+  let companyLookup = symbolResult.companyLookup;
+  let indices = symbolResult.indices;
+  let companies = symbolResult.companies;
 
-  let results = awaitify(retrieveHistory(indices, indiceFieldsToRetrieve,
+  let results = awaitify(retrieveHistory(indices,
     '2006-07-01', '2011-12-31', 'd'));
 
   processIndexHistoryResults(results);
@@ -407,85 +306,166 @@ let getIndexHistory = asyncify(function() {
 
 
 let getCompanyHistory = asyncify(function() {
-  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+  let currentCompany;
+  try {
+    dynamodb.setLocalAccessConfig();
+    // override console within this block
+    console.log = function() {};
+    let symbolResult = setupHistorySymbols();
 
-  symbolLookup = symbolResult.symbolLookup;
-  indexLookup = symbolResult.indexLookup;
-  indexSymbols = symbolResult.indexSymbols;
-  companyLookup = symbolResult.companyLookup;
-  indices = symbolResult.indices;
-  companies = symbolResult.companies;
+    let symbolLookup = symbolResult.symbolLookup;
+    let companies = symbolResult.companies;
 
-  // Work through companies one by one and retrieve values
-  companies.forEach((companySymbol) => {
-    let results = awaitify(retrieveHistory(companySymbol,
-      companyFieldsToRetrieve, '2006-07-01', '2017-01-29', 'd'));
+    // Work through companies one by one and retrieve values
+    companies.forEach((companySymbol) => {
+      // Skip previous companies
+      if (companySymbol >= 'CJT.AX') {
+        let results = awaitify(retrieveHistory(companySymbol,
+          '2006-07-01', '2007-06-30', 'd'));
 
-    processCompanyHistoryResults(results);
-  });
+        awaitify(processCompanyHistoryResults(results, symbolLookup));
+      }
+    });
+  } catch (err) {
+    console.log('Failed while processing: ', currentCompany);
+    console.log(err);
+  }
 });
 
-let processCompanyHistoryResults = asyncify(function(results) {
+let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
   if (results) {
     Object.keys(results).forEach(function(symbolResults) {
-      // Multiple  symbols returned
-      results[symbolResults].forEach(function(indResult) {
-        awaitify(processCompanyHistoryResult(indResult));
-      });
+      /* Single symbol returned - check whether this is a normal record,
+          i.e. has Close val */
+      if (results[symbolResults].close) {
+        awaitify(processCompanyHistoryResult(results[symbolResults],
+          symbolLookup));
+      }
     });
   }
 });
 
-let processCompanyHistoryResult = asyncify(function(result) {
+let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
     'quoteDate'];
   result.lastTradeDate = utils.returnDateAsString(result.date);
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
+  result.adjustedPrice = result.adjClose;
+  result.previousClose = result.open;
+  result.lastTradePriceOnly = result.close;
+  result.daysHigh = result.high;
+  result.daysLow = result.low;
+  result.change = result.close - result.open;
+  if (result.open === 0) {
+    result.changeInPercent = 0;
+  } else {
+    result.changeInPercent = (result.close - result.open) / result.open;
+  }
 
-  // Remove oriingal date field
+  // Remove oriingal fields
   delete result['date'];
+  delete result['adjClose'];
+  delete result['open'];
+  delete result['close'];
+  delete result['high'];
+  delete result['low'];
 
   Object.keys(result).forEach(function(field) {
     // Reset number here required
     result[field] = utils.checkForNumber(result[field]);
   });
 
+  // Calculate 1, 2, 4, 8, 12, 26, 52 week cut-off dateString
+
+  // params: todayDate
+
+  // Get dividend values for last 52 weeks
+
+  // params: 52WeekCutOffDate
+
+
+  // Retrieve values for 1, 2, 4, 8, 12, 26, 52 week adjusted prices
+
+  // params: allAdjustedPrices
+
+  // Calculate average for 1, 2, 4, 8,12, 26, 52 weeks
+
+  // params: arrayOfAdjustedPrices
+
+  // Calculate std deviation for 1, 2, 4, 8, 12, 26, 52 weeks
+
+  // params: arrayOfAdjustedPrices for each time period
+
+  // Calculate 4, 12 week Bollinger bands
+
+  // Calculate 52 week high, low, change and percentChange
+
+  // params: 52WeekAdjustedPrices, currentPrice
+
+  // params: numberWeeks, currentPrice, std deviation
+
+  /* Calculate and update total return and risk adjusted return
+    for 1, 2, 4, 8, 12, 26, 52 weeks */
+
+  // params: numberWeeks, targetDate, currentPrice, dividends, std deviation
+
+
   // Get index values for date
-  let indexVals = awaitify(
-    shareRetrieve.returnIndexDataForDate(result.lastTradeDate));
+  if (!indexValsLookup[result.lastTradeDate]) {
+    let indexValRetrieve = awaitify(
+      shareRetrieve.returnIndexDataForDate(result.lastTradeDate));
+    indexValsLookup[result.lastTradeDate] = indexValRetrieve;
+  }
+
+  let indexVals = indexValsLookup[result.lastTradeDate];
 
   Object.keys(indexVals).forEach((indexKey) => {
     // Check if value should be ignored.  If not add to quoteVal
-    if (ignoreVals.indexOf(indexKey) === -1) {
+    if (ignoreVals.indexOf(indexKey) === -1 &&
+      indexVals[indexKey] !== undefined &&
+      indexVals[indexKey] !== null) {
       result[indexKey] = indexVals[indexKey];
     }
   });
 
   // Get financial indicator values for date
-  let fiVals = awaitify(
-    fiRetrieve.returnIndicatorValuesForDate(result.lastTradeDate));
+  if (!fiValsLookup[result.lastTradeDate]) {
+    let fiValsRetrieve = awaitify(
+      fiRetrieve.returnIndicatorValuesForDate(result.lastTradeDate));
+    fiValsLookup[result.lastTradeDate] = fiValsRetrieve;
+  }
+
+  let fiVals = fiValsLookup[result.lastTradeDate];
 
   Object.keys(fiVals).forEach((fiKey) => {
     // Check if value should be ignored.  If not add to quoteVal
-    if (ignoreVals.indexOf(fiKey) === -1) {
+    if (ignoreVals.indexOf(fiKey) === -1 &&
+      fiVals[fiKey] !== undefined &&
+      fiVals[fiKey] !== null) {
       result[fiKey] = fiVals[fiKey];
     }
   });
 
+
   // Get metric values for date
   let metricsVals = awaitify(
-    metricsRetrieve.returnCompanyMetricValuesForDate(result.lastTradeDate));
+    metricsRetrieve.returnCompanyMetricValuesForDate(result.symbol,
+      result.lastTradeDate));
 
   Object.keys(metricsVals).forEach((metricsKey) => {
     // Check if value should be ignored.  If not add to quoteVal
-    if (ignoreVals.indexOf(metricsKey) === -1) {
+    if (ignoreVals.indexOf(metricsKey) === -1 &&
+      metricsVals[metricsKey] !== undefined &&
+      metricsVals[metricsKey] !== null) {
       result[metricsKey] = metricsVals[metricsKey];
     }
   });
 
   // Insert result in dynamodb
   awaitify(shareRetrieve.writeCompanyQuoteData(result));
+
+// Add current quote to company adjusted price array
 });
 
 /* companyQuote data
@@ -495,6 +475,7 @@ Open	-> open
 High -> daysHigh
 Low -> daysLow
 Close	-> lastTradePriceOnly
+AdjustedClose -> adjustedPrice
 Volume-> volume
 
 
@@ -843,12 +824,12 @@ let fixCompaniesList = asyncify(function() {
   let currentMetricsCompanies = [];
   let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
-  symbolLookup = symbolResult.symbolLookup;
-  indexLookup = symbolResult.indexLookup;
-  indexSymbols = symbolResult.indexSymbols;
-  companyLookup = symbolResult.companyLookup;
-  indices = symbolResult.indices;
-  companies = symbolResult.companies;
+  let symbolLookup = symbolResult.symbolLookup;
+  let indexLookup = symbolResult.indexLookup;
+  let indexSymbols = symbolResult.indexSymbols;
+  let companyLookup = symbolResult.companyLookup;
+  let indices = symbolResult.indices;
+  let companies = symbolResult.companies;
 
   Object.keys(companyLookup).forEach((companyKey) => {
     currentCompanySymbols.push(companyLookup[companyKey]);
@@ -941,7 +922,7 @@ let removeMetrics = asyncify(function() {
   });
 });
 
-removeMetrics();
+getCompanyHistory();
 
 // getIndexHistory();
 
