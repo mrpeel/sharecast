@@ -5,14 +5,15 @@ const moment = require('moment-timezone');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
-const client = new AWS.DynamoDB.DocumentClient();
+let client = new AWS.DynamoDB.DocumentClient();
 let dynamoTables = {};
 
 /** Sets access to AWS for local execution
 */
 let setLocalAccessConfig = function() {
   AWS.config.loadFromPath('../credentials/aws.json');
-}
+  client = new AWS.DynamoDB.DocumentClient();
+};
 
 /** Gets all the dynamo tables and records their provisioned capacity
 * @return {Boolean} whether the get info worked
