@@ -88,9 +88,9 @@ let dateDiff = function(dateValue1, dateValue2, unit) {
     return null;
   }
 
-  if (!(unit === 'seconds' || unit === 'minutes' || unit === 'hours' ||
-    unit === 'days' || unit === 'weeks' || unit === 'months' ||
-    unit === 'years')) {
+  if (!(unit === 'milliseconds' || unit === 'seconds' || unit === 'minutes' ||
+    unit === 'hours' || unit === 'days' || unit === 'weeks' ||
+    unit === 'months' || unit === 'years')) {
     console.error('unit invalid: ' + unit);
     return null;
   }
@@ -98,7 +98,11 @@ let dateDiff = function(dateValue1, dateValue2, unit) {
   let md1 = moment(dateValue1);
   let md2 = moment(dateValue2);
 
-  return Math.abs(md1.diff(md2, unit));
+  if (unit === 'milliseconds') {
+    return Math.abs(md1.diff(md2));
+  } else {
+    return Math.abs(md1.diff(md2, unit));
+  }
 };
 
 

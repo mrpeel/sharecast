@@ -13,6 +13,12 @@ const jsonCompanies = require('../data/verified-companies-to-remove.json');
 
 let indexValsLookup = {};
 let fiValsLookup = {};
+let prepValues = [];
+let indices = [];
+let financiaIndicators = [];
+let metrics = [];
+let insert = [];
+
 
 let setupHistorySymbols = function() {
   try {
@@ -310,42 +316,121 @@ let getCompanyHistory = asyncify(function() {
   try {
     dynamodb.setLocalAccessConfig();
     // override console within this block
-    console.log = function() {};
     let symbolResult = setupHistorySymbols();
 
     let symbolLookup = symbolResult.symbolLookup;
     let companies = symbolResult.companies;
+    let symbolGroups = [];
+    let filteredCompanies = [];
+
 
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'MOG.AX') {
-        let results = awaitify(retrieveHistory(companySymbol,
-          '2006-07-01', '2007-06-30', 'd'));
-
-        awaitify(processCompanyHistoryResults(results, symbolLookup));
+      if (companySymbol >= 'WWGDA.AX') {
+        filteredCompanies.push(companySymbol);
       }
     });
+
+
+    for (let companyCounter = 0; companyCounter < filteredCompanies.length;
+      companyCounter += 20) {
+      symbolGroups.push(filteredCompanies.slice(companyCounter,
+        companyCounter + 20));
+    }
+
+    symbolGroups.forEach((symbolGroup) => {
+      let t0 = new Date();
+      let results = awaitify(retrieveHistory(symbolGroup,
+        '2006-07-01', '2007-06-30', 'd'));
+      let t1 = new Date();
+      console.warn('Retrieve data took ' +
+        utils.dateDiff(t0, t1, 'seconds') + ' seconds.');
+
+      prepValues = [];
+      indices = [];
+      financiaIndicators = [];
+      metrics = [];
+      insert = [];
+
+      awaitify(processCompanyHistoryResults(results, symbolLookup));
+
+      let t2 = new Date();
+      console.warn('Process history results took ' +
+        utils.dateDiff(t1, t2, 'seconds') + ' seconds.');
+
+      console.warn('Prep values sum: ', stats.sum(prepValues),
+        ' avg: ', stats.average(prepValues),
+        ', max: ', stats.max(prepValues));
+      console.warn('Add index data sum: ', stats.sum(indices),
+        ' avg: ', stats.average(indices),
+        ', max: ', stats.max(indices));
+      console.warn('Add financial indicator data sum: ',
+        stats.sum(financiaIndicators),
+        'avg: ', stats.average(financiaIndicators), ', max: ',
+        stats.max(financiaIndicators));
+      console.warn('Add metrics data sum: ', stats.sum(metrics),
+        'avg: ', stats.average(metrics),
+        ', max: ', stats.max(metrics));
+      console.warn('Insert data sum: ', stats.sum(insert),
+        'avg: ', stats.average(insert),
+        ', max: ', stats.max(insert));
+    });
   } catch (err) {
-    console.log('Failed while processing: ', currentCompany);
-    console.log(err);
+    console.error('Failed while processing: ', currentCompany);
+    console.error(err);
   }
 });
 
 let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
   if (results) {
+    /*    // Check if multi-dimensional
+        if (Array.isArray(results)) {
+          // Multiple  symbols returned
+          results.forEach((indResult) => {
+            Object.keys(indResult).forEach(function(symbolResults) {
+              if (indResult[symbolResults].close) {
+                awaitify(processCompanyHistoryResult(indResult[symbolResults],
+                  symbolLookup));
+              }
+            });
+          });
+        } else {*/
     Object.keys(results).forEach(function(symbolResults) {
-      /* Single symbol returned - check whether this is a normal record,
-          i.e. has Close val */
-      if (results[symbolResults].close) {
-        awaitify(processCompanyHistoryResult(results[symbolResults],
-          symbolLookup));
+      // Check if mult diensional
+      let currentResults = results[symbolResults];
+      if (Array.isArray(currentResults)) {
+        currentResults.forEach((indResult) => {
+          if (indResult.close) {
+            let timings = awaitify(processCompanyHistoryResult(indResult,
+              symbolLookup));
+
+            prepValues.push(timings.prepValues);
+            indices.push(timings.indices);
+            financiaIndicators.push(timings.financiaIndicators);
+            metrics.push(timings.metrics);
+            insert.push(timings.insert);
+          }
+        });
+      } else {
+        /* Single symbol returned - check whether this is a normal record,
+            i.e. has Close val */
+        if (results[symbolResults].close) {
+          awaitify(processCompanyHistoryResult(results[symbolResults],
+            symbolLookup));
+        }
       }
     });
   }
+// }
 });
 
 let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
+  // overwrite standard console log
+  console.log = function() {};
+  let t0 = new Date();
+  let timings = {};
+
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
     'quoteDate'];
   result.lastTradeDate = utils.returnDateAsString(result.date);
@@ -411,6 +496,9 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   // params: numberWeeks, targetDate, currentPrice, dividends, std deviation
 
 
+  let t1 = new Date();
+  timings.prepValues = utils.dateDiff(t0, t1, 'milliseconds');
+
   // Get index values for date
   if (!indexValsLookup[result.lastTradeDate]) {
     let indexValRetrieve = awaitify(
@@ -428,6 +516,9 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
       result[indexKey] = indexVals[indexKey];
     }
   });
+
+  let t2 = new Date();
+  timings.indices = utils.dateDiff(t1, t2, 'milliseconds');
 
   // Get financial indicator values for date
   if (!fiValsLookup[result.lastTradeDate]) {
@@ -447,6 +538,9 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
     }
   });
 
+  let t3 = new Date();
+  timings.financiaIndicators = utils.dateDiff(t2, t3, 'milliseconds');
+
 
   // Get metric values for date
   let metricsVals = awaitify(
@@ -462,9 +556,17 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
     }
   });
 
-  // Insert result in dynamodb
-  awaitify(shareRetrieve.writeCompanyQuoteData(result));
+  let t4 = new Date();
+  timings.metrics = utils.dateDiff(t3, t4, 'milliseconds');
 
+  // Insert result in dynamodb
+  // awaitify(shareRetrieve.writeCompanyQuoteData(result));
+  shareRetrieve.writeCompanyQuoteData(result);
+
+  let t5 = new Date();
+  timings.insert = utils.dateDiff(t4, t5, 'milliseconds');
+
+  return timings;
 // Add current quote to company adjusted price array
 });
 
