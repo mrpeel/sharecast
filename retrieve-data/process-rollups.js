@@ -6,139 +6,271 @@ const stats = require('./stats');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
-/** Caclulates and updates the volatility information for a company quote
-* @param {String} symbol - the company symbol
-* @param {String} quoteDate - the quote date
-*/
-let calculateVolatility = asyncify(function(symbol, quoteDate, currentPrice) {
-  // Set-up week differences: equates to 1,2,4,8,12,26,52
-  let diffWeeks = {
-    '1WeekVolatility': -1,
-    '2WeekVolatility': -1,
-    '4WeekVolatility': -2,
-    '8WeekVolatility': -4,
-    '12WeekVolatility': -4,
-    '26WeekVolatility': -14,
-    '52WeekVolatility': -26,
-  };
-  let quoteVals = [];
-  let endDate = quoteDate;
-  let startDate;
-
-  Object.keys(diffWeeks).forEach((volatility) => {
-    // Set start date
-    startDate = utils.dateAdd(endDate, 'weeks', diffWeeks[volatility]);
-    // Retrieve values
-    quoteVals = awaitify(getQuoteVals(quoteVals, startDate, endDate));
-
-    let std = stats.standardDeviation(quoteVals);
-
-    let volatilityVal = std / currentPrice;
-
-    awaitify(setQuoteVal(symbol, quoteDate, volatility, volatilityVal));
-
-    // Reset end date for next run
-    endDate = startDate;
-  });
-});
-
-/** Get quote values and appends them to an existing array
-* @param {Array} quoteVals - the array to append results to
-* @param {String} startDate - the time period start date
-* @param {String} endDate - the time period end date
-* @return {Array} updated array with new values from query results
-*/
-let getQuoteVals = asyncify(function(quoteVals, startDate, endDate) {
-  let queryDetails = {};
-  let queryResult = awaitify(dynamodb.queryTable());
-
-  if (queryResult.length) {
-    quoteVals.push();
-  }
-
-  return quoteVals;
-});
-
-/** Sets a company quote value item
-* @param {Array} symbol - the array to append results to
-* @param {String} quoteDate - the time period start date
-* @param {Array} attributeNameValues - an array of values to set:
-*           [{
-              AttributeName: '1WeekVolatility',
-              AttributeValue: 0.000123457,
-            },
-            ]
-*/
-let setQuoteVal = asyncify(function(symbol, quoteDate,
-  attributeNameValues) {
-  let updateDetails = {};
-
-  // Loop through values and prepare set statement
-
-  awaitify(dynamodb.updateRecord());
-
-  if (queryResult.length) {
-    quoteVals.push();
-  }
-});
-
-/** Caclulates the price change for the previous day and previous 52 week high
-*     and low value
-* @param {String} symbol - the company symbol
-* @param {String} quoteDate - the quote date
+/** Calculates the return for a company from a startDate to an endDate.  Adds
+*    the capital gain and any dividends paid out and returns the percentage
+   increase / decrease and the risk adjusted increase / decrease
 * @param {Number} currentPrice - current day price
+* @param {Number} purchasePrice - the original price
+* @param {Number} dividends - the dividends for the period
+* @param {Number} volatility - the price std deviation
+* @return {Object} in the form of:
+   {
+   returns: 0.23, (percentage of purchase price )
+   riskAdjustedReturns: 0.19 (percentage of purchase price divided by std dev)
+ }
+
 */
-let calculatePriceChanges = asyncify(function(symbol, quoteDate,
-  currentPrice) {
-  //
+let calculateReturnForPeriod = asyncify(function(currentPrice, purchasePrice,
+  dividends, volatility) {
+  let priceReturn = (currentPrice - purchasePrice + dividends) / purchasePrice;
+  let riskAdjustedReturns = priceReturn / volatility;
 
-});
-
-/** Determines whether dividencs were paid during time period, and, if paid,
-*   returns them
-* @param {String} symbol - the company symbol
-* @param {String} startDate - the quote date
-* @param {Number} endDate - current day price
-* @return {Number} dividends paid
-*/
-let returnDividendsPaidForPeriod = asyncify(function(symbol, startDate,
-  endDate) {
-  //
-
+  return {
+    returns: priceReturn,
+    riskAdjustedReturns: riskAdjustedReturns,
+  };
 });
 
 /** Calculates the return for a company from a startDate to an endDate.  Adds
 *    the capital gain and any dividends paid out and returns the raw number
 *    as well as the yield (percentage of the price at the start Date)
-* @param {String} symbol - the company symbol
 * @param {String} startDate - the quote date
 * @param {Number} endDate - current day price
-* @param {Number} currentPrice - current day price
-* @return {Object} in form of:
-*       {
-*       'totalReturn': 23.8977, (dollar amount)
-*       'totalYield': 0.23, (percentage of purchase price )
+* @param {Array} dividends - dividends object in form:
+  @return {Number} total dividends for period
 */
-let calculateTotalReturnForPeriod = asyncify(function(symbol, startDate,
-  endDate, currenPrice) {
-  //
+let returnDividendsForPeriod = asyncify(function(startDate, endDate,
+  dividends) {
+  let totalDividend = 0;
+  Object.keys(dividends).forEach((dividendDate) => {
+    if (dividendDate >= startDate && dividendDate <= endDate) {
+      totalDividend += dividends['dividendDate'];
+    }
+  });
 
+  return totalDividend;
 });
 
-/** Calculates the risk adjusted return for a time period as a return and
-*    as a yield of the purchase price.
-*    Formula return: total return / std deviation
-*    Formular percentage: purchase price / total return / std deviation
-* @param {Number} purchasePrice - purchase price
-* @param {Number} totalReturn - return for time period
-* @param {Number} stdDeviation - the standard deviation for the time period
-* @return {Object} in form of:
+/** Updates the returns for previous periods using the prices and dividends.
+   Updates total return for 1,2,4,8,12,26,52 weeks as well as risk adjusted
+   return
+* @param {String} symbol - the symbol to update
+* @param {String} currentDate - the date for the current share price
+* @param {Number} currentPrice - the current share price
+* @param {Array} historicalValues - last 52 weeks of adjusted shared prices:
+      [{"2007-01-03": 12.23}, {"2007-01-04": 12.25}] ...
+* @param {Array} dividends - dividends paid in the last 52 weeks:
+      [{"2007-02-20": 0.54}, {"2007-07-27": 0.56}] ...
 *       {
 *       'riskAdjustedReturn': 23.8977, (dollar amount)
 *       'riskAdjustedYield': 0.23, (percentage of purchase price )
 */
-let calculateRiskAdjustedReturnForPeriod = asyncify(function(purchasePrice,
-  totalReturn, stdDeviation) {
-  //
+let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
+  historicalValues, dividends) {
+  // Set-up update details, only update the record if it is found
+  let updateDetails = {
+    tableName: 'companyQuotes',
+    key: {
+      symbol: symbol,
+    },
+    conditionExpression: 'attribute_exists(symbol) and ' +
+      'attribute_exists(quoteDate)',
+  };
+  // Return arrays for prices by time period
+  let weeklyStats = getWeeklyStats(historicalValues, currentDate);
 
+  // Calculate total return for period
+  let week1Price = historicalValues[weeklyStats['1WeekDate']] || 0;
+  let week2Price = historicalValues[weeklyStats['2WeekDate']] || 0;
+  let week4Price = historicalValues[weeklyStats['4WeekDate']] || 0;
+  let week8Price = historicalValues[weeklyStats['8WeekDate']] || 0;
+  let week12Price = historicalValues[weeklyStats['12WeekDate']] || 0;
+  let week26Price = historicalValues[weeklyStats['26WeekDate']] || 0;
+  let week52Price = historicalValues[weeklyStats['52WeekDate']] || 0;
+
+  // Calculate return and risk adjusted return for each period
+  let week1Dividends = returnDividendsForPeriod(weeklyStats['1WeekDate'],
+    currentDate, dividends);
+  let week2Dividends = returnDividendsForPeriod(weeklyStats['2WeekDate'],
+    currentDate, dividends);
+  let week4Dividends = returnDividendsForPeriod(weeklyStats['4WeekDate'],
+    currentDate, dividends);
+  let week8Dividends = returnDividendsForPeriod(weeklyStats['8WeekDate'],
+    currentDate, dividends);
+  let week12Dividends = returnDividendsForPeriod(weeklyStats['12WeekDate'],
+    currentDate, dividends);
+  let week26Dividends = returnDividendsForPeriod(weeklyStats['26WeekDate'],
+    currentDate, dividends);
+  let week52Dividends = returnDividendsForPeriod(weeklyStats['52WeekDate'],
+    currentDate, dividends);
+
+
+  if (week1Price) {
+    let week1Returns = calculateReturnForPeriod(currentPrice, week1Price,
+      week1Dividends || 0, weeklyStats['1WeekStdDev']);
+
+    updateDetails.key.quoteDate = weeklyStats['1WeekDate'];
+    updateDetails.updateExpression = 'set #1WeekFuturePrice = ' +
+      ':1WeekFuturePrice, ' +
+      '#1WeekFutureDividend = :1WeekFutureDividend, ' +
+      '#1WeekFutureReturn = :1WeekFutureReturn, ' +
+      '#1WeekFutureRiskAdjustedReturn = :1WeekFutureRiskAdjustedReturn';
+
+    updateDetails.expressionAttributeNames = {
+      '#1WeekFuturePrice': '1WeekFuturePrice',
+      '#1WeekFutureDividend': '1WeekFutureDividend',
+      '#1WeekFutureReturn': '1WeekFutureReturn',
+      '#1WeekFutureRiskAdjustedReturn': '1WeekFutureRiskAdjustedReturn',
+    };
+
+    updateDetails.expressionAttributeValues = {
+      ':1WeekFuturePrice': week1Price,
+      ':1WeekFutureDividend': week1Dividends || 0,
+      ':1WeekFutureReturn': week1Returns.returns,
+      ':1WeekFutureRiskAdjustedReturn': week1Returns.riskAdjustedReturns,
+    };
+
+    try {
+      awaitify(dynamodb.updateRecord(updateDetails));
+    } catch (err) {
+      console.log(err);
+    }
+  }
 });
+
+
+/** Returns the average price and std deviation for an array of prices for the
+  previous 1, 2, 4, 8, 12, 26, 52 weeks of values
+* @param {Array} historicalValues - the complete set of values in the form:
+  [{"2007-01-03": 12.23}, {"2007-01-04": 12.25}] ...
+* @param {String} currentDate - the date to use to calculate the division
+* @return {Object} a series of arrays aplit into time periods:
+*      {
+        "1Week": 12.456,
+        "2Week": 12.765,
+        "4Week": 11.124,
+        ...
+        }
+*/
+let getWeeklyStats = function(historicalValues, currentDate) {
+  // Return arrays for prices by time period
+  let weekPrices = splitPricesIntoPeriods(historicalValues, currentDate);
+  let returnVals = {};
+
+  returnVals['1WeekDate'] = weekPrices['1WeekDate'];
+  returnVals['2WeekDate'] = weekPrices['2WeekDate'];
+  returnVals['4WeekDate'] = weekPrices['4WeekDate'];
+  returnVals['8WeekDate'] = weekPrices['8WeekDate'];
+  returnVals['12WeekDate'] = weekPrices['12WeekDate'];
+  returnVals['26WeekDate'] = weekPrices['26WeekDate'];
+  returnVals['52WeekDate'] = weekPrices['52WeekDate'];
+
+  returnVals['1WeekAverage'] = stats.average(weekPrices['1WeekVals']);
+  returnVals['2WeekAverage'] = stats.average(weekPrices['2WeekVals']);
+  returnVals['4WeekAverage'] = stats.average(weekPrices['4WeekVals']);
+  returnVals['8WeekAverage'] = stats.average(weekPrices['8WeekVals']);
+  returnVals['12WeekAverage'] = stats.average(weekPrices['12WeekVals']);
+  returnVals['26WeekAverage'] = stats.average(weekPrices['26WeekVals']);
+  returnVals['52WeekAverage'] = stats.average(weekPrices['52WeekVals']);
+
+  // Std deviation - volatility
+  returnVals['1WeekStdDev'] = stats.stdDev(weekPrices['1WeekVals']);
+  returnVals['2WeekStdDev'] = stats.stdDev(weekPrices['2WeekVals']);
+  returnVals['4WeekStdDev'] = stats.stdDev(weekPrices['4WeekVals']);
+  returnVals['8WeekStdDev'] = stats.stdDev(weekPrices['8WeekVals']);
+  returnVals['12WeekStdDev'] = stats.stdDev(weekPrices['12WeekVals']);
+  returnVals['26WeekStdDev'] = stats.stdDev(weekPrices['26WeekVals']);
+  returnVals['52WeekStdDev'] = stats.stdDev(weekPrices['52WeekVals']);
+
+  // High and low
+  returnVals['52WeekHigh'] = stats.max(weekPrices['52WeekVals']);
+  returnVals['52WeekLow'] = stats.min(weekPrices['52WeekVals']);
+
+  // Bollinger bands - 4 and 12 weeks
+  returnVals['4WeekBollingerBandUpper'] = returnVals['4WeekAverage'] +
+    (2 * returnVals['4WeekStdDev']);
+  returnVals['4WeekBollingerBandLower'] = returnVals['4WeekAverage'] -
+    (2 * returnVals['4WeekStdDev']);
+
+  returnVals['12WeekBollingerBandUpper'] = returnVals['12WeekAverage'] +
+    (2 * returnVals['12WeekStdDev']);
+  returnVals['12WeekBollingerBandLower'] = returnVals['12WeekAverage'] -
+    (2 * returnVals['12WeekStdDev']);
+
+  return returnVals;
+};
+
+/** Splits an array with time values into separate arrays wih 1, 2, 4, 8, 12,
+    26, 52 weeks of values
+* @param {Array} values - the complete set of values in the form:
+  [{"2007-01-03": 12.23}, {"2007-01-04": 12.25}] ...
+* @param {String} currentDate - the date to use to calculate the division
+* @return {Object} a series of arrays aplit into time periods:
+*      {
+        "1WeekDate" :'2016-04-06',
+        ...
+        "1WeekVals": [12.23,12.24,12.22,12,25,12,24],
+        "2WeekVals": [12.23,12.24,12.22,12,25,12,24.....]
+        "4WeekVals": [12.23,12.24,12.22,12,25,12,24.....],
+        ...
+        }
+*/
+let splitPricesIntoPeriods = function(values, currentDate) {
+  if (!Array.isArray(values) || !utils.isDate(currentDate)) {
+    console.error(`splitPricesIntoPeriods contains invalid parameter`,
+      `values: ${values}, currenDate: ${currentDate}`);
+    return;
+  }
+
+  let allVals = {
+    '1WeekDate': utils.dateAdd(currentDate, 'weeks', -1),
+    '2WeekDate': utils.dateAdd(currentDate, 'weeks', -2),
+    '4WeekDate': utils.dateAdd(currentDate, 'weeks', -4),
+    '8WeekDate': utils.dateAdd(currentDate, 'weeks', -8),
+    '12WeekDate': utils.dateAdd(currentDate, 'weeks', -12),
+    '26WeekDate': utils.dateAdd(currentDate, 'weeks', -26),
+    '52WeekDate': utils.dateAdd(currentDate, 'weeks', -52),
+    '1WeekVals': [],
+    '2WeekVals': [],
+    '4WeekVals': [],
+    '8WeekVals': [],
+    '12WeekVals': [],
+    '26WeekVals': [],
+    '52WeekVals': [],
+  };
+
+  Object.keys(values).forEach((valueDate) => {
+    // Check value date is before current date, if not, it should be ignored
+    if (valueDate <= currentDate) {
+      // For each reference date check if this value can be used
+      if (valueDate > allVals['1WeekDate']) {
+        allVals['1WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['2WeekDate']) {
+        allVals['2WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['4WeekDate']) {
+        allVals['4WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['8WeekDate']) {
+        allVals['8WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['12WeekDate']) {
+        allVals['12WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['26WeekDate']) {
+        allVals['26WeekVals'].push(valueDate);
+      }
+      if (valueDate > allVals['52WeekDate']) {
+        allVals['52WeekVals'].push(valueDate);
+      }
+    }
+  });
+
+  return allVals;
+};
+
+module.exports = {
+  getWeeklyStats: getWeeklyStats,
+  updateReturns: updateReturns,
+};

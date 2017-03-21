@@ -18,6 +18,8 @@ let indices = [];
 let financiaIndicators = [];
 let metrics = [];
 let insert = [];
+let historyReference = {};
+let dividends = {};
 
 
 let setupHistorySymbols = function() {
@@ -90,7 +92,7 @@ let retrieveHistory = function(symbol, startDate, endDate, interval) {
   });
 };
 
-let retrieveDividendHistory = function(symbol, startDate, endDate) {
+/* let retrieveDividendHistory = function(symbol, startDate, endDate) {
   return new Promise(function(resolve, reject) {
     let historyOptions = {
       from: startDate,
@@ -111,10 +113,10 @@ let retrieveDividendHistory = function(symbol, startDate, endDate) {
       reject(err);
     });
   });
-};
+};*/
 
 
-let processIndexHistoryResults = asyncify(function(results) {
+/* let processIndexHistoryResults = asyncify(function(results) {
   if (results) {
     Object.keys(results).forEach(function(symbolResults) {
       // Multiple  symbols returned
@@ -123,9 +125,9 @@ let processIndexHistoryResults = asyncify(function(results) {
       });
     });
   }
-});
+}); */
 
-let processIndexHistoryResult = asyncify(function(result) {
+/* let processIndexHistoryResult = asyncify(function(result) {
   result.lastTradeDate = utils.returnDateAsString(result.date);
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
@@ -139,7 +141,7 @@ let processIndexHistoryResult = asyncify(function(result) {
   });
   // Insert result in dynamodb
   awaitify(shareRetrieve.writeIndexQuote(result));
-});
+}); */
 
 /*
 setupSymbols();
@@ -186,7 +188,7 @@ for (companyCounter = 0; companyCounter < companies.length;
 } */
 
 
-let getDividendHistory = asyncify(function() {
+/* let getDividendHistory = asyncify(function() {
   let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
   let symbolLookup = symbolResult.symbolLookup;
@@ -210,8 +212,8 @@ let getDividendHistory = asyncify(function() {
 
 
     console.log('Processing companyCounter: ' + internalCounter);
-    /* awaitify(retrieveHistory(companySymbols,
-      '2006-01-01', '2017-01-29', 'd') */
+    // awaitify(retrieveHistory(companySymbols,
+    //   '2006-01-01', '2017-01-29', 'd')
     try {
       let results = awaitify(retrieveDividendHistory(companySymbols,
         '2006-01-01', '2017-01-29'));
@@ -243,7 +245,7 @@ let getDividendHistory = asyncify(function() {
       console.log(err);
     }
   }
-});
+}); */
 
 /* retrieveHistory(indices, '2012-01-01',
   '2017-01-29', 'd')
@@ -294,7 +296,7 @@ for (companyCounter = 0; companyCounter < companies.length;
     console.log(err);
   }); */
 
-let getIndexHistory = asyncify(function() {
+/* let getIndexHistory = asyncify(function() {
   let symbolResult = awaitify(shareRetrieve.setupSymbols());
 
   let symbolLookup = symbolResult.symbolLookup;
@@ -308,6 +310,42 @@ let getIndexHistory = asyncify(function() {
     '2006-07-01', '2011-12-31', 'd'));
 
   processIndexHistoryResults(results);
+}); */
+
+let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
+  referenceDate) {
+  let historyResults = {};
+  let endDate = utils.dateAdd(referenceDate, 'days', -1);
+  let startDate = utils.dateAdd(referenceDate, 'years', -1);
+
+  let queryDetails = {
+    tableName: 'companyQuotes',
+    keyConditionExpression: 'symbol = :symbol and ' +
+      'quoteDate between :startDate and :endDate and ' +
+      'exists(adjustedPrice)',
+    expressionAttributeValues: {
+      ':startDate': startDate,
+      ':endDate': endDate,
+    },
+    projectionExpression: 'symbol, quoteDate, adjustedPrice',
+  };
+
+  symbolGroup.forEach((symbol) => {
+    queryDetails.expressionAttributeValues.symbol = symbolLookup[symbol];
+    let queryResults = awaitify(dynamodb.queryTable(queryDetails));
+    queryResults.forEach((result) => {
+      let symbol = result.symbol;
+      let adjustedPrice = result.adjustedPrice;
+      let quoteDate = result.quoteDate;
+
+      if (!historyResults[symbol]) {
+        historyResults[symbol] = {};
+      }
+      historyResults[symbol][quoteDate] = adjustedPrice;
+    });
+  });
+
+  return historyResults;
 });
 
 
@@ -342,7 +380,7 @@ let getCompanyHistory = asyncify(function() {
     symbolGroups.forEach((symbolGroup) => {
       let t0 = new Date();
       let results = awaitify(retrieveHistory(symbolGroup,
-        '2006-07-01', '2007-06-30', 'd'));
+        '2007-07-01', '2008-06-30', 'd'));
       let t1 = new Date();
       console.warn('Retrieve data took ' +
         utils.dateDiff(t0, t1, 'seconds') + ' seconds.');
@@ -352,6 +390,11 @@ let getCompanyHistory = asyncify(function() {
       financiaIndicators = [];
       metrics = [];
       insert = [];
+      historyReference = awaitify(get52WeekResults(symbolGroup, symbolLookup,
+        '2007-07-01'));
+
+      dividends = awaitify(getDividendsforDate(symbolGroup, symbolLookup,
+        '2008-06-30'));
 
       awaitify(processCompanyHistoryResults(results, symbolLookup));
 
@@ -461,39 +504,95 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
     result[field] = utils.checkForNumber(result[field]);
   });
 
-  // Calculate 1, 2, 4, 8, 12, 26, 52 week cut-off dateString
+  // Check we have history records for this symbol
+  if (!historyReference[result.symbol]) {
+    historyReference[result.symbol] = {};
+  }
 
-  // params: todayDate
-
-  // Get dividend values for last 52 weeks
-
-  // params: 52WeekCutOffDate
-
-
-  // Retrieve values for 1, 2, 4, 8, 12, 26, 52 week adjusted prices
-
-  // params: allAdjustedPrices
-
-  // Calculate average for 1, 2, 4, 8,12, 26, 52 weeks
-
-  // params: arrayOfAdjustedPrices
+  // Add the current price to the history reference set
+  historyReference[result.symbol][result.lastTradeDate] = result.adjustedPrice;
 
   // Calculate std deviation for 1, 2, 4, 8, 12, 26, 52 weeks
+  let weekStats = processRollups.getWeeklyStats(
+    historyReference[result.symbol],
+    result.lastTradeDate);
 
-  // params: arrayOfAdjustedPrices for each time period
-
-  // Calculate 4, 12 week Bollinger bands
+  result['1WeekVolatility'] = weekStats['1WeekStdDev'];
+  result['2WeekVolatility'] = weekStats['2WeekStdDev'];
+  result['4WeekVolatility'] = weekStats['4WeekStdDev'];
+  result['8WeekVolatility'] = weekStats['8WeekStdDev'];
+  result['12WeekVolatility'] = weekStats['12WeekStdDev'];
+  result['26WeekVolatility'] = weekStats['26WeekStdDev'];
+  result['52WeekVolatility'] = weekStats['52WeekStdDev'];
 
   // Calculate 52 week high, low, change and percentChange
+  result['52WeekHigh'] = weekStats['52WeekHigh'];
+  result['52WeekLow'] = weekStats['52WeekLow'];
+  result['changeFrom52WeekHigh'] = result.adjustedPrice -
+  weekStats['52WeekHigh'];
+  result['changeFrom52WeekLow'] = result.adjustedPrice -
+  weekStats['52WeekLow'];
+  result['percebtChangeFrom52WeekHigh'] = (result.adjustedPrice -
+  weekStats['52WeekHigh']) /
+  weekStats['52WeekHigh'];
+  result['percentChangeFrom52WeekLow'] = (result.adjustedPrice -
+  weekStats['52WeekLow']) /
+  weekStats['52WeekLow'];
 
-  // params: 52WeekAdjustedPrices, currentPrice
+  // Calculate 4, 12 week Bollinger bands
+  let bollingerBandVals = processRollups.getBollingerVals(
+    historyReference[result.symbol],
+    result.lastTradeDate);
 
-  // params: numberWeeks, currentPrice, std deviation
+  result['4WeekBollingerBandUpper'] = bollingerBandVals['4WeekUpperToday'];
+  result['4WeekBollingerBandLower'] = bollingerBandVals['4WeekLowerToday'];
+  result['4WeekBollingerPrediction'] = 'Steady';
+
+  // Check for movements down from above upper band and up from below lower band
+  if (result.adjustedPrice < bollingerBandVals['4WeekUpperToday'] &&
+    result.adjustedPrice >= bollingerBandVals['4WeekUpperYesterday']) {
+    result['4WeekBollingerPrediction'] = 'Falling';
+  } else if (result.adjustedPrice > bollingerBandVals['4WeekBollingerBandLower']
+    && result.adjustedPrice <= bollingerBandVals['4WeekLowerYesterday']) {
+    result['4WeekBollingerPrediction'] = 'Risiing';
+  }
+
+  result['12WeekBollingerBandUpper'] = bollingerBandVals['12WeekUpperToday'];
+  result['12WeekBollingerBandLower'] = bollingerBandVals['12WeekLowerToday'];
+  result['12WeekBollingerPrediction'] = 'Steady';
+
+  // Check for movements down from above upper band and up from below lower band
+  if (result.adjustedPrice < bollingerBandVals['12WeekUpperToday'] &&
+    result.adjustedPrice >= bollingerBandVals['12WeekUpperYesterday']) {
+    result['12WeekBollingerPrediction'] = 'Falling';
+  } else if (result.adjustedPrice >
+    bollingerBandVals['12WeekBollingerBandLower']
+    && result.adjustedPrice <= bollingerBandVals['12WeekLowerYesterday']) {
+    result['12WeekBollingerPrediction'] = 'Risiing';
+  }
+
+  // Check whether dividends exist for this symbol
+  if (dividends[result.symbol]) {
+    let maxDate = '';
+    Object.keys(dividends[result.symbol]).forEach((exDividendDate) => {
+      if (exDividendDate > maxDate) {
+        exDividendDate = maxDate;
+      }
+    });
+
+    result['exDividendDate'] = maxDate;
+    result['exDividendPayout'] = dividends[result.symbol][maxDate];
+  }
+
 
   /* Calculate and update total return and risk adjusted return
     for 1, 2, 4, 8, 12, 26, 52 weeks */
-
-  // params: numberWeeks, targetDate, currentPrice, dividends, std deviation
+  awaitify(processRollups.updateReturns(
+    result.symbol,
+    result.adjustedPrice,
+    historyReference[result.symbol],
+    dividends[result.symbol] || {},
+    result.lastTradeDate));
 
 
   let t1 = new Date();
@@ -568,6 +667,84 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   return timings;
 // Add current quote to company adjusted price array
+});
+
+/**  Executes the retrieval and return of current company dividend
+*      information for the date specified
+* @param {Array} symbolGroup  one or more yahoo symbols to look up for dividend
+* @param {String} retrievalDate - the date to retrieve dividends for
+* @param {Array} symbolLookup - an array of key/value pairs to translate
+*                               the symbols yahoo uses to the normal symbol
+* @return {Object} an object for each company which has relevant dividend
+*     information for the specified date in the form of:
+*   {
+*   'JBH': {
+*           'exDividendDate': '2017-02-23',
+*           'exDividendPayout': 1.02344,
+*           },
+*   }
+*/
+let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
+  symbolLookup) {
+  if (!symbolGroup) {
+    console.error('getDividendsforDate error: no symbolGroup supplied');
+    return;
+  }
+
+  if (!retrievalDate) {
+    console.error('getDividendsforDate error: no retrievalDate supplied');
+    return;
+  }
+
+  if (!symbolLookup) {
+    console.error('getDividendsforDate error: no symbolLookup supplied');
+    return;
+  }
+
+
+  // Retrieve dividends
+  let dividendEndDate = utils.returnDateAsString(retrievalDate);
+  let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -2);
+  dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
+  let dividendRetrieval = awaitify(shareRetrieve.sretrieveDividends(symbolGroup,
+    dividendStartDate, dividendEndDate));
+
+  // Convert dividend results array to results object
+  let dividendResults = {};
+
+  // Single company result is returned as an array
+  if (Array.isArray(dividendRetrieval) && dividendRetrieval.length > 0) {
+    // Multiple  symbols returned
+    dividendRetrieval.forEach((dividendRecord) => {
+      processDividend(dividendRecord);
+    });
+  } else {
+    // Multi-company result is returned as an object
+    Object.keys(dividendRetrieval).forEach((dividendCompany) => {
+      dividendRetrieval[dividendCompany].forEach((dividendRecord) => {
+        processDividend(dividendRecord);
+      });
+    });
+  }
+
+  /** Check if dividend record is the latest record for each symbol.  If it is
+  *    pdate the recorded dividend
+  * @param {Object} dividendRecord record to process
+  */
+  function processDividend(dividendRecord) {
+    let symbol = symbolLookup[dividendRecord.symbol];
+    let exDividendDate = utils.returnDateAsString(dividendRecord['date']);
+    let exDividendPayout = dividendRecord['dividends'];
+
+    /* Check if symbol has already been recorded, or recorded with an earlier
+      date */
+    if (!dividendResults[symbol])
+      dividendResults[symbol] = {};
+    dividendResults[symbol]['exDividendDate'] = exDividendDate;
+    dividendResults[symbol]['exDividendPayout'] = exDividendPayout;
+  }
+
+  return dividendResults;
 });
 
 /* companyQuote data
@@ -920,7 +1097,7 @@ let addDailyChangeToIndexHistory = asyncify(function() {
   });
 });
 
-let fixCompaniesList = asyncify(function() {
+/* let fixCompaniesList = asyncify(function() {
   let currentCompanySymbols = [];
   let companiesToRemove = [];
   let currentMetricsCompanies = [];
@@ -1022,7 +1199,7 @@ let removeMetrics = asyncify(function() {
       awaitify(dynamodb.deleteRecord(deleteDetails));
     });
   });
-});
+}); */
 
 getCompanyHistory();
 

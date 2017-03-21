@@ -79,6 +79,11 @@ let standardDeviation = function(array) {
   return Math.sqrt(variance(array));
 };
 
+let stdDev = function(array) {
+  return standardDeviation(array);
+};
+
+
 let meanAbsoluteDeviation = function(array) {
   let mean = mean(array);
 
@@ -110,6 +115,7 @@ module.exports = {
   modes: modes,
   variance: variance,
   standardDeviation: standardDeviation,
+  stdDev: stdDev,
   meanAbsoluteDeviation: meanAbsoluteDeviation,
   zScores: zScores,
 };
