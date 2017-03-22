@@ -680,7 +680,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   // Insert result in dynamodb
   // awaitify(shareRetrieve.writeCompanyQuoteData(result));
-  // shareRetrieve.writeCompanyQuoteData(result);
+  shareRetrieve.writeCompanyQuoteData(result);
 
   let t5 = new Date();
   timings.insert = utils.dateDiff(t4, t5, 'milliseconds');

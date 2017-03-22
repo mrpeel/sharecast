@@ -79,63 +79,107 @@ let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
   // Return arrays for prices by time period
   let weeklyStats = getWeeklyStats(historicalValues, currentDate);
 
-  // Calculate total return for period
-  let week1Price = historicalValues[weeklyStats['1WeekDate']] || 0;
-  let week2Price = historicalValues[weeklyStats['2WeekDate']] || 0;
-  let week4Price = historicalValues[weeklyStats['4WeekDate']] || 0;
-  let week8Price = historicalValues[weeklyStats['8WeekDate']] || 0;
-  let week12Price = historicalValues[weeklyStats['12WeekDate']] || 0;
-  let week26Price = historicalValues[weeklyStats['26WeekDate']] || 0;
-  let week52Price = historicalValues[weeklyStats['52WeekDate']] || 0;
+  // Get prices and dividends
+  let pricesAndDividends = {
+    week1: {
+      num: 1,
+      quoteDate: weeklyStats['1WeekDate'],
+      price: historicalValues[weeklyStats['1WeekDate']] || 0,
+      stdDev: weeklyStats['1WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['1WeekDate'],
+        currentDate, dividends),
+    },
+    week2: {
+      num: 2,
+      quoteDate: weeklyStats['2WeekDate'],
+      price: historicalValues[weeklyStats['2WeekDate']] || 0,
+      stdDev: weeklyStats['2WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['2WeekDate'],
+        currentDate, dividends),
+    },
+    week4: {
+      num: 4,
+      quoteDate: weeklyStats['4WeekDate'],
+      price: historicalValues[weeklyStats['4WeekDate']] || 0,
+      stdDev: weeklyStats['4WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['4WeekDate'],
+        currentDate, dividends),
+    },
+    week8: {
+      num: 8,
+      quoteDate: weeklyStats['8WeekDate'],
+      price: historicalValues[weeklyStats['8WeekDate']] || 0,
+      stdDev: weeklyStats['8WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['8WeekDate'],
+        currentDate, dividends),
+    },
+    week12: {
+      num: 12,
+      quoteDate: weeklyStats['12WeekDate'],
+      price: historicalValues[weeklyStats['12WeekDate']] || 0,
+      stdDev: weeklyStats['12WeekStdDev'],
+      dividnds: returnDividendsForPeriod(weeklyStats['12WeekDate'],
+        currentDate, dividends),
+    },
+    week26: {
+      num: 26,
+      quoteDate: weeklyStats['26WeekDate'],
+      price: historicalValues[weeklyStats['26WeekDate']] || 0,
+      stdDev: weeklyStats['26WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['26WeekDate'],
+        currentDate, dividends),
+    },
+    week52: {
+      num: 52,
+      quoteDate: weeklyStats['52WeekDate'],
+      price: historicalValues[weeklyStats['52WeekDate']] || 0,
+      stdDev: weeklyStats['52WeekStdDev'],
+      dividends: returnDividendsForPeriod(weeklyStats['52WeekDate'],
+        currentDate, dividends),
+    },
+  };
 
   // Calculate return and risk adjusted return for each period
-  let week1Dividends = returnDividendsForPeriod(weeklyStats['1WeekDate'],
-    currentDate, dividends);
-  let week2Dividends = returnDividendsForPeriod(weeklyStats['2WeekDate'],
-    currentDate, dividends);
-  let week4Dividends = returnDividendsForPeriod(weeklyStats['4WeekDate'],
-    currentDate, dividends);
-  let week8Dividends = returnDividendsForPeriod(weeklyStats['8WeekDate'],
-    currentDate, dividends);
-  let week12Dividends = returnDividendsForPeriod(weeklyStats['12WeekDate'],
-    currentDate, dividends);
-  let week26Dividends = returnDividendsForPeriod(weeklyStats['26WeekDate'],
-    currentDate, dividends);
-  let week52Dividends = returnDividendsForPeriod(weeklyStats['52WeekDate'],
-    currentDate, dividends);
+  Object.keys(pricesAndDividends).forEach((week) => {
+    let prefix = pricesAndDividends[week]['num'];
+    let quoteDate = pricesAndDividends[week]['quoteDate'];
+    let weekPrice = pricesAndDividends[week]['price'];
+    let weekStd = pricesAndDividends[week]['stdDev'];
+    let weekDividends = pricesAndDividends[week]['dividends'];
+
+    if (weekPrice) {
+      let weekReturns = calculateReturnForPeriod(currentPrice, weekPrice,
+        weekDividends || 0, weekStd);
+
+      updateDetails.key.quoteDate = quoteDate;
+      updateDetails.updateExpression = 'set ' +
+        '#' + prefix + 'WeekFuturePrice = :' + prefix + 'WeekFuturePrice, ' +
+        '#' + prefix + 'WeekFutureDividend = :' +
+        prefix + 'WeekFutureDividend, ' +
+        '#' + prefix + 'WeekFutureReturn = :' + prefix + 'WeekFutureReturn, ' +
+        '#' + prefix + 'WeekFutureRiskAdjustedReturn = :' +
+        prefix + 'WeekFutureRiskAdjustedReturn';
+
+      updateDetails.expressionAttributeNames = {};
+      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFuturePrice'] = prefix + 'WeekFuturePrice';
+      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureDividend'] = prefix + 'WeekFutureDividend';
+      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureReturn'] = prefix + 'WeekFutureReturn';
+      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureRiskAdjustedReturn'] = prefix + 'WeekFutureRiskAdjustedReturn';
 
 
-  if (week1Price) {
-    let week1Returns = calculateReturnForPeriod(currentPrice, week1Price,
-      week1Dividends || 0, weeklyStats['1WeekStdDev']);
+      updateDetails.expressionAttributeValues = {};
+      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFuturePrice'] = weekPrice;
+      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureDividend'] = weekDividends || 0;
+      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureReturn'] = weekReturns.returns;
+      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureRiskAdjustedReturn'] = weekReturns.riskAdjustedReturns;
 
-    updateDetails.key.quoteDate = weeklyStats['1WeekDate'];
-    updateDetails.updateExpression = 'set #1WeekFuturePrice = ' +
-      ':1WeekFuturePrice, ' +
-      '#1WeekFutureDividend = :1WeekFutureDividend, ' +
-      '#1WeekFutureReturn = :1WeekFutureReturn, ' +
-      '#1WeekFutureRiskAdjustedReturn = :1WeekFutureRiskAdjustedReturn';
-
-    updateDetails.expressionAttributeNames = {
-      '#1WeekFuturePrice': '1WeekFuturePrice',
-      '#1WeekFutureDividend': '1WeekFutureDividend',
-      '#1WeekFutureReturn': '1WeekFutureReturn',
-      '#1WeekFutureRiskAdjustedReturn': '1WeekFutureRiskAdjustedReturn',
-    };
-
-    updateDetails.expressionAttributeValues = {
-      ':1WeekFuturePrice': week1Price,
-      ':1WeekFutureDividend': week1Dividends || 0,
-      ':1WeekFutureReturn': week1Returns.returns,
-      ':1WeekFutureRiskAdjustedReturn': week1Returns.riskAdjustedReturns,
-    };
-
-    try {
-      awaitify(dynamodb.updateRecord(updateDetails));
-    } catch (err) {
-      console.log(err);
+      try {
+        awaitify(dynamodb.updateRecord(updateDetails));
+      } catch (err) {
+        console.log(err);
+      }
     }
-  }
+  });
 });
 
 
