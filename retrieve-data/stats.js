@@ -68,10 +68,10 @@ let modes = function(array) {
 };
 
 let variance = function(array) {
-  let mean = mean(array);
+  let meanVal = mean(array);
 
   return mean(array.map((num) => {
-    return Math.pow(num - mean, 2);
+    return Math.pow(num - meanVal, 2);
   }));
 };
 
@@ -85,20 +85,20 @@ let stdDev = function(array) {
 
 
 let meanAbsoluteDeviation = function(array) {
-  let mean = mean(array);
+  let meanVal = mean(array);
 
   return mean(array.map((num) => {
-    return Math.abs(num - mean);
+    return Math.abs(num - meanVal);
   }));
 };
 
 let zScores = function(array) {
-  let mean = mean(array);
+  let meanVal = mean(array);
 
   let standardDeviation = standardDeviation(array);
 
   return array.map((num) => {
-    return (num - mean) / standardDeviation;
+    return (num - meanVal) / standardDeviation;
   });
 };
 

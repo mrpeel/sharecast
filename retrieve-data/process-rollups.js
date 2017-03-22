@@ -216,9 +216,9 @@ let getWeeklyStats = function(historicalValues, currentDate) {
         }
 */
 let splitPricesIntoPeriods = function(values, currentDate) {
-  if (!Array.isArray(values) || !utils.isDate(currentDate)) {
-    console.error(`splitPricesIntoPeriods contains invalid parameter`,
-      `values: ${values}, currenDate: ${currentDate}`);
+  if (!utils.isDate(currentDate)) {
+    console.error(`splitPricesIntoPeriods contains invalid date parameter`,
+      `values: ${JSON.stringify(values)}, currentDate: ${currentDate}`);
     return;
   }
 
@@ -244,25 +244,25 @@ let splitPricesIntoPeriods = function(values, currentDate) {
     if (valueDate <= currentDate) {
       // For each reference date check if this value can be used
       if (valueDate > allVals['1WeekDate']) {
-        allVals['1WeekVals'].push(valueDate);
+        allVals['1WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['2WeekDate']) {
-        allVals['2WeekVals'].push(valueDate);
+        allVals['2WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['4WeekDate']) {
-        allVals['4WeekVals'].push(valueDate);
+        allVals['4WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['8WeekDate']) {
-        allVals['8WeekVals'].push(valueDate);
+        allVals['8WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['12WeekDate']) {
-        allVals['12WeekVals'].push(valueDate);
+        allVals['12WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['26WeekDate']) {
-        allVals['26WeekVals'].push(valueDate);
+        allVals['26WeekVals'].push(values[valueDate]);
       }
       if (valueDate > allVals['52WeekDate']) {
-        allVals['52WeekVals'].push(valueDate);
+        allVals['52WeekVals'].push(values[valueDate]);
       }
     }
   });

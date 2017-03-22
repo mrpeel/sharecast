@@ -1002,4 +1002,5 @@ module.exports = {
   executeIndexQuoteRetrieval: executeIndexQuoteRetrieval,
   executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
   executeMetricsUpdate: executeMetricsUpdate,
+  retrieveDividends: retrieveDividends,
 };
