@@ -20,16 +20,23 @@ const awaitify = require('asyncawait/await');
  }
 
 */
-let calculateReturnForPeriod = asyncify(function(currentPrice, purchasePrice,
+let calculateReturnForPeriod = function(currentPrice, purchasePrice,
   dividends, volatility) {
   let priceReturn = (currentPrice - purchasePrice + dividends) / purchasePrice;
+  // Convert to percentage
+  priceReturn = priceReturn * 100;
+  // Convert volatility to percentage
+  volatility = volatility * 100;
+  if (volatility < 1) {
+    volatility = 1;
+  }
   let riskAdjustedReturns = priceReturn / volatility;
 
   return {
     returns: priceReturn,
     riskAdjustedReturns: riskAdjustedReturns,
   };
-});
+};
 
 /** Calculates the return for a company from a startDate to an endDate.  Adds
 *    the capital gain and any dividends paid out and returns the raw number
@@ -86,56 +93,56 @@ let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
       quoteDate: weeklyStats['1WeekDate'],
       price: historicalValues[weeklyStats['1WeekDate']] || 0,
       stdDev: weeklyStats['1WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['1WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['1WeekDate'],
+        currentDate, dividends)),
     },
     week2: {
       num: 2,
       quoteDate: weeklyStats['2WeekDate'],
       price: historicalValues[weeklyStats['2WeekDate']] || 0,
       stdDev: weeklyStats['2WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['2WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['2WeekDate'],
+        currentDate, dividends)),
     },
     week4: {
       num: 4,
       quoteDate: weeklyStats['4WeekDate'],
       price: historicalValues[weeklyStats['4WeekDate']] || 0,
       stdDev: weeklyStats['4WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['4WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['4WeekDate'],
+        currentDate, dividends)),
     },
     week8: {
       num: 8,
       quoteDate: weeklyStats['8WeekDate'],
       price: historicalValues[weeklyStats['8WeekDate']] || 0,
       stdDev: weeklyStats['8WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['8WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['8WeekDate'],
+        currentDate, dividends)),
     },
     week12: {
       num: 12,
       quoteDate: weeklyStats['12WeekDate'],
       price: historicalValues[weeklyStats['12WeekDate']] || 0,
       stdDev: weeklyStats['12WeekStdDev'],
-      dividnds: returnDividendsForPeriod(weeklyStats['12WeekDate'],
-        currentDate, dividends),
+      dividnds: awaitify(returnDividendsForPeriod(weeklyStats['12WeekDate'],
+        currentDate, dividends)),
     },
     week26: {
       num: 26,
       quoteDate: weeklyStats['26WeekDate'],
       price: historicalValues[weeklyStats['26WeekDate']] || 0,
       stdDev: weeklyStats['26WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['26WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['26WeekDate'],
+        currentDate, dividends)),
     },
     week52: {
       num: 52,
       quoteDate: weeklyStats['52WeekDate'],
       price: historicalValues[weeklyStats['52WeekDate']] || 0,
       stdDev: weeklyStats['52WeekStdDev'],
-      dividends: returnDividendsForPeriod(weeklyStats['52WeekDate'],
-        currentDate, dividends),
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['52WeekDate'],
+        currentDate, dividends)),
     },
   };
 
@@ -153,22 +160,22 @@ let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
 
       updateDetails.key.quoteDate = quoteDate;
       updateDetails.updateExpression = 'set ' +
-        '#' + prefix + 'WeekFuturePrice = :' + prefix + 'WeekFuturePrice, ' +
-        '#' + prefix + 'WeekFutureDividend = :' +
+        '#Future' + prefix + 'WeekPrice = :' + prefix + 'WeekFuturePrice, ' +
+        '#Future' + prefix + 'WeekDividend = :' +
         prefix + 'WeekFutureDividend, ' +
-        '#' + prefix + 'WeekFutureReturn = :' + prefix + 'WeekFutureReturn, ' +
-        '#' + prefix + 'WeekFutureRiskAdjustedReturn = :' +
+        '#Future' + prefix + 'WeekReturn = :' + prefix + 'WeekFutureReturn, ' +
+        '#Future' + prefix + 'WeekRiskAdjustedReturn = :' +
         prefix + 'WeekFutureRiskAdjustedReturn';
 
       updateDetails.expressionAttributeNames = {};
-      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFuturePrice'] = prefix + 'WeekFuturePrice';
-      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureDividend'] = prefix + 'WeekFutureDividend';
-      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureReturn'] = prefix + 'WeekFutureReturn';
-      updateDetails.expressionAttributeNames['#' + prefix + 'WeekFutureRiskAdjustedReturn'] = prefix + 'WeekFutureRiskAdjustedReturn';
+      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekPrice'] = 'Future' + prefix + 'WeekPrice';
+      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekDividend'] = 'Future' + prefix + 'WeekDividend';
+      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekReturn'] = 'Future' + prefix + 'WeekReturn';
+      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekRiskAdjustedReturn'] = 'Future' + prefix + 'WeekRiskAdjustedReturn';
 
 
       updateDetails.expressionAttributeValues = {};
-      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFuturePrice'] = weekPrice;
+      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFuturePrice'] = currentPrice;
       updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureDividend'] = weekDividends || 0;
       updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureReturn'] = weekReturns.returns;
       updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureRiskAdjustedReturn'] = weekReturns.riskAdjustedReturns;
