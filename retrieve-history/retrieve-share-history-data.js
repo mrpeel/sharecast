@@ -366,9 +366,9 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      // if (companySymbol >= 'WWGDA.AX') {
-      filteredCompanies.push(companySymbol);
-    // }
+      if (companySymbol >= 'AIV.AX') {
+        filteredCompanies.push(companySymbol);
+      }
     });
 
 
