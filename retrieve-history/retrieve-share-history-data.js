@@ -9,7 +9,7 @@ const fiRetrieve = require('../retrieve-data/dynamo-retrieve-financial-indicator
 const stats = require('../retrieve-data/stats');
 const processRollups = require('../retrieve-data/process-rollups');
 const histSymbols = require('./symbols.json');
-const jsonCompanies = require('../data/verified-companies-to-remove.json');
+// const jsonCompanies = require('../data/verified-companies-to-remove.json');
 
 let indexValsLookup = {};
 let fiValsLookup = {};
