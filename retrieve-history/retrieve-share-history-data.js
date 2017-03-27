@@ -679,8 +679,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   timings.metrics = utils.dateDiff(t3, t4, 'milliseconds');
 
   // Insert result in dynamodb
-  // awaitify(shareRetrieve.writeCompanyQuoteData(result));
-  shareRetrieve.writeCompanyQuoteData(result);
+  awaitify(shareRetrieve.writeCompanyQuoteData(result));
 
   let t5 = new Date();
   timings.insert = utils.dateDiff(t4, t5, 'milliseconds');
@@ -890,7 +889,7 @@ Current
 }
 */
 
-let fixIndexHistory = asyncify(function() {
+/* let fixIndexHistory = asyncify(function() {
   let symbol = 'ASX';
   let queryDetails = {
     tableName: 'indexQuotes',
@@ -939,9 +938,9 @@ let fixIndexHistory = asyncify(function() {
       console.log(err);
     }
   });
-});
+}); */
 
-let addYearResultsToIndexHistory = asyncify(function() {
+/* let addYearResultsToIndexHistory = asyncify(function() {
   let symbols = ['ALLORD', 'ASX'];
 
   symbols.forEach((symbol) => {
@@ -1038,10 +1037,10 @@ let addYearResultsToIndexHistory = asyncify(function() {
       }
     });
   });
-});
+}); */
 
 
-let addDailyChangeToIndexHistory = asyncify(function() {
+/* let addDailyChangeToIndexHistory = asyncify(function() {
   let symbols = ['ALLORD', 'ASX'];
 
   symbols.forEach((symbol) => {
@@ -1119,7 +1118,7 @@ let addDailyChangeToIndexHistory = asyncify(function() {
       }
     });
   });
-});
+}); */
 
 /* let fixCompaniesList = asyncify(function() {
   let currentCompanySymbols = [];
