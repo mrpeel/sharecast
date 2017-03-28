@@ -9,6 +9,7 @@ const fiRetrieve = require('../retrieve-data/dynamo-retrieve-financial-indicator
 const stats = require('../retrieve-data/stats');
 const processRollups = require('../retrieve-data/process-rollups');
 const histSymbols = require('./symbols.json');
+const moment = require('moment-timezone');
 // const jsonCompanies = require('../data/verified-companies-to-remove.json');
 
 let indexValsLookup = {};
@@ -366,7 +367,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'AIV.AX') {
+      if (companySymbol >= 'API.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -476,6 +477,13 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   // console.log = function() {};
   let t0 = new Date();
   let timings = {};
+
+  // Check whether we are trying to process during an exclusion time
+
+  if (checkExclusionTime('18:00', '18:20')) {
+    // Sleep for twenty minutes if in exclusion zone
+    awaitify(utils.sleep(20 * 60 * 1000));
+  }
 
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
     'quoteDate'];
@@ -1223,6 +1231,24 @@ let removeMetrics = asyncify(function() {
     });
   });
 }); */
+
+let checkExclusionTime = function(startExlusionTime, endEclusionTime) {
+  if (!moment(startExlusionTime, 'HH:mm').isValid()) {
+    return false;
+  }
+
+  if (!moment(endEclusionTime, 'HH:mm').isValid()) {
+    return false;
+  }
+  let parsedNow = moment().tz('Australia/Sydney').format('HH:mm');
+
+  if (parsedNow >= startExlusionTime && parsedNow <= endEclusionTime) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 
 getCompanyHistory();
 
