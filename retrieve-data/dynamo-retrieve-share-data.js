@@ -465,7 +465,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   });
 
   insertDetails.values = quoteData;
-  awaitify(dynamodb.insertRecord(insertDetails));
+  return awaitify(dynamodb.insertRecord(insertDetails));
 });
 
 /**  Processes updates to company quotes for a specific date.  Looks up the

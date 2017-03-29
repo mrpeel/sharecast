@@ -613,16 +613,6 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   }
 
 
-  /* Calculate and update total return and risk adjusted return
-    for 1, 2, 4, 8, 12, 26, 52 weeks */
-  awaitify(processRollups.updateReturns(
-    result.symbol,
-    result.lastTradeDate,
-    result.adjustedPrice,
-    historyReference[result.symbol],
-    dividends[result.symbol] || {}));
-
-
   let t1 = new Date();
   timings.prepValues = utils.dateDiff(t0, t1, 'milliseconds');
 
@@ -687,7 +677,21 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   timings.metrics = utils.dateDiff(t3, t4, 'milliseconds');
 
   // Insert result in dynamodb
-  awaitify(shareRetrieve.writeCompanyQuoteData(result));
+  let insertResult = awaitify(shareRetrieve.writeCompanyQuoteData(result));
+
+  // Check whether it was inserted
+  if (insertResult.result === 'inserted') {
+    /* Calculate and update total return and risk adjusted return
+      for 1, 2, 4, 8, 12, 26, 52 weeks */
+    awaitify(processRollups.updateReturns(
+      result.symbol,
+      result.lastTradeDate,
+      result.adjustedPrice,
+      historyReference[result.symbol],
+      dividends[result.symbol] || {}));
+  } else {
+    console.log('Skipping update of previous records');
+  }
 
   let t5 = new Date();
   timings.insert = utils.dateDiff(t4, t5, 'milliseconds');
