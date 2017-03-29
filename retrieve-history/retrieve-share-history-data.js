@@ -680,12 +680,12 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let insertResult = awaitify(shareRetrieve.writeCompanyQuoteData(result));
 
   // Check whether it was inserted
-  if (insertResult.result === 'inserted') {
+  if (insertResult.result !== 'skipped' || insertResult.result === 'skipped') {
     /* Calculate and update total return and risk adjusted return
       for 1, 2, 4, 8, 12, 26, 52 weeks */
     awaitify(processRollups.updateReturns(
       result.symbol,
-      result.lastTradeDate,
+      result.quoteDate,
       result.adjustedPrice,
       historyReference[result.symbol],
       dividends[result.symbol] || {}));
