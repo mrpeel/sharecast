@@ -129,7 +129,14 @@ let insertRecord = function(insertDetails) {
     }
 
 
-    console.log('Put table request: ', insertDetails.tableName);
+    // Retrieve primary key vals
+    let keyVals = [];
+    insertDetails.primaryKey.forEach((keyValue) => {
+      keyVals.push(insertDetails.values[keyValue]);
+    });
+
+    console.log('Put table request: ', insertDetails.tableName,
+      ' ', JSON.stringify(keyVals));
 
     client.put(params, function(err, data) {
       if (err && err.code === 'ConditionalCheckFailedException') {

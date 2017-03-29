@@ -367,7 +367,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'API.AX') {
+      if (companySymbol >= 'CAR.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -482,7 +482,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   if (checkExclusionTime('18:00', '18:20')) {
     // Sleep for twenty minutes if in exclusion zone
-    awaitify(utils.sleep(20 * 60 * 1000));
+    awaitify(utils.sleep(10 * 60 * 1000));
   }
 
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
