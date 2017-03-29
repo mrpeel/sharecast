@@ -367,7 +367,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'CAR.AX') {
+      if (companySymbol >= 'CDG.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -680,7 +680,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let insertResult = awaitify(shareRetrieve.writeCompanyQuoteData(result));
 
   // Check whether it was inserted
-  if (insertResult.result !== 'skipped' || insertResult.result === 'skipped') {
+  if (insertResult.result !== 'skipped') {
     /* Calculate and update total return and risk adjusted return
       for 1, 2, 4, 8, 12, 26, 52 weeks */
     awaitify(processRollups.updateReturns(
