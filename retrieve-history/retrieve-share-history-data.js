@@ -367,7 +367,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'CDG.AX') {
+      if (companySymbol >= 'FFC.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -479,10 +479,9 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let timings = {};
 
   // Check whether we are trying to process during an exclusion time
-
   if (checkExclusionTime('18:00', '18:20')) {
-    // Sleep for twenty minutes if in exclusion zone
-    awaitify(utils.sleep(10 * 60 * 1000));
+    // Sleep for 5 minutes if in exclusion zone
+    awaitify(utils.sleep(5 * 60 * 1000));
   }
 
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
@@ -499,7 +498,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   if (result.open === 0) {
     result.changeInPercent = 0;
   } else {
-    result.changeInPercent = (result.close - result.open) / result.open;
+    result.changeInPercent = (result.close - result.open) / result.open || 1;
   }
 
   // Remove oriingal fields
@@ -543,12 +542,20 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   weekStats['52WeekHigh'];
   result['changeFrom52WeekLow'] = result.adjustedPrice -
   weekStats['52WeekLow'];
-  result['percebtChangeFrom52WeekHigh'] = (result.adjustedPrice -
-  weekStats['52WeekHigh']) /
-  weekStats['52WeekHigh'];
-  result['percentChangeFrom52WeekLow'] = (result.adjustedPrice -
-  weekStats['52WeekLow']) /
-  weekStats['52WeekLow'];
+  if (weekStats['52WeekHigh']) {
+    result['percebtChangeFrom52WeekHigh'] = (result.adjustedPrice -
+    weekStats['52WeekHigh']) /
+    weekStats['52WeekHigh'];
+  } else {
+    result['percebtChangeFrom52WeekHigh'] = 0;
+  }
+  if (weekStats['52WeekLow']) {
+    result['percentChangeFrom52WeekLow'] = (result.adjustedPrice -
+    weekStats['52WeekLow']) /
+    weekStats['52WeekLow'];
+  } else {
+    result['percentChangeFrom52WeekLow'] = 0;
+  }
 
   result['4WeekBollingerBandUpper'] = weekStats['4WeekBollingerBandUpper'];
   result['4WeekBollingerBandLower'] = weekStats['4WeekBollingerBandLower'];
