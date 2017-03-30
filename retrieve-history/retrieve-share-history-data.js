@@ -367,7 +367,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'FFC.AX') {
+      if (companySymbol >= 'ILU.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -479,7 +479,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let timings = {};
 
   // Check whether we are trying to process during an exclusion time
-  if (checkExclusionTime('18:00', '18:20')) {
+  if (checkExclusionTime('17:58', '18:18') || checkExclusionTime('23:58', '00:08')) {
     // Sleep for 5 minutes if in exclusion zone
     awaitify(utils.sleep(5 * 60 * 1000));
   }
