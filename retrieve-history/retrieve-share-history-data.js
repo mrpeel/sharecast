@@ -9,8 +9,10 @@ const fiRetrieve = require('../retrieve-data/dynamo-retrieve-financial-indicator
 const stats = require('../retrieve-data/stats');
 const processRollups = require('../retrieve-data/process-rollups');
 const histSymbols = require('./symbols.json');
+const lastCompany = require('./last-company.json');
 const moment = require('moment-timezone');
-// const jsonCompanies = require('../data/verified-companies-to-remove.json');
+const sns = require('./publish-sns');
+const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 
 let indexValsLookup = {};
 let fiValsLookup = {};
@@ -350,6 +352,13 @@ let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
   return historyResults;
 });
 
+let setLastCompany = function(companySymbol) {
+  let companyObject = {
+    'lastCompanySymbol': companySymbol,
+  };
+  utils.writeJSONfile(companyObject, './last-company.json');
+};
+
 
 let getCompanyHistory = asyncify(function() {
   let currentCompany;
@@ -367,7 +376,7 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'MLS.AX') {
+      if (companySymbol >= lastCompany.lastCompanySymbol) {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -424,6 +433,13 @@ let getCompanyHistory = asyncify(function() {
         ', max: ', stats.max(insert));
     });
   } catch (err) {
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          'getCompanyHistory failed.  Error: ' + JSON.stringify(err),
+          'getCompanyHistory failed'));
+    } catch (err) {}
+
     console.error('Failed while processing: ', currentCompany);
     console.error(err);
   }
@@ -486,6 +502,8 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
     awaitify(utils.sleep(5 * 60 * 1000));
   }
 
+  // Set the current company being worked on
+  setLastCompany(result.symbol);
 
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
     'quoteDate'];
