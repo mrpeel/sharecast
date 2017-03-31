@@ -367,16 +367,16 @@ let getCompanyHistory = asyncify(function() {
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= 'ILU.AX') {
+      if (companySymbol >= 'MLS.AX') {
         filteredCompanies.push(companySymbol);
       }
     });
 
 
     for (let companyCounter = 0; companyCounter < filteredCompanies.length;
-      companyCounter += 20) {
+      companyCounter += 10) {
       symbolGroups.push(filteredCompanies.slice(companyCounter,
-        companyCounter + 20));
+        companyCounter + 10));
     }
 
     symbolGroups.forEach((symbolGroup) => {
@@ -481,8 +481,11 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   // Check whether we are trying to process during an exclusion time
   if (checkExclusionTime('17:58', '18:18') || checkExclusionTime('23:58', '00:08')) {
     // Sleep for 5 minutes if in exclusion zone
+    console.log(moment().tz('Australia/Sydney').format(),
+      ': pausing for five minutes');
     awaitify(utils.sleep(5 * 60 * 1000));
   }
+
 
   let ignoreVals = ['created', 'yearMonth', 'valueDate', 'metricsDate',
     'quoteDate'];
@@ -500,6 +503,9 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   } else {
     result.changeInPercent = (result.close - result.open) / result.open || 1;
   }
+
+  console.log(moment().tz('Australia/Sydney').format(), ': processing ',
+    result.symbol, ', ', result.lastTradeDate);
 
   // Remove oriingal fields
   delete result['date'];
