@@ -24,6 +24,7 @@ let insert = [];
 let historyReference = {};
 let dividends = {};
 let bollingerLastValues = {};
+let lastCompanyVal = '';
 
 
 let setupHistorySymbols = function() {
@@ -353,10 +354,13 @@ let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
 });
 
 let setLastCompany = function(companySymbol) {
-  let companyObject = {
-    'lastCompanySymbol': companySymbol,
-  };
-  utils.writeJSONfile(companyObject, './last-company.json');
+  if (companySymbol !== lastCompanyVal) {
+    let companyObject = {
+      'lastCompanySymbol': companySymbol,
+    };
+    utils.writeJSONfile(companyObject, './last-company.json');
+    lastCompanyVal = companySymbol;
+  }
 };
 
 
@@ -372,11 +376,12 @@ let getCompanyHistory = asyncify(function() {
     let symbolGroups = [];
     let filteredCompanies = [];
 
+    lastCompanyVal = lastCompany.lastCompanySymbol;
 
     // Work through companies one by one and retrieve values
     companies.forEach((companySymbol) => {
       // Skip previous companies
-      if (companySymbol >= lastCompany.lastCompanySymbol) {
+      if (companySymbol >= lastCompanyVal) {
         filteredCompanies.push(companySymbol);
       }
     });
@@ -1286,9 +1291,3 @@ let checkExclusionTime = function(startExlusionTime, endEclusionTime) {
 
 
 getCompanyHistory();
-
-// getIndexHistory();
-
-// getCompanyHistory();
-
-// addDailyChangeToIndexHistory();
