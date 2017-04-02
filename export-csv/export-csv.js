@@ -50,6 +50,7 @@ let exportHandler = asyncify(function() {
     let tableName = 'companyQuotes';
     let csvData = [];
     let csvFields = [];
+    let numRecs = 0;
 
     // create parameters hash for table scan
     let params = {
@@ -79,9 +80,12 @@ let exportHandler = asyncify(function() {
             }
           });
         }
-        if (csvData.length % 1000 === 0) {
+        // If length has changed and it's a multiple of 1000, log it
+        if (csvData.length !== numRecs && csvData.length % 1000 === 0) {
           console.log(csvData.length + ' records...');
         }
+
+        numRecs = csvData.length;
         if (typeof data.LastEvaluatedKey !== 'undefined') {
           params.ExclusiveStartKey = data.LastEvaluatedKey;
           dynamoDb.scan(params, onScan);
