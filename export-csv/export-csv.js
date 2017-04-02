@@ -46,50 +46,53 @@ let dynamo = new aws.DynamoDB();
 let dynamoDb = new aws.DynamoDB.DocumentClient();
 
 let exportHandler = asyncify(function() {
-  let tableName = 'companyQuotes';
-  let csvData = [];
-  let csvFields = [];
-
-  // create parameters hash for table scan
-  let params = {
-    TableName: tableName,
-    ReturnConsumedCapacity: 'NONE',
-    Limit: '1',
-    FilterExpression: 'quoteDate BETWEEN :startDate AND :endDate',
-    ExpressionAttributeValues: {
-      ':startDate': '2007-07-01',
-      ':endDate': '2008-06-30',
-    },
-  };
-
-  let bucket = 'sharecast-exports';
-  let exportName = '2007-2008';
-
-  let onScan = function(err, data) {
-    if (err) {
-      console.log(err, err.stack);
-    } else {
-      for (let idx = 0; idx < data.Items.length; idx++) {
-        csvData.push(data.Items[idx]);
-        // Ensure we have the field name for the csv export
-        Object.keys(data.Items[idx]).forEach((fieldName) => {
-          if (csvFields.indexOf(fieldName) === -1) {
-            csvFields.push(fieldName);
-          }
-        });
-      }
-      if (typeof data.LastEvaluatedKey !== 'undefined') {
-        params.ExclusiveStartKey = data.LastEvaluatedKey;
-        dynamoDb.scan(params, onScan);
-      } else {
-        writeCsv(csvData, csvFields, bucket, exportName);
-        console.log(`Writing export data`);
-      }
-    }
-  };
-
-  // describe the table and write metadata to the backup
   try {
+    let tableName = 'companyQuotes';
+    let csvData = [];
+    let csvFields = [];
+
+    // create parameters hash for table scan
+    let params = {
+      TableName: tableName,
+      ReturnConsumedCapacity: 'NONE',
+      Limit: '1',
+      FilterExpression: 'quoteDate BETWEEN :startDate AND :endDate',
+      ExpressionAttributeValues: {
+        ':startDate': '2007-07-01',
+        ':endDate': '2008-06-30',
+      },
+    };
+
+    let bucket = 'sharecast-exports';
+    let exportName = '2007-2008';
+
+    let onScan = function(err, data) {
+      if (err) {
+        console.log(err, err.stack);
+      } else {
+        for (let idx = 0; idx < data.Items.length; idx++) {
+          csvData.push(data.Items[idx]);
+          // Ensure we have the field name for the csv export
+          Object.keys(data.Items[idx]).forEach((fieldName) => {
+            if (csvFields.indexOf(fieldName) === -1) {
+              csvFields.push(fieldName);
+            }
+          });
+        }
+        if (csvData.length % 1000 === 0) {
+          console.log(csvData.length + ' records...');
+        }
+        if (typeof data.LastEvaluatedKey !== 'undefined') {
+          params.ExclusiveStartKey = data.LastEvaluatedKey;
+          dynamoDb.scan(params, onScan);
+        } else {
+          writeCsv(csvData, csvFields, bucket, exportName);
+          console.log(`Writing export data`);
+        }
+      }
+    };
+
+    // describe the table and write metadata to the backup
     let table = awaitify(describeTable(tableName));
 
     // limit the the number or reads to match our capacity
