@@ -81,11 +81,11 @@ let exportHandler = asyncify(function() {
           });
         }
         // If length has changed and it's a multiple of 1000, log it
-        if (csvData.length !== numRecs && csvData.length % 1000 === 0) {
+        if (Math.floor(csvData.length / 1000) !== numRecs) {
           console.log(csvData.length + ' records...');
         }
 
-        numRecs = csvData.length;
+        numRecs = Math.floor(csvData.length / 1000);
         if (typeof data.LastEvaluatedKey !== 'undefined') {
           params.ExclusiveStartKey = data.LastEvaluatedKey;
           dynamoDb.scan(params, onScan);
