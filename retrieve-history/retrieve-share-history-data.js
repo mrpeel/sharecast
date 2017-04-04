@@ -396,7 +396,7 @@ let getCompanyHistory = asyncify(function() {
     symbolGroups.forEach((symbolGroup) => {
       let t0 = new Date();
       let results = awaitify(retrieveHistory(symbolGroup,
-        '2007-06-29', '2008-06-30', 'd'));
+        '2008-07-01', '2009-06-30', 'd'));
       let t1 = new Date();
       console.warn('Retrieve data took ' +
         utils.dateDiff(t0, t1, 'seconds') + ' seconds.');
@@ -409,33 +409,33 @@ let getCompanyHistory = asyncify(function() {
       bollingerLastValues = {};
 
       historyReference = awaitify(get52WeekResults(symbolGroup, symbolLookup,
-        '2007-07-01'));
+        '2008-07-01'));
 
       dividends = awaitify(getDividendsforDate(symbolGroup, symbolLookup,
-        '2008-06-30'));
+        '2009-06-30'));
 
       awaitify(processCompanyHistoryResults(results, symbolLookup));
 
-      let t2 = new Date();
-      console.warn('Process history results took ' +
-        utils.dateDiff(t1, t2, 'seconds') + ' seconds.');
+    /* let t2 = new Date();
+    console.warn('Process history results took ' +
+      utils.dateDiff(t1, t2, 'seconds') + ' seconds.');
 
-      console.warn('Prep values sum: ', stats.sum(prepValues),
-        ' avg: ', stats.average(prepValues),
-        ', max: ', stats.max(prepValues));
-      console.warn('Add index data sum: ', stats.sum(indices),
-        ' avg: ', stats.average(indices),
-        ', max: ', stats.max(indices));
-      console.warn('Add financial indicator data sum: ',
-        stats.sum(financiaIndicators),
-        'avg: ', stats.average(financiaIndicators), ', max: ',
-        stats.max(financiaIndicators));
-      console.warn('Add metrics data sum: ', stats.sum(metrics),
-        'avg: ', stats.average(metrics),
-        ', max: ', stats.max(metrics));
-      console.warn('Insert data sum: ', stats.sum(insert),
-        'avg: ', stats.average(insert),
-        ', max: ', stats.max(insert));
+    console.warn('Prep values sum: ', stats.sum(prepValues),
+      ' avg: ', stats.average(prepValues),
+      ', max: ', stats.max(prepValues));
+    console.warn('Add index data sum: ', stats.sum(indices),
+      ' avg: ', stats.average(indices),
+      ', max: ', stats.max(indices));
+    console.warn('Add financial indicator data sum: ',
+      stats.sum(financiaIndicators),
+      'avg: ', stats.average(financiaIndicators), ', max: ',
+      stats.max(financiaIndicators));
+    console.warn('Add metrics data sum: ', stats.sum(metrics),
+      'avg: ', stats.average(metrics),
+      ', max: ', stats.max(metrics));
+    console.warn('Insert data sum: ', stats.sum(insert),
+      'avg: ', stats.average(insert),
+      ', max: ', stats.max(insert)); */
     });
   } catch (err) {
     try {
@@ -500,7 +500,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   let timings = {};
 
   // Check whether we are trying to process during an exclusion time
-  if (checkExclusionTime('17:58', '18:18') || checkExclusionTime('23:58', '00:08')) {
+  if (checkExclusionTime('17:28', '17:48') || checkExclusionTime('23:58', '00:08')) {
     // Sleep for 5 minutes if in exclusion zone
     console.log(moment().tz('Australia/Sydney').format(),
       ': pausing for five minutes');

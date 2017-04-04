@@ -62,8 +62,8 @@ let exportHandler = asyncify(function() {
     };
 
     let bucket = 'sharecast-exports';
-    let exportName = '2007-2008' + dateString + '.json';
-    let exportCSVName = '2007-2008' + dateString + '-fields.json';
+    let exportName = '2007-2008-' + dateString + '.json';
+    let exportCSVName = '2007-2008-' + dateString + '-fields.json';
     let body = dataStream;
 
     let s3obj = new aws.S3({
