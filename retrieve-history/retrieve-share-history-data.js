@@ -396,7 +396,7 @@ let getCompanyHistory = asyncify(function() {
     symbolGroups.forEach((symbolGroup) => {
       let t0 = new Date();
       let results = awaitify(retrieveHistory(symbolGroup,
-        '2008-07-01', '2009-06-30', 'd'));
+        '2009-07-01', '2010-06-30', 'd'));
       let t1 = new Date();
       console.warn('Retrieve data took ' +
         utils.dateDiff(t0, t1, 'seconds') + ' seconds.');
@@ -409,10 +409,10 @@ let getCompanyHistory = asyncify(function() {
       bollingerLastValues = {};
 
       historyReference = awaitify(get52WeekResults(symbolGroup, symbolLookup,
-        '2008-07-01'));
+        '2009-07-01'));
 
       dividends = awaitify(getDividendsforDate(symbolGroup, symbolLookup,
-        '2009-06-30'));
+        '2010-06-30'));
 
       awaitify(processCompanyHistoryResults(results, symbolLookup));
 
