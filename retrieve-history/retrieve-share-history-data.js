@@ -666,8 +666,11 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
       }
     });
 
-    result['exDividendDate'] = dividendDate;
-    result['exDividendPayout'] = dividends[result.symbol][dividendDate];
+    // If an ex dividend date was found, add it to the record
+    if (dividendDate !== '') {
+      result['exDividendDate'] = dividendDate;
+      result['exDividendPayout'] = dividends[result.symbol][dividendDate];
+    }
   }
 
 
