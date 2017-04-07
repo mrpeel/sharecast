@@ -23,6 +23,8 @@ const awaitify = require('asyncawait/await');
 let calculateReturnForPeriod = function(currentPrice, purchasePrice,
   dividends, volatility) {
   let priceReturn = (currentPrice - purchasePrice + dividends) / purchasePrice;
+  let riskAdjustedReturns;
+
   // Convert to percentage
   priceReturn = priceReturn * 100;
   // Convert volatility to percentage
@@ -30,7 +32,13 @@ let calculateReturnForPeriod = function(currentPrice, purchasePrice,
   if (volatility < 1) {
     volatility = 1;
   }
-  let riskAdjustedReturns = priceReturn / volatility;
+
+  // For a positive return divide return by risk, for negative multiply by risk
+  if (priceReturn >= 0) {
+    riskAdjustedReturns = priceReturn / volatility;
+  } else {
+    riskAdjustedReturns = priceReturn * volatility;
+  }
 
   return {
     returns: priceReturn,
@@ -51,7 +59,7 @@ let returnDividendsForPeriod = asyncify(function(startDate, endDate,
   let totalDividend = 0;
   Object.keys(dividends).forEach((dividendDate) => {
     if (dividendDate >= startDate && dividendDate <= endDate) {
-      totalDividend += dividends['dividendDate'];
+      totalDividend += dividends[dividendDate];
     }
   });
 
@@ -125,7 +133,7 @@ let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
       quoteDate: weeklyStats['12WeekDate'],
       price: historicalValues[weeklyStats['12WeekDate']] || 0,
       stdDev: weeklyStats['12WeekStdDev'],
-      dividnds: awaitify(returnDividendsForPeriod(weeklyStats['12WeekDate'],
+      dividends: awaitify(returnDividendsForPeriod(weeklyStats['12WeekDate'],
         currentDate, dividends)),
     },
     week26: {

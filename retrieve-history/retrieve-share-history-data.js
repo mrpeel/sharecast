@@ -6,7 +6,6 @@ const awaitify = require('asyncawait/await');
 const shareRetrieve = require('../retrieve-data/dynamo-retrieve-share-data');
 const metricsRetrieve = require('../retrieve-data/dynamo-retrieve-google-company-data');
 const fiRetrieve = require('../retrieve-data/dynamo-retrieve-financial-indicator-data');
-const stats = require('../retrieve-data/stats');
 const processRollups = require('../retrieve-data/process-rollups');
 const histSymbols = require('./symbols.json');
 const lastCompany = require('./last-company.json');
@@ -323,7 +322,10 @@ let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
   let endDate = utils.dateAdd(referenceDate, 'days', -1);
   let startDate = utils.dateAdd(referenceDate, 'years', -1);
 
-  let queryDetails = {
+  let results = awaitify(retrieveHistory(symbolGroup,
+    startDate, endDate, 'd'));
+
+  /* let queryDetails = {
     tableName: 'companyQuotes',
     keyConditionExpression: 'symbol = :symbol and ' +
       'quoteDate between :startDate and :endDate',
@@ -348,7 +350,26 @@ let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
       }
       historyResults[symbol][quoteDate] = adjustedPrice;
     });
-  });
+  }); */
+
+  if (results) {
+    Object.keys(results).forEach(function(symbolResults) {
+      // Check if mult diensional
+      let currentResults = results[symbolResults];
+      if (Array.isArray(currentResults)) {
+        currentResults.forEach((indResult) => {
+          if (indResult.adjClose) {
+            let symbol = symbolLookup[indResult.symbol];
+            let quoteDate = utils.returnDateAsString(indResult.date);
+            if (!historyResults[symbol]) {
+              historyResults[symbol] = {};
+            }
+            historyResults[symbol][quoteDate] = indResult.adjClose;
+          }
+        });
+      }
+    });
+  }
 
   return historyResults;
 });
@@ -388,15 +409,15 @@ let getCompanyHistory = asyncify(function() {
 
 
     for (let companyCounter = 0; companyCounter < filteredCompanies.length;
-      companyCounter += 10) {
+      companyCounter += 1) {
       symbolGroups.push(filteredCompanies.slice(companyCounter,
-        companyCounter + 10));
+        companyCounter + 1));
     }
 
     symbolGroups.forEach((symbolGroup) => {
       let t0 = new Date();
       let results = awaitify(retrieveHistory(symbolGroup,
-        '2009-07-01', '2010-06-30', 'd'));
+        '2007-07-01', '2017-02-03', 'd'));
       let t1 = new Date();
       console.warn('Retrieve data took ' +
         utils.dateDiff(t0, t1, 'seconds') + ' seconds.');
@@ -409,10 +430,10 @@ let getCompanyHistory = asyncify(function() {
       bollingerLastValues = {};
 
       historyReference = awaitify(get52WeekResults(symbolGroup, symbolLookup,
-        '2009-07-01'));
+        '2007-07-01'));
 
       dividends = awaitify(getDividendsforDate(symbolGroup, symbolLookup,
-        '2010-06-30'));
+        '2006-07-01', '2017-02-03'));
 
       awaitify(processCompanyHistoryResults(results, symbolLookup));
 
@@ -637,15 +658,16 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   // Check whether dividends exist for this symbol
   if (dividends[result.symbol]) {
-    let maxDate = '';
+    let maxDate = result.lastTradeDate;
+    let dividendDate = '';
     Object.keys(dividends[result.symbol]).forEach((exDividendDate) => {
-      if (exDividendDate > maxDate) {
-        exDividendDate = maxDate;
+      if (exDividendDate > dividendDate && exDividendDate <= maxDate) {
+        dividendDate = exDividendDate;
       }
     });
 
-    result['exDividendDate'] = maxDate;
-    result['exDividendPayout'] = dividends[result.symbol][maxDate];
+    result['exDividendDate'] = dividendDate;
+    result['exDividendPayout'] = dividends[result.symbol][dividendDate];
   }
 
 
@@ -713,7 +735,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   timings.metrics = utils.dateDiff(t3, t4, 'milliseconds');
 
   // Insert result in dynamodb
-  let insertResult = awaitify(shareRetrieve.writeCompanyQuoteData(result));
+  let insertResult = awaitify(writeCompanyQuoteData(result));
 
   // Check whether it was inserted
   if (insertResult.result !== 'skipped') {
@@ -752,14 +774,19 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 *   }
 */
 let getDividendsforDate = asyncify(function(symbolGroup, symbolLookup,
-  retrievalDate) {
+  startDate, endDate) {
   if (!symbolGroup) {
     console.error('getDividendsforDate error: no symbolGroup supplied');
     return;
   }
 
-  if (!retrievalDate) {
-    console.error('getDividendsforDate error: no retrievalDate supplied');
+  if (!startDate) {
+    console.error('getDividendsforDate error: no startDate supplied');
+    return;
+  }
+
+  if (!endDate) {
+    console.error('getDividendsforDate error: no startDate supplied');
     return;
   }
 
@@ -770,11 +797,11 @@ let getDividendsforDate = asyncify(function(symbolGroup, symbolLookup,
 
 
   // Retrieve dividends
-  let dividendEndDate = utils.returnDateAsString(retrievalDate);
-  let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -2);
-  dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
+  // let dividendEndDate = utils.returnDateAsString(retrievalDate);
+  // let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -2);
+  // dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
   let dividendRetrieval = awaitify(shareRetrieve.retrieveDividends(symbolGroup,
-    dividendStartDate, dividendEndDate));
+    startDate, endDate));
 
   // Convert dividend results array to results object
   let dividendResults = {};
@@ -813,8 +840,7 @@ let getDividendsforDate = asyncify(function(symbolGroup, symbolLookup,
       dividendResults[symbol] = {};
     }
 
-    dividendResults[symbol]['exDividendDate'] = exDividendDate;
-    dividendResults[symbol]['exDividendPayout'] = exDividendPayout;
+    dividendResults[symbol][exDividendDate] = exDividendPayout;
   }
 });
 
@@ -1271,6 +1297,80 @@ let removeMetrics = asyncify(function() {
     });
   });
 }); */
+
+/**  Write a conpany quote record to dynamodb.
+*    Converts lastTradeDate -> quoteDate, copies lastTradePriceOnly ->
+*     adjustedPrice, and checks and removes any invalid values.
+* @param {Object} quoteData - the company quote to write
+*/
+let writeCompanyQuoteData = asyncify(function(quoteData) {
+  // If unexpected r3cords come back with no trade data, skop them
+  if (!quoteData['lastTradeDate']) {
+    return;
+  }
+
+  let upsertDetails = {
+    tableName: 'companyQuotes',
+  };
+
+  quoteData.quoteDate = utils.returnDateAsString(quoteData['lastTradeDate']);
+  quoteData.yearMonth = quoteData['quoteDate'].substring(0, 7).replace('-', '');
+  if (!quoteData.adjustedPrice) {
+    quoteData.adjustedPrice = quoteData['lastTradePriceOnly'];
+  }
+
+  delete quoteData['lastTradeDate'];
+
+  // Check through for values with null and remove from object
+  Object.keys(quoteData).forEach((field) => {
+    if (quoteData[field] === null || quoteData[field] === '') {
+      delete quoteData[field];
+    }
+  });
+
+  upsertDetails.key = {
+    symbol: quoteData.symbol,
+    quoteDate: quoteData.quoteDate,
+  };
+
+  let updateExpression;
+  let expressionAttributeValues = {};
+  let expressionAttributeNames = {};
+  let workingRecord = {};
+  let fieldsPresent = [];
+
+  Object.assign(workingRecord, quoteData);
+
+  // Remove the attributes which should not be update in comanyQuotes
+  delete workingRecord['symbol'];
+  delete workingRecord['quoteDate'];
+  delete workingRecord['created'];
+
+  // Separately set-up creeated attributed values and names
+  expressionAttributeValues[':created'] = moment().tz('Australia/Sydney').format();
+  expressionAttributeNames['#created'] = 'created';
+
+  // Get a list of fields and values to copy
+  Object.keys(workingRecord).forEach((field) => {
+    expressionAttributeValues[(':' + field)] = workingRecord[field];
+    expressionAttributeNames[('#' + field)] = field;
+    fieldsPresent.push('#' + field + '=:' + field);
+  });
+
+  // Enure that at least one field is present to update
+  if (fieldsPresent.length) {
+    updateExpression = 'set ' + fieldsPresent.join(',');
+    // Add in special handing\ling for the created field
+    updateExpression = updateExpression +
+      ', #created = if_not_exists (#created, :created)';
+
+    upsertDetails.updateExpression = updateExpression;
+    upsertDetails.expressionAttributeValues = expressionAttributeValues;
+    upsertDetails.expressionAttributeNames = expressionAttributeNames;
+
+    return awaitify(dynamodb.updateRecord(upsertDetails));
+  }
+});
 
 let checkExclusionTime = function(startExlusionTime, endEclusionTime) {
   if (!moment(startExlusionTime, 'HH:mm').isValid()) {
