@@ -70,38 +70,38 @@ let executeAll = asyncify(function(lastExecutionDetails) {
         console.log('Executing retrieve company quotes - phase 1');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
           startRec: 0,
-          endRec: 474,
+          endRec: 449,
         }));
         break;
 
       case 4:
         console.log('Executing retrieve company quotes - phase 2');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 475,
-          endRec: 949,
+          startRec: 450,
+          endRec: 899,
         }));
         break;
 
       case 5:
         console.log('Executing retrieve company quotes - phase 3');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 950,
-          endRec: 1399,
+          startRec: 900,
+          endRec: 1349,
         }));
         break;
 
       case 6:
         console.log('Executing retrieve company quotes - phase 4');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1400,
-          endRec: 1849,
+          startRec: 1350,
+          endRec: 1799,
         }));
         break;
 
       case 7:
         console.log('Executing retrieve company quotes - phase 5');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1850,
+          startRec: 1800,
         }));
         break;
 
