@@ -40,6 +40,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
       'executeCompanyQuoteRetrieval2',
       'executeCompanyQuoteRetrieval3',
       'executeCompanyQuoteRetrieval4',
+      'executeCompanyQuoteRetrieval5',
       'executeMetricsUpdate1',
       'executeMetricsUpdate2',
       'executeMetricsUpdate3',

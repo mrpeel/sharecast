@@ -20,6 +20,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
       'executeCompanyQuoteRetrieval2',
       'executeCompanyQuoteRetrieval3',
       'executeCompanyQuoteRetrieval4',
+      'executeCompanyQuoteRetrieval5',
       'executeMetricsUpdate1',
       'executeMetricsUpdate2',
       'executeMetricsUpdate3',
@@ -69,34 +70,42 @@ let executeAll = asyncify(function(lastExecutionDetails) {
         console.log('Executing retrieve company quotes - phase 1');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
           startRec: 0,
-          endRec: 599,
+          endRec: 474,
         }));
         break;
 
       case 4:
         console.log('Executing retrieve company quotes - phase 2');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 600,
-          endRec: 1199,
+          startRec: 475,
+          endRec: 949,
         }));
         break;
 
       case 5:
         console.log('Executing retrieve company quotes - phase 3');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1200,
-          endRec: 1799,
+          startRec: 950,
+          endRec: 1399,
         }));
         break;
 
       case 6:
         console.log('Executing retrieve company quotes - phase 4');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1800,
+          startRec: 1400,
+          endRec: 1849,
         }));
         break;
 
       case 7:
+        console.log('Executing retrieve company quotes - phase 5');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1850,
+        }));
+        break;
+
+      case 8:
         console.log('Executing update company quotes with metrics - phase 1');
         awaitify(retrieval.executeMetricsUpdate({
           startRec: 0,
@@ -104,7 +113,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
         }));
         break;
 
-      case 8:
+      case 9:
         console.log('Executing update company quotes with metrics - phase 2');
         awaitify(retrieval.executeMetricsUpdate({
           startRec: 600,
@@ -112,7 +121,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
         }));
         break;
 
-      case 9:
+      case 10:
         console.log('Executing update company quotes with metrics - phase 3');
         awaitify(retrieval.executeMetricsUpdate({
           startRec: 1200,
@@ -120,7 +129,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
         }));
         break;
 
-      case 10:
+      case 11:
         console.log('Executing update company quotes with metrics - phase 4');
         awaitify(retrieval.executeMetricsUpdate({
           startRec: 1800,
