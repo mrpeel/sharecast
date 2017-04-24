@@ -45,6 +45,10 @@ let handler = asyncify(function(event, context) {
       'executeCompanyQuoteRetrieval2',
       'executeCompanyQuoteRetrieval3',
       'executeCompanyQuoteRetrieval4',
+      'executeCompanyQuoteRetrieval5',
+      'executeCompanyQuoteRetrieval6',
+      'executeCompanyQuoteRetrieval7',
+      'executeCompanyQuoteRetrieval8',
       'executeMetricsUpdate1',
       'executeMetricsUpdate2',
       'executeMetricsUpdate3',
@@ -97,32 +101,65 @@ let handler = asyncify(function(event, context) {
         console.log('Executing retrieve company quotes - phase 1');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
           startRec: 0,
-          endRec: 599,
+          endRec: 249,
         }));
         break;
 
       case 'executeCompanyQuoteRetrieval2':
         console.log('Executing retrieve company quotes - phase 2');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 600,
-          endRec: 1199,
+          startRec: 250,
+          endRec: 499,
         }));
         break;
 
       case 'executeCompanyQuoteRetrieval3':
         console.log('Executing retrieve company quotes - phase 3');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1200,
-          endRec: 1799,
+          startRec: 500,
+          endRec: 749,
         }));
         break;
 
       case 'executeCompanyQuoteRetrieval4':
         console.log('Executing retrieve company quotes - phase 4');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1800,
+          startRec: 750,
+          endRec: 999,
         }));
         break;
+
+      case 'executeCompanyQuoteRetrieval5':
+        console.log('Executing retrieve company quotes - phase 5');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 100,
+          endRec: 1249,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval6':
+        console.log('Executing retrieve company quotes - phase 6');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1250,
+          endRec: 1499,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval7':
+        console.log('Executing retrieve company quotes - phase 7');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1500,
+          endRec: 1749,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval8':
+        console.log('Executing retrieve company quotes - phase 8');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1750,
+        }));
+        break;
+
 
       case 'executeMetricsUpdate1':
         console.log('Executing update company quotes with metrics - phase 1');
