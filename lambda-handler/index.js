@@ -132,7 +132,7 @@ let handler = asyncify(function(event, context) {
       case 'executeCompanyQuoteRetrieval5':
         console.log('Executing retrieve company quotes - phase 5');
         awaitify(retrieval.executeCompanyQuoteRetrieval({
-          startRec: 100,
+          startRec: 1000,
           endRec: 1249,
         }));
         break;
