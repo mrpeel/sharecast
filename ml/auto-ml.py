@@ -107,7 +107,7 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, ml_for_analytics=True, take_log_of_y=True,
+ml_predictor.train(df_train, ml_for_analytics=True, 
                     model_names=['ARDRegression', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
                     'LinearRegression', 'PassiveAggressiveRegressor', 'RandomForestRegressor',
                     'SGDRegressor', 'DeepLearningRegressor', 'XGBRegressor'])
