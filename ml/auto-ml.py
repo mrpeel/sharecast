@@ -14,9 +14,20 @@ from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
 from scipy import stats
+import math
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.max_columns', 200)
+
+
+
+def convert_log(target_val):
+    if target_val == 0:
+        return 0
+    elif target_val < 0:
+        return (math.log(math.fabs(target_val)) * -1)
+    else:
+        return math.log(target_val)
 
 
 # Define columns
@@ -71,6 +82,8 @@ target_column = returns['8']
 # Remove rows missing the target column
 filtered_data = raw_data.dropna(subset=[target_column], how='all')
 
+filtered_data[target_column] = filtered_data[target_column].apply(lambda x: convert_log(x))
+
 all_columns = data_columns[:]
 
 all_columns.insert(0, target_column)
@@ -107,7 +120,7 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, ml_for_analytics=True, 
+ml_predictor.train(df_train, ml_for_analytics=True,
                     model_names=['ARDRegression', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
                     'LinearRegression', 'PassiveAggressiveRegressor', 'RandomForestRegressor',
                     'SGDRegressor', 'DeepLearningRegressor', 'XGBRegressor'])
