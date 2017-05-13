@@ -8,7 +8,8 @@ import numpy as np
 import pandas as pd
 from xgboost.sklearn import XGBRegressor
 from xgboost import plot_importance
-from matplotlib import pyplot
+import matplotlib
+matplotlib.use('qt5agg')
 from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import OneHotEncoder
@@ -106,9 +107,9 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, ml_for_analytics=True, 
-                    model_names=['ARDRegression', 'ExtraTreesRegressor', 'GradientBoostingRegressor', 
-                    'LinearRegression', 'PassiveAggressiveRegressor', 'RandomForestRegressor', 
+ml_predictor.train(df_train, ml_for_analytics=True, take_log_of_y=True,
+                    model_names=['ARDRegression', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
+                    'LinearRegression', 'PassiveAggressiveRegressor', 'RandomForestRegressor',
                     'SGDRegressor', 'DeepLearningRegressor', 'XGBRegressor'])
 
 ml_predictor.score(df_test, df_test.Future8WeekReturn, verbose=3)
