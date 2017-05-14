@@ -65,6 +65,15 @@ dynamo-backup/node_modules
 # =========================
 .publish
 
+# pycharm files
+# =========================
+**/.idea
+
+# Jupyter checkpoint files
+# =========================
+**/.ipynb_checkpoints
+
+
 ssl
 
 ml/companyQuotes-20170417-001.csv

@@ -124,7 +124,8 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, feature_learning=True, take_log_of_y=True, fl_data=dl_train,
+ml_predictor.train(df_train, optimize_final_model=True, take_log_of_y=True,
+                    feature_learning=True, fl_data=dl_train,
                     model_names=['XGBRegressor'])
 
 ml_predictor.score(df_test, df_test.Future8WeekReturn, verbose=3)
