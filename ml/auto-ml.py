@@ -3,31 +3,26 @@
 
 # ## Load and prep columns
 
-import xgboost as xgb
 import numpy as np
 import pandas as pd
-from xgboost.sklearn import XGBRegressor
-from xgboost import plot_importance
 import matplotlib
 matplotlib.use('qt5agg')
-from sklearn.model_selection import KFold, train_test_split, GridSearchCV
-from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import OneHotEncoder
-from scipy import stats
+import math
+from auto_ml import Predictor
 import math
 
 pd.set_option('display.max_rows', 200)
 pd.set_option('display.max_columns', 200)
 
 
-
-def convert_log(target_val):
-    if target_val == 0:
-        return 0
-    elif target_val < 0:
-        return (math.log(math.fabs(target_val)) * -1)
+# Calculate the value for a data frame column to shift all the values to make them >= 1
+#    allows values to have natural log conversion applied
+def get_shift_value(data_frame_column):
+    min_val = min(data_frame_column.values)
+    if min_val < 1:
+        return (min_val * -1) + 1
     else:
-        return math.log(target_val)
+        return 0
 
 
 # Define columns
@@ -82,7 +77,12 @@ target_column = returns['8']
 # Remove rows missing the target column
 filtered_data = raw_data.dropna(subset=[target_column], how='all')
 
-filtered_data[target_column] = filtered_data[target_column].apply(lambda x: convert_log(x))
+# Determine the
+shift_val = get_shift_value(filtered_data[target_column])
+
+# Make all values >= 1
+filtered_data[target_column] = filtered_data[target_column].add(shift_val)
+
 
 all_columns = data_columns[:]
 
@@ -99,12 +99,16 @@ print(filtered_data.dtypes)
 
 # ## Run auto-ml
 
-from auto_ml import Predictor
-
-# Split data frome into 70 / 30 train test
-msk = np.random.rand(len(filtered_data)) < 0.7
-df_train = filtered_data[msk]
+# Split data frame into 75 / 25 train test
+msk = np.random.rand(len(filtered_data)) < 0.75
+df_train_base = filtered_data[msk]
 df_test = filtered_data[~msk]
+
+# Re-split the training data into a deep learning set and a regressor set
+msk = np.random.rand(len(df_train_base)) < 0.66
+df_train = df_train_base[msk]
+dl_train = df_train_base[~msk]
+
 
 column_descriptions = {
     'Future8WeekReturn': 'output'
@@ -120,9 +124,7 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, ml_for_analytics=True,
-                    model_names=['ARDRegression', 'ExtraTreesRegressor', 'GradientBoostingRegressor',
-                    'LinearRegression', 'PassiveAggressiveRegressor', 'RandomForestRegressor',
-                    'SGDRegressor', 'DeepLearningRegressor', 'XGBRegressor'])
+ml_predictor.train(df_train, feature_learning=True, take_log_of_y=True, fl_data=dl_train,
+                    model_names=['XGBRegressor'])
 
 ml_predictor.score(df_test, df_test.Future8WeekReturn, verbose=3)
