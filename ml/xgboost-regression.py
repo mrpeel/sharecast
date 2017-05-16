@@ -167,8 +167,7 @@ del share_data['exDividendDate']
 #  12WeekBollingerPrediction
 #  12WeekBollingerType
 
-share_data = pd.get_dummies(data=share_data, columns=['symbol', '4WeekBollingerPrediction', '4WeekBollingerType',
-                                                            '12WeekBollingerPrediction', '12WeekBollingerType'])
+share_data = pd.get_dummies(data=share_data, columns=['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerPrediction', '12WeekBollingerType'])
 
 # Fill nan values with placeholder and check for null values
 share_data = share_data.fillna(-99999)
@@ -205,8 +204,7 @@ r2s = []
 for train_index, test_index in kfold.split(X_data):
     actuals = y_data[test_index]
     eval_set = [(X_data[test_index], actuals)]
-    model.fit(X_data[train_index], y_data[train_index], early_stopping_rounds=30, eval_metric="mae",
-              eval_set=eval_set, verbose=True)
+    model.fit(X_data[train_index], y_data[train_index], early_stopping_rounds=30, eval_metric="mae", eval_set=eval_set, verbose=True)
     predictions = model.predict(X_data[test_index])
 
     # Output model settings
