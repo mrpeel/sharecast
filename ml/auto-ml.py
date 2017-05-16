@@ -1,4 +1,3 @@
-
 # coding: utf-8
 
 # ## Load and prep columns
@@ -6,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib
+
 matplotlib.use('qt5agg')
 import math
 from auto_ml import Predictor
@@ -30,7 +30,8 @@ data_columns = ['symbol', 'quoteDate', 'adjustedPrice', 'volume', 'previousClose
                 '52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
                 'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'Price200DayAverage',
                 'Price52WeekPercChange', '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility',
-                '12WeekVolatility', '26WeekVolatility','52WeekVolatility','4WeekBollingerPrediction', '4WeekBollingerType',
+                '12WeekVolatility', '26WeekVolatility', '52WeekVolatility', '4WeekBollingerPrediction',
+                '4WeekBollingerType',
                 '12WeekBollingerPrediction', '12WeekBollingerType', 'allordpreviousclose', 'allordchange',
                 'allorddayshigh', 'allorddayslow', 'allordpercebtChangeFrom52WeekHigh',
                 'allordpercentChangeFrom52WeekLow', 'asxpreviousclose', 'asxchange', 'asxdayshigh',
@@ -47,7 +48,6 @@ data_columns = ['symbol', 'quoteDate', 'adjustedPrice', 'volume', 'previousClose
                 'TotalDebtToEquityQuarter', 'TotalDebtToEquityYear', 'bookValue', 'earningsPerShare',
                 'ebitda', 'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
                 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
-
 
 returns = {
     '1': 'Future1WeekReturn',
@@ -70,7 +70,6 @@ returns = {
 raw_data = pd.read_csv('data/companyQuotes-20170417-001.csv')
 raw_data.head(5)
 
-
 # Set target column
 target_column = returns['8']
 
@@ -83,7 +82,6 @@ shift_val = get_shift_value(filtered_data[target_column])
 # Make all values >= 1
 filtered_data[target_column] = filtered_data[target_column].add(shift_val)
 
-
 all_columns = data_columns[:]
 
 all_columns.insert(0, target_column)
@@ -93,9 +91,7 @@ print(all_columns)
 # Columns to use
 filtered_data = filtered_data[all_columns]
 
-
 print(filtered_data.dtypes)
-
 
 # ## Run auto-ml
 
@@ -105,10 +101,9 @@ df_train_base = filtered_data[msk]
 df_test = filtered_data[~msk]
 
 # Re-split the training data into a deep learning set and a regressor set
-msk = np.random.rand(len(df_train_base)) < 0.66
+msk = np.random.rand(len(df_train_base)) < 0.75
 df_train = df_train_base[msk]
 dl_train = df_train_base[~msk]
-
 
 column_descriptions = {
     'Future8WeekReturn': 'output'
@@ -121,11 +116,10 @@ column_descriptions = {
     , 'exDividendDate': 'date'
 }
 
-
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, optimize_final_model=True, take_log_of_y=True,
-                    feature_learning=True, fl_data=dl_train,
-                    model_names=['XGBRegressor'])
+ml_predictor.train(df_train, optimize_final_model=False, take_log_of_y=True,
+                   feature_learning=True, fl_data=dl_train,
+                   model_names=['XGBRegressor'])
 
 ml_predictor.score(df_test, df_test.Future8WeekReturn, verbose=3)
