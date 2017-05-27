@@ -154,7 +154,7 @@ maes = []
 r2s = []
 errs = []
 
-model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=70, base_score = 0.35, colsample_bylevel = 0.8,
+model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=110, base_score = 0.35, colsample_bylevel = 0.8,
                          colsample_bytree = 0.8, gamma = 0, learning_rate = 0.075, max_delta_step = 0,
                          min_child_weight = 0)
 
@@ -162,14 +162,14 @@ model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=70, base_score 
 for r in range(0, 3):
     # Set-up lgb data
     msk = np.random.rand(len(share_data)) < 0.75
-    df_train = share_data[msk].copy()
-    train_y = df_train[target_column].values
-    train_x = df_train.drop([target_column], axis=1).values
+    #df_train = share_data[msk].copy()
+    train_y = share_data[msk][target_column].values
+    train_x = share_data[msk].drop([target_column], axis=1).values
 
 
-    df_valid = share_data[~msk].copy()
-    test_y = df_valid[target_column].values
-    test_x = df_valid.drop([target_column], axis=1).values
+    #df_valid = share_data[~msk].copy()
+    test_y = share_data[~msk][target_column].values
+    test_x = share_data[~msk].drop([target_column], axis=1).values
 
     # Fit model with training set
     start = time.time()
@@ -183,7 +183,7 @@ for r in range(0, 3):
     fit_time = time.time()
     print('Elapsed time: %d' % (fit_time - start))
 
-    del df_train
+    #del df_train
     del train_x
     del train_y
     gc.collect()
@@ -202,7 +202,7 @@ for r in range(0, 3):
     print("Fold mean absolute error: %s" % mae)
     print("Fold r2: %s" % r2)
 
-    del df_valid
+    #del df_valid
     del test_x
     del test_y
     gc.collect()
