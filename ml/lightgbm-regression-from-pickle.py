@@ -181,7 +181,7 @@ for r in range(0, 3):
     gc.collect()
 
     file_name = 'lgbm-model-%d' % r
-    lgb.save_model(file_name)
+    lgb.save_model(file_name, num_iteration=gbm.best_iteration)
 
     # Output model settings
     fit_time = time.time()
