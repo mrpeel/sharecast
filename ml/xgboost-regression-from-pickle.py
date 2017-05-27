@@ -120,7 +120,7 @@ def mle_eval(y, y0):
     y0 = y0.get_label()
     assert len(y) == len(y0)
     # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
-    return 'error', np.mean(np.absolute(safe_log(y) - safe_log(y0))), False
+    return 'error', np.mean(np.absolute(safe_log(y) - safe_log(y0)))
 
 print('Loading pickled data')
 
