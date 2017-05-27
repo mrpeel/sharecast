@@ -160,7 +160,7 @@ for r in range(0, 3):
     params = {
         'objective': 'regression',
         'num_leaves': 16384,
-        'max_bin': 1250000,
+        'max_bin': 2500000,
         #'boosting_type': 'dart',
         #'feature_fraction': 0.9,
         #'bagging_fraction': 0.8,
@@ -174,21 +174,26 @@ for r in range(0, 3):
                     valid_sets=eval_set,  # eval training data
                     feval=mle_eval,
                     learning_rates=lambda iter: 0.25 * (0.99 ** iter),
-                    num_boost_round=2000,
-                    early_stopping_rounds=10)
+                    num_boost_round=1000,
+                    early_stopping_rounds=5)
 
     del df_train
     del train_y
     gc.collect()
 
+    iteration_number = 1000
+
+    if gbm.best_iteration:
+        iteration_number = gbm.best_iteration
+
     file_name = 'lgbm-model-%d' % r
-    lgb.save_model(file_name, num_iteration=gbm.best_iteration)
+    gbm.save_model(file_name, num_iteration=iteration_number)
 
     # Output model settings
     fit_time = time.time()
     print('Elapsed time: %d' % (fit_time - start))
 
-    predictions = gbm.predict(df_valid, num_iteration=gbm.best_iteration)
+    predictions = gbm.predict(df_valid, num_iteration=iteration_number)
 
     err = mle(valid_y, predictions)
     mae = mean_absolute_error(valid_y, predictions)
@@ -196,10 +201,10 @@ for r in range(0, 3):
     print(mae)
     errs.append(err)
     maes.append(mae)
-    iters.append(gbm.best_iteration)
+    iters.append(iteration_number)
     r2 = r2_score(valid_y, predictions)
     r2s.append(r2)
-    print("Best iteration: %s" % gbm.best_iteration)
+    print("Best iteration: %s" % iteration_number)
     print("Fold mean mle (log of y): %s" % err)
     print("Fold mean absolute error: %s" % mae)
     print("Fold r2: %s" % r2)
