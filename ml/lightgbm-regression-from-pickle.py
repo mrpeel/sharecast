@@ -180,11 +180,14 @@ for r in range(0, 3):
     del train_y
     gc.collect()
 
+    file_name = 'lgbm-model-%d' % r
+    lgb.save_model(file_name)
+
     # Output model settings
     fit_time = time.time()
     print('Elapsed time: %d' % (fit_time - start))
 
-    predictions = gbm.predict(df_valid)
+    predictions = gbm.predict(df_valid, num_iteration=gbm.best_iteration)
 
     err = mle(valid_y, predictions)
     mae = mean_absolute_error(valid_y, predictions)
