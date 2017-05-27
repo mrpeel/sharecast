@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/.idea/auto_ml.iml" filepath="$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/.idea/auto_ml.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/ml.iml" filepath="$PROJECT_DIR$/.idea/ml.iml" />
     </modules>
   </component>

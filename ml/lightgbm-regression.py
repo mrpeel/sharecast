@@ -1,13 +1,11 @@
-import xgboost as xgb
 import numpy as np
 import pandas as pd
+import lightgbm as lgb
 from memory_profiler import profile
-from sklearn.model_selection import KFold, train_test_split, GridSearchCV
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 import time
 import gc
-import datetime as dt
 
 
 
@@ -146,6 +144,7 @@ def mle_eval(y, y0):
 
 share_data = load_data(base_path='data/companyQuotes-20170514-%03d.csv.gz', increments=range(1, 77))
 gc.collect()
+
 print(len(share_data))
 print('Post load:')
 print(share_data.info(max_cols=0, memory_usage=True))
@@ -176,39 +175,20 @@ print('Post clip:')
 print(share_data.info(max_cols=0, memory_usage=True))
 
 
-print(share_data[target_column].head(5))
-
 
 # Set log values
 print(share_data[target_column].head(5))
 
 print('Min:', min(share_data[target_column].values), ', Max:', max(share_data[target_column].values))
 
-share_data['y_data'] = share_data[target_column]
-print('Post set df y_data:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data['y_data'].head(5))
-
-print('Min:', min(share_data['y_data'].values), ', Max:', max(share_data['y_data'].values))
-
-# Create y_data
-y_data = share_data[target_column].values
-
 
 # Filter down data to the X columns being used
 all_columns = data_columns[:]
-# all_columns.insert(0, 'y_data')
+all_columns.insert(0, target_column)
 
 share_data = drop_unused_columns(share_data, all_columns)
 print('Post drop unused columns:')
 print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data.dtypes)
-
-print('Min:',min(y_data),', Max:', max(y_data))
 
 
 
@@ -245,105 +225,81 @@ share_data.drop(['quoteDate', 'exDividendDate'], axis=1, inplace=True)
 print('Post drop dates:')
 print(share_data.info(max_cols=0, memory_usage=True))
 
+categorical_columns = ['symbol', 'quoteMonth', '4WeekBollingerPrediction', '4WeekBollingerType',
+                       '12WeekBollingerPrediction', '12WeekBollingerType']
 
-# Convert categorical variables to boolean fields
-#  quoteMonth
-#  4WeekBollingerPrediction
-#  4WeekBollingerType
-#  12WeekBollingerPrediction
-#  12WeekBollingerType
-
-column_descriptions = {
-    'Future8WeekReturn': 'output'
-    , 'symbol': 'categorical'
-    , 'quoteDate': 'date'
-    , '4WeekBollingerPrediction': 'categorical'
-    , '4WeekBollingerType': 'categorical'
-    , '12WeekBollingerPrediction': 'categorical'
-    , '12WeekBollingerType': 'categorical'
-    , 'exDividendDate': 'date'
-}
-
-
-share_data['symbol_category'] = pd.factorize(share_data['symbol'])[0]
-share_data.drop(['symbol'], axis=1, inplace=True)
-print('Post factorize:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-share_data = pd.get_dummies(data=share_data, columns=['quoteMonth',
-                                                      '4WeekBollingerPrediction',
-                                                      '4WeekBollingerType',
-                                                      '12WeekBollingerPrediction',
-                                                      '12WeekBollingerType'])
-print('Post get_dummies:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Fill nan values with placeholder and check for null values
-share_data = share_data.fillna(-99999)
-print('Post fill NA:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Check data types
-print(share_data.dtypes)
-
-# Copy over X_data columns
-X_data = share_data.values
-
-
-# Check how many fields in X_data
-#print(X_data.shape)
-
-
-# Split into train and test data
-# X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, train_size=0.7, test_size=0.3)
+# Factorize each categorical column
+for cat_col in categorical_columns:
+    share_data[cat_col] = pd.factorize(share_data[cat_col])[0]
 
 print('Training for', target_column)
 
-# Fit model with training set
-start = time.time()
-model = xgb.XGBRegressor(nthread=-1, n_estimators=10000, max_depth=70, base_score = 0.35, colsample_bylevel = 0.8,
-                         colsample_bytree = 0.8, gamma = 0, learning_rate = 0.075, max_delta_step = 0, min_child_weight = 0)
-
-
-print(model)
-
-kfold = KFold(n_splits=3, shuffle=True)
-
-errs = []
 maes = []
 r2s = []
+errs = []
 
-for train_index, test_index in kfold.split(X_data):
-    actuals = y_data[test_index]
-    eval_set = [(X_data[test_index], actuals)]
-    model.fit(X_data[train_index], y_data[train_index], early_stopping_rounds=30,
-              eval_metric=mle_eval, eval_set=eval_set, verbose=True)
-                #eval_metric="mae"
-    predictions = model.predict(X_data[test_index])
+for r in range(0, 3):
+    # Set-up lgb data
+    msk = np.random.rand(len(share_data)) < 0.75
+    df_train = share_data[msk].copy()
+    train_y = df_train[target_column].values
+    df_train.drop([target_column], axis=1, inplace=True)
+
+    df_valid = share_data[~msk].copy()
+    valid_y = df_valid[target_column].values
+    df_valid.drop([target_column], axis=1, inplace=True)
+
+    train_set = lgb.Dataset(df_train, label=train_y, categorical_feature=categorical_columns)
+    eval_set = lgb.Dataset(df_valid, reference=train_set, label=valid_y, categorical_feature=categorical_columns)
+
+    # Fit model with training set
+    start = time.time()
+
+    params = {
+        'objective': 'regression',
+        'num_leaves': 8192,
+        'max_bin': 25500,
+        'boosting_type': 'dart',
+        'silent': True
+    }
+
+    # feature_name and categorical_feature
+    gbm = lgb.train(params,
+                    train_set,
+                    valid_sets=eval_set,  # eval training data
+                    feval=mle_eval,
+                    learning_rates=lambda iter: 0.15 * (0.99 ** iter),
+                    num_boost_round=2000,
+                    early_stopping_rounds=10)
+
+    del df_train
+    del train_y
+    gc.collect()
 
     # Output model settings
     fit_time = time.time()
     print('Elapsed time: %d' % (fit_time - start))
-    err = mle(actuals, predictions)
-    mae = mean_absolute_error(actuals, predictions)
+
+    predictions = gbm.predict(df_valid)
+
+    err = mle(valid_y, predictions)
+    mae = mean_absolute_error(valid_y, predictions)
     print(err)
     print(mae)
     errs.append(err)
     maes.append(mae)
-    r2 = r2_score(actuals, predictions)
+    r2 = r2_score(valid_y, predictions)
     r2s.append(r2)
     print("Fold mean mle (log of y): %s" % err)
     print("Fold mean absolute error: %s" % mae)
     print("Fold r2: %s" % r2)
 
+    del df_valid
+    del valid_y
+    gc.collect()
+
+
 print('-----')
 print("Average (3 folds) mle (log of y): %s" % np.mean(errs))
 print("Average (3 folds) mae: %s" % np.mean(maes))
 print("Average (3 folds) r2: %s" % np.mean(r2s))
-
-# Average (3 folds) mle (log of y): 0.0783115297235
-# Average (3 folds) mae: 6.64856353773
-# Average (3 folds) r2: 0.812688949718

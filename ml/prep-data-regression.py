@@ -1,13 +1,7 @@
-import xgboost as xgb
 import numpy as np
 import pandas as pd
 from memory_profiler import profile
-from sklearn.model_selection import KFold, train_test_split, GridSearchCV
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import r2_score
-import time
 import gc
-import datetime as dt
 
 
 
@@ -92,13 +86,6 @@ def load_data(base_path, increments):
 
     return loading_data
 
-def get_shift_value(df):
-    # if the minimum value is < 1, shift all the values to make them >= 0
-    min_val = min(df.values)
-    if min_val < 1:
-        return (min_val * -1)
-    else:
-        return 0
 
 @profile
 def drop_unused_columns(df, data_cols):
@@ -115,37 +102,10 @@ def drop_unused_columns(df, data_cols):
     return df
 
 
-def safe_log(input_array):
-    return_vals = input_array.copy()
-    neg_mask = return_vals < 0
-    return_vals[neg_mask] *= -1
-    return_vals = np.log(return_vals + 1)
-    return_vals[neg_mask] *= -1
-    return return_vals
-
-
-def mle(actual_y, prediction_y):
-    """
-    Compute the Root Mean Squared Log Error
-
-    Args:
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-    """
-
-    # return np.sqrt(np.square(np.log(prediction_y + 1) - np.log(actual_y + 1)).mean())
-    # return np.median(np.absolute(np.log(prediction_y + 1) - np.log(actual_y + 1)))
-    return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
-
-
-def mle_eval(y, y0):
-    y0 = y0.get_label()
-    assert len(y) == len(y0)
-    # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
-    return 'error', np.mean(np.absolute(safe_log(y) - safe_log(y0))), False
 
 share_data = load_data(base_path='data/companyQuotes-20170514-%03d.csv.gz', increments=range(1, 77))
 gc.collect()
+
 print(len(share_data))
 print('Post load:')
 print(share_data.info(max_cols=0, memory_usage=True))
@@ -176,39 +136,20 @@ print('Post clip:')
 print(share_data.info(max_cols=0, memory_usage=True))
 
 
-print(share_data[target_column].head(5))
-
 
 # Set log values
 print(share_data[target_column].head(5))
 
 print('Min:', min(share_data[target_column].values), ', Max:', max(share_data[target_column].values))
 
-share_data['y_data'] = share_data[target_column]
-print('Post set df y_data:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data['y_data'].head(5))
-
-print('Min:', min(share_data['y_data'].values), ', Max:', max(share_data['y_data'].values))
-
-# Create y_data
-y_data = share_data[target_column].values
-
 
 # Filter down data to the X columns being used
 all_columns = data_columns[:]
-# all_columns.insert(0, 'y_data')
+all_columns.insert(0, target_column)
 
 share_data = drop_unused_columns(share_data, all_columns)
 print('Post drop unused columns:')
 print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data.dtypes)
-
-print('Min:',min(y_data),', Max:', max(y_data))
 
 
 
@@ -245,105 +186,15 @@ share_data.drop(['quoteDate', 'exDividendDate'], axis=1, inplace=True)
 print('Post drop dates:')
 print(share_data.info(max_cols=0, memory_usage=True))
 
+categorical_columns = ['symbol', 'quoteMonth', '4WeekBollingerPrediction', '4WeekBollingerType',
+                       '12WeekBollingerPrediction', '12WeekBollingerType']
 
-# Convert categorical variables to boolean fields
-#  quoteMonth
-#  4WeekBollingerPrediction
-#  4WeekBollingerType
-#  12WeekBollingerPrediction
-#  12WeekBollingerType
-
-column_descriptions = {
-    'Future8WeekReturn': 'output'
-    , 'symbol': 'categorical'
-    , 'quoteDate': 'date'
-    , '4WeekBollingerPrediction': 'categorical'
-    , '4WeekBollingerType': 'categorical'
-    , '12WeekBollingerPrediction': 'categorical'
-    , '12WeekBollingerType': 'categorical'
-    , 'exDividendDate': 'date'
-}
+# Factorize each categorical column
+for cat_col in categorical_columns:
+    share_data[cat_col] = pd.factorize(share_data[cat_col])[0]
 
 
-share_data['symbol_category'] = pd.factorize(share_data['symbol'])[0]
-share_data.drop(['symbol'], axis=1, inplace=True)
-print('Post factorize:')
-print(share_data.info(max_cols=0, memory_usage=True))
 
+print('Pickling data')
 
-share_data = pd.get_dummies(data=share_data, columns=['quoteMonth',
-                                                      '4WeekBollingerPrediction',
-                                                      '4WeekBollingerType',
-                                                      '12WeekBollingerPrediction',
-                                                      '12WeekBollingerType'])
-print('Post get_dummies:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Fill nan values with placeholder and check for null values
-share_data = share_data.fillna(-99999)
-print('Post fill NA:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Check data types
-print(share_data.dtypes)
-
-# Copy over X_data columns
-X_data = share_data.values
-
-
-# Check how many fields in X_data
-#print(X_data.shape)
-
-
-# Split into train and test data
-# X_train, X_test, y_train, y_test = train_test_split(X_data, y_data, train_size=0.7, test_size=0.3)
-
-print('Training for', target_column)
-
-# Fit model with training set
-start = time.time()
-model = xgb.XGBRegressor(nthread=-1, n_estimators=10000, max_depth=70, base_score = 0.35, colsample_bylevel = 0.8,
-                         colsample_bytree = 0.8, gamma = 0, learning_rate = 0.075, max_delta_step = 0, min_child_weight = 0)
-
-
-print(model)
-
-kfold = KFold(n_splits=3, shuffle=True)
-
-errs = []
-maes = []
-r2s = []
-
-for train_index, test_index in kfold.split(X_data):
-    actuals = y_data[test_index]
-    eval_set = [(X_data[test_index], actuals)]
-    model.fit(X_data[train_index], y_data[train_index], early_stopping_rounds=30,
-              eval_metric=mle_eval, eval_set=eval_set, verbose=True)
-                #eval_metric="mae"
-    predictions = model.predict(X_data[test_index])
-
-    # Output model settings
-    fit_time = time.time()
-    print('Elapsed time: %d' % (fit_time - start))
-    err = mle(actuals, predictions)
-    mae = mean_absolute_error(actuals, predictions)
-    print(err)
-    print(mae)
-    errs.append(err)
-    maes.append(mae)
-    r2 = r2_score(actuals, predictions)
-    r2s.append(r2)
-    print("Fold mean mle (log of y): %s" % err)
-    print("Fold mean absolute error: %s" % mae)
-    print("Fold r2: %s" % r2)
-
-print('-----')
-print("Average (3 folds) mle (log of y): %s" % np.mean(errs))
-print("Average (3 folds) mae: %s" % np.mean(maes))
-print("Average (3 folds) r2: %s" % np.mean(r2s))
-
-# Average (3 folds) mle (log of y): 0.0783115297235
-# Average (3 folds) mae: 6.64856353773
-# Average (3 folds) r2: 0.812688949718
+share_data.to_pickle('data/ml-data.pkl.gz', compression='gzip')

@@ -15,15 +15,6 @@ pd.set_option('display.max_rows', 200)
 pd.set_option('display.max_columns', 200)
 
 
-# Calculate the value for a data frame column to shift all the values to make them >= 1
-#    allows values to have natural log conversion applied
-def get_shift_value(data_frame_column):
-    min_val = min(data_frame_column.values)
-    if min_val < 1:
-        return (min_val * -1) + 1
-    else:
-        return 0
-
 
 # Define columns
 data_columns = ['symbol', 'quoteDate', 'adjustedPrice', 'volume', 'previousClose', 'change', 'changeInPercent',
@@ -67,20 +58,40 @@ returns = {
 }
 
 # Load data
-raw_data = pd.read_csv('data/companyQuotes-20170417-001.csv')
-raw_data.head(5)
+def load_data(base_path, increments):
+    load_data = pd.DataFrame()
+    for increment in increments:
+        path = base_path % increment
+        frame = pd.read_csv(path, compression='gzip', parse_dates=['quoteDate'], infer_datetime_format=True)
+        load_data = load_data.append(frame, ignore_index=True)
+        print('Loaded:', path)
+
+    print(load_data.head(5))
+    return load_data
+
+# Calculate the value for a data  frame column to shift all the values to make them >= 1
+#    allows values to have natural log conversion applied
+def get_shift_value(data_frame_column):
+    min_val = min(data_frame_column.values)
+    if min_val < 1:
+        return (min_val * -1) + 1
+    else:
+        return 0
+
+
+share_data = load_data(base_path='data/companyQuotes-20170514-%03d.csv.gz', increments=range(1, 77))
 
 # Set target column
 target_column = returns['8']
 
 # Remove rows missing the target column
-filtered_data = raw_data.dropna(subset=[target_column], how='all')
+share_data = share_data.dropna(subset=[target_column], how='all')
 
 # Determine the
-shift_val = get_shift_value(filtered_data[target_column])
+shift_val = get_shift_value(share_data[target_column])
 
 # Make all values >= 1
-filtered_data[target_column] = filtered_data[target_column].add(shift_val)
+share_data[target_column] = share_data[target_column].add(shift_val)
 
 all_columns = data_columns[:]
 
@@ -89,21 +100,21 @@ all_columns.insert(0, target_column)
 print(all_columns)
 
 # Columns to use
-filtered_data = filtered_data[all_columns]
+share_data = share_data[all_columns]
 
-print(filtered_data.dtypes)
+print(share_data.dtypes)
 
 # ## Run auto-ml
 
 # Split data frame into 75 / 25 train test
-msk = np.random.rand(len(filtered_data)) < 0.75
-df_train_base = filtered_data[msk]
-df_test = filtered_data[~msk]
+msk = np.random.rand(len(share_data)) < 0.75
+df_train_base = share_data[msk]
+df_test = share_data[~msk]
 
 # Re-split the training data into a deep learning set and a regressor set
-msk = np.random.rand(len(df_train_base)) < 0.75
-df_train = df_train_base[msk]
-dl_train = df_train_base[~msk]
+#msk = np.random.rand(len(df_train_base)) < 0.90
+#df_train = df_train_base[msk]
+#dl_train = df_train_base[~msk]
 
 column_descriptions = {
     'Future8WeekReturn': 'output'
@@ -118,8 +129,13 @@ column_descriptions = {
 
 ml_predictor = Predictor(type_of_estimator='regressor', column_descriptions=column_descriptions)
 
-ml_predictor.train(df_train, optimize_final_model=False, take_log_of_y=True,
-                   feature_learning=True, fl_data=dl_train,
-                   model_names=['XGBRegressor'])
+ml_predictor.train(df_train_base, optimize_final_model=False, take_log_of_y=True,
+                    #feature_learning=True, fl_data=dl_train,
+                    model_names=['LGBMRegressor'])
+                   #model_names=['XGBRegressor', 'DeepLearningRegressor'])
+
+
+#ml_predictor.train_categorical_ensemble(df_train_base, categorical_column='symbol', min_category_size=500,
+#                                        model_names=['XGBRegressor'], take_log_of_y=True)
 
 ml_predictor.score(df_test, df_test.Future8WeekReturn, verbose=3)
