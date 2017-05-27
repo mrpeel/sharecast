@@ -6,3 +6,13 @@ Elapsed time: 5456
 Fold mean mle (log of y): 0.561024040888
 Fold mean absolute error: 6.16056575808
 Fold r2: 0.834198998496
+
+
+XGBoost (max_depth=50)
+----------
+Elapsed time: 4628
+0.564688771421
+6.17360874905
+Fold mean mle (log of y): 0.564688771421
+Fold mean absolute error: 6.17360874905
+Fold r2: 0.824240834026
