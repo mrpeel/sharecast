@@ -154,7 +154,7 @@ maes = []
 r2s = []
 errs = []
 
-model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=110, base_score = 0.35, colsample_bylevel = 0.8,
+model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=50, base_score = 0.35, colsample_bylevel = 0.8,
                          colsample_bytree = 0.8, gamma = 0, learning_rate = 0.075, max_delta_step = 0,
                          min_child_weight = 0)
 

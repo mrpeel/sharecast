@@ -1,0 +1,8 @@
+XGBoost (max_depth=70)
+----------
+Elapsed time: 5456
+0.561024040888
+6.16056575808
+Fold mean mle (log of y): 0.561024040888
+Fold mean absolute error: 6.16056575808
+Fold r2: 0.834198998496

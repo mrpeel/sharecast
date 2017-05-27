@@ -1,0 +1,6 @@
+LightGBM
+----------
+Average (3 folds) best iteration: 1000.0
+Average (3 folds) mle (log of y): 0.819406574491
+Average (3 folds) mae: 8.39590331621
+Average (3 folds) r2: 0.775348838425
