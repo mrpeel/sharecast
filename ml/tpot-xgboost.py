@@ -101,7 +101,7 @@ regressor_config_dict = {
     'xgboost.XGBRegressor': {
         'nthread': [-1],
         'n_estimators': [250],
-        'max_depth': [50, 70, 90],
+        'max_depth': [70, 90],
         'base_score': [i/100.0 for i in range(0, 101, 5)],
         'colsample_bylevel': [i/100.0 for i in range(0, 101, 5)],
         'colsample_bytree': [i/100.0 for i in range(0, 101, 5)],
