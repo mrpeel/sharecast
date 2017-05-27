@@ -175,7 +175,7 @@ for r in range(0, 3):
                     feval=mle_eval,
                     learning_rates=lambda iter: 0.1 * (0.99 ** iter),
                     num_boost_round=2000,
-                    early_stopping_rounds=5)
+                    early_stopping_rounds=10)
 
     del df_train
     del train_y
