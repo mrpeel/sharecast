@@ -138,6 +138,7 @@ print('Training for', target_column)
 maes = []
 r2s = []
 errs = []
+iters = []
 
 for r in range(0, 3):
     # Set-up lgb data
@@ -195,8 +196,10 @@ for r in range(0, 3):
     print(mae)
     errs.append(err)
     maes.append(mae)
+    iters.append(gbm.best_iteration)
     r2 = r2_score(valid_y, predictions)
     r2s.append(r2)
+    print("Best iteration: %s" % gbm.best_iteration)
     print("Fold mean mle (log of y): %s" % err)
     print("Fold mean absolute error: %s" % mae)
     print("Fold r2: %s" % r2)
@@ -207,6 +210,7 @@ for r in range(0, 3):
 
 
 print('-----')
+print("Average (3 folds) best iteration: %s" % np.mean(iters))
 print("Average (3 folds) mle (log of y): %s" % np.mean(errs))
 print("Average (3 folds) mae: %s" % np.mean(maes))
 print("Average (3 folds) r2: %s" % np.mean(r2s))
