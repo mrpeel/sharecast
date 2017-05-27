@@ -7,7 +7,6 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 import time
 import gc
-import datetime as dt
 
 
 
@@ -78,27 +77,6 @@ returns = {
     '52ra': 'Future52WeekRiskAdjustedReturn'
 }
 
-# Load data
-# raw_data = pd.read_csv('data/companyQuotes-20170417-001.csv')
-@profile
-def load_data(base_path, increments):
-    loading_data = pd.DataFrame()
-    for increment in increments:
-        path = base_path % increment
-        frame = pd.read_csv(path, compression='gzip', parse_dates=['quoteDate'], infer_datetime_format=True, low_memory=False)
-        loading_data = loading_data.append(frame, ignore_index=True)
-        del frame
-        print('Loaded:', path)
-
-    return loading_data
-
-def get_shift_value(df):
-    # if the minimum value is < 1, shift all the values to make them >= 0
-    min_val = min(df.values)
-    if min_val < 1:
-        return (min_val * -1)
-    else:
-        return 0
 
 @profile
 def drop_unused_columns(df, data_cols):
@@ -144,131 +122,13 @@ def mle_eval(y, y0):
     # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
     return 'error', np.mean(np.absolute(safe_log(y) - safe_log(y0))), False
 
-share_data = load_data(base_path='data/companyQuotes-20170514-%03d.csv.gz', increments=range(1, 77))
+print('Loading pickled data')
+
+share_data = pd.read_pickle('data/ml-data.pkl.gz', compression='gzip')
 gc.collect()
-print(len(share_data))
-print('Post load:')
-print(share_data.info(max_cols=0, memory_usage=True))
 
 # Set target column
 target_column = returns['8']
-
-# Remove rows missing the target column
-share_data = share_data.dropna(subset=[target_column], how='all')
-print('Post drop NA:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Shift values to range of >= 1
-shift_val = 0
-
-
-print(share_data[target_column].head(5))
-
-#shift_val = get_shift_value(share_data[target_column])
-#print('Shift value:', shift_val)
-
-#share_data[target_column] = share_data[target_column].add(shift_val)
-
-# Clip to -99 to 1000 range
-share_data[target_column] = share_data[target_column].clip(-99, 1000)
-print('Post clip:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data[target_column].head(5))
-
-
-# Set log values
-print(share_data[target_column].head(5))
-
-print('Min:', min(share_data[target_column].values), ', Max:', max(share_data[target_column].values))
-
-share_data['y_data'] = share_data[target_column]
-print('Post set df y_data:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data['y_data'].head(5))
-
-print('Min:', min(share_data['y_data'].values), ', Max:', max(share_data['y_data'].values))
-
-# Create y_data
-y_data = share_data[target_column].values
-
-
-# Filter down data to the X columns being used
-all_columns = data_columns[:]
-# all_columns.insert(0, 'y_data')
-
-share_data = drop_unused_columns(share_data, all_columns)
-print('Post drop unused columns:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-print(share_data.dtypes)
-
-print('Min:',min(y_data),', Max:', max(y_data))
-
-
-
-# Convert quote dates data to year and month
-share_data['quoteDate'] = pd.to_datetime(share_data['quoteDate'])
-share_data['exDividendDate'] = pd.to_datetime(share_data['exDividendDate'])
-print('Post re-set date types:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Reset divident date as a number
-share_data['exDividendRelative'] = \
-    share_data['exDividendDate'] - \
-    share_data['quoteDate']
-
-# convert string difference value to integer
-share_data['exDividendRelative'] = share_data['exDividendRelative'].apply(lambda x: np.nan if pd.isnull(x) else x.days)
-print('Post dividend relative:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-share_data['quoteYear'], share_data['quoteMonth'],  = \
-    share_data['quoteDate'].dt.year, \
-    share_data['quoteDate'].dt.month.astype('int8')
-
-
-print('Post quote date:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Remove quote dates column
-share_data.drop(['quoteDate', 'exDividendDate'], axis=1, inplace=True)
-
-print('Post drop dates:')
-print(share_data.info(max_cols=0, memory_usage=True))
-
-
-# Convert categorical variables to boolean fields
-#  quoteMonth
-#  4WeekBollingerPrediction
-#  4WeekBollingerType
-#  12WeekBollingerPrediction
-#  12WeekBollingerType
-
-column_descriptions = {
-    'Future8WeekReturn': 'output'
-    , 'symbol': 'categorical'
-    , 'quoteDate': 'date'
-    , '4WeekBollingerPrediction': 'categorical'
-    , '4WeekBollingerType': 'categorical'
-    , '12WeekBollingerPrediction': 'categorical'
-    , '12WeekBollingerType': 'categorical'
-    , 'exDividendDate': 'date'
-}
-
-
-share_data['symbol_category'] = pd.factorize(share_data['symbol'])[0]
-share_data.drop(['symbol'], axis=1, inplace=True)
-print('Post factorize:')
-print(share_data.info(max_cols=0, memory_usage=True))
 
 
 share_data = pd.get_dummies(data=share_data, columns=['quoteMonth',

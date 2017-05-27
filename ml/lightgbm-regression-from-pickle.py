@@ -159,7 +159,7 @@ for r in range(0, 3):
 
     params = {
         'objective': 'regression',
-        'num_leaves': 8192,
+        'num_leaves': 16384,
         'max_bin': 1250000,
         #'boosting_type': 'dart',
         #'feature_fraction': 0.9,
@@ -173,7 +173,7 @@ for r in range(0, 3):
                     train_set,
                     valid_sets=eval_set,  # eval training data
                     feval=mle_eval,
-                    learning_rates=lambda iter: 0.125 * (0.99 ** iter),
+                    learning_rates=lambda iter: 0.25 * (0.99 ** iter),
                     num_boost_round=2000,
                     early_stopping_rounds=10)
 
