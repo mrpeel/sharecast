@@ -154,7 +154,7 @@ maes = []
 r2s = []
 errs = []
 
-model = xgb.XGBRegressor(nthread=-1, n_estimators=10000, max_depth=70, base_score = 0.35, colsample_bylevel = 0.8,
+model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=70, base_score = 0.35, colsample_bylevel = 0.8,
                          colsample_bytree = 0.8, gamma = 0, learning_rate = 0.075, max_delta_step = 0,
                          min_child_weight = 0)
 
@@ -175,7 +175,7 @@ for r in range(0, 3):
     start = time.time()
 
     eval_set = [(test_x, test_y)]
-    model.fit(train_x, train_y, early_stopping_rounds=30,
+    model.fit(train_x, train_y, early_stopping_rounds=10,
               eval_metric=mle_eval, eval_set=eval_set, verbose=True)
                 #eval_metric="mae"
 
