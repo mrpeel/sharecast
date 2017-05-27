@@ -131,7 +131,7 @@ gc.collect()
 target_column = returns['8']
 
 
-share_data = pd.get_dummies(data=share_data, columns=['symbol', 'quoteMonth',
+share_data = pd.get_dummies(data=share_data, columns=['quoteMonth',
                                                       '4WeekBollingerPrediction',
                                                       '4WeekBollingerType',
                                                       '12WeekBollingerPrediction',
