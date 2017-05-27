@@ -103,8 +103,8 @@ regressor_config_dict = {
         'n_estimators': [250],
         'max_depth': [70, 90],
         'base_score': [i/100.0 for i in range(0, 101, 5)],
-        'colsample_bylevel': [i/100.0 for i in range(5, 101, 5)],
-        'colsample_bytree': [i/100.0 for i in range(5, 101, 5)],
+        'colsample_bylevel': [i/100.0 for i in range(10, 101, 5)],
+        'colsample_bytree': [i/100.0 for i in range(10, 101, 5)],
         'gamma': [i for i in range(0, 11, 1)],
         'max_delta_step': [i/100.0 for i in range(0, 101, 5)],
         'min_child_weight': [i for i in range(0, 11, 1)],
@@ -115,7 +115,7 @@ regressor_config_dict = {
     }
 }
 
-tpot_model = TPOTRegressor(generations=5, population_size=10, verbosity=2, cv=3,
+tpot_model = TPOTRegressor(generations=5, population_size=10, verbosity=3,
                       scoring=mle, config_dict=regressor_config_dict)
 tpot_model.fit(X_train, y_train)
 print(tpot_model.score(X_test, y_test))
