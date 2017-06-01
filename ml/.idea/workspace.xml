@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
+      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/prep-base-data.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -27,11 +27,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="wide_n_deep_sharecast.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="wide_n_deep_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="154">
-              <caret line="402" column="31" lean-forward="false" selection-start-line="402" selection-start-column="31" selection-end-line="402" selection-end-column="31" />
+            <state relative-caret-position="-3489">
+              <caret line="151" column="56" lean-forward="false" selection-start-line="151" selection-start-column="56" selection-end-line="151" selection-end-column="56" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
               </folding>
@@ -54,11 +54,21 @@
       <file leaf-file-name="prep-data-regression.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-465">
-              <caret line="147" column="35" lean-forward="false" selection-start-line="147" selection-start-column="35" selection-end-line="147" selection-end-column="35" />
+            <state relative-caret-position="75">
+              <caret line="5" column="0" lean-forward="false" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="prep-base-data.py" pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/prep-base-data.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="222">
+              <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
+              <folding />
             </state>
           </provider>
         </entry>
@@ -86,7 +96,6 @@
       <find>clip</find>
       <find>hare_data.info()</find>
       <find>drop</find>
-      <find>fill</find>
       <find>na(</find>
       <find>', '</find>
       <find>inplace</find>
@@ -97,6 +106,7 @@
       <find>train_ml_estimator</find>
       <find>get_pen</find>
       <find>get_layer</find>
+      <find>fill</find>
     </findStrings>
     <replaceStrings>
       <replace>= tf.contrib.layers.real_valued_column(&quot;</replace>
@@ -127,6 +137,7 @@
         <option value="$PROJECT_DIR$/consolidate-data.py" />
         <option value="$PROJECT_DIR$/xgboost.ipynb" />
         <option value="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
+        <option value="$PROJECT_DIR$/prep-base-data.py" />
       </list>
     </option>
   </component>
@@ -473,16 +484,6 @@
     </watches-manager>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/auto-ml.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#45#63#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/DataFrameVectorizer.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1710">
@@ -750,16 +751,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-465">
-          <caret line="147" column="35" lean-forward="false" selection-start-line="147" selection-start-column="35" selection-end-line="147" selection-end-column="35" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/consolidate-data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="342">
@@ -851,13 +842,31 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="75">
+          <caret line="5" column="0" lean-forward="false" selection-start-line="5" selection-start-column="0" selection-end-line="5" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="154">
-          <caret line="402" column="31" lean-forward="false" selection-start-line="402" selection-start-column="31" selection-end-line="402" selection-end-column="31" />
+        <state relative-caret-position="-3489">
+          <caret line="151" column="56" lean-forward="false" selection-start-line="151" selection-start-column="56" selection-end-line="151" selection-end-column="56" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prep-base-data.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="222">
+          <caret line="89" column="0" lean-forward="true" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>
