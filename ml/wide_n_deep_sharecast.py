@@ -344,8 +344,8 @@ def build_estimator(model_dir):
 
 
   m = tf.contrib.learn.DNNLinearCombinedRegressor(model_dir=model_dir, linear_feature_columns=wide_columns,
-                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[368],
-                                                  dnn_optimizer=tf.train.AdamOptimizer(),
+                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[368, 184],
+                                                  dnn_optimizer=tf.train.AdadeltaOptimizer(),
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=30))
   return m
@@ -429,6 +429,9 @@ def train_and_eval(train_steps):
 
   model_dir = 'data/model'
   print("model directory = %s" % model_dir)
+
+  # Clear model directpry
+  clear_model_dir(model_dir)
 
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error

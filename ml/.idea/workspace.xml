@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/consolidate-data.py" />
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost-regression-from-pickle.py" afterPath="$PROJECT_DIR$/xgboost-regression-from-pickle.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -32,31 +30,11 @@
       <file leaf-file-name="wide_n_deep_sharecast.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-462">
-              <caret line="99" column="19" lean-forward="false" selection-start-line="99" selection-start-column="4" selection-end-line="99" selection-end-column="19" />
+            <state relative-caret-position="154">
+              <caret line="402" column="31" lean-forward="false" selection-start-line="402" selection-start-column="31" selection-end-line="402" selection-end-column="31" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
               </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="utils_model_training.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/utils_model_training.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="140">
-              <caret line="70" column="51" lean-forward="false" selection-start-line="70" selection-start-column="51" selection-end-line="70" selection-end-column="51" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="predictor.py" pinned="false" current-in-tab="false">
-        <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/predictor.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-38">
-              <caret line="436" column="29" lean-forward="false" selection-start-line="436" selection-start-column="29" selection-end-line="436" selection-end-column="29" />
-              <folding />
             </state>
           </provider>
         </entry>
@@ -875,8 +853,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-462">
-          <caret line="99" column="19" lean-forward="false" selection-start-line="99" selection-start-column="4" selection-end-line="99" selection-end-column="19" />
+        <state relative-caret-position="154">
+          <caret line="402" column="31" lean-forward="false" selection-start-line="402" selection-start-column="31" selection-end-line="402" selection-end-column="31" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
