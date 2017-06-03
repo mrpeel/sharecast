@@ -27,6 +27,10 @@ import numpy as np
 import tensorflow as tf
 import gc
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MaxAbsScaler
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
 
 
 
@@ -121,6 +125,28 @@ def safe_exp(input_array):
     return_vals[neg_mask] *= -1
     return return_vals
 
+def y_scaler(input_array):
+    transformed_array = safe_log(input_array)
+    scaler = MaxAbsScaler()
+    transformed_array = scaler.fit_transform(transformed_array)
+    return transformed_array, scaler
+
+def y_inverse_scaler(prediction_array, scaler):
+    transformed_array = scaler.inverse_transform(prediction_array)
+    transformed_array = safe_exp(transformed_array)
+    return transformed_array
+
+
+def mle(actual_y, prediction_y):
+    """
+    Compute the Root Mean  Log Error
+
+    Args:
+        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
+        actual_y - numpy array containing targets with shape (n_samples, n_targets)
+    """
+
+    return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
 
 def build_estimator(model_dir):
   """Build an estimator."""
@@ -344,10 +370,10 @@ def build_estimator(model_dir):
 
 
   m = tf.contrib.learn.DNNLinearCombinedRegressor(model_dir=model_dir, linear_feature_columns=wide_columns,
-                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[368, 184],
+                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[368],
                                                   dnn_optimizer=tf.train.AdadeltaOptimizer(),
                                                   fix_global_step_increment_bug=True,
-                                                  config=tf.contrib.learn.RunConfig(save_checkpoints_secs=30))
+                                                  config=tf.contrib.learn.RunConfig(save_checkpoints_secs=60))
   return m
 
 
@@ -369,7 +395,7 @@ def input_fn(df):
   feature_cols.update(categorical_cols)
   # Converts the label column into a constant Tensor.
   #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
-  label = tf.constant(df[LABEL_COLUMN].values.astype(np.float32), shape=[df[LABEL_COLUMN].size, 1])
+  label = tf.constant(df[LABEL_COLUMN + '_scaled'].values.astype(np.float32), shape=[df[LABEL_COLUMN + '_scaled'].size, 1])
   # Returns the feature columns and the label.
   return feature_cols, label
 
@@ -402,18 +428,18 @@ def load_and_prepdata():
 
     # Clip to -99 to 1000 range
     df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
-    df[LABEL_COLUMN] = safe_log(df[LABEL_COLUMN].values)
+    df[LABEL_COLUMN + '_scaled'], transform_scaler = y_scaler(df[LABEL_COLUMN].values)
 
     # Fill N/A vals with dummy number
     df.fillna(-99999, inplace=True)
 
     scaler = StandardScaler()
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
-    return df
+    return df, transform_scaler
 
 def train_and_eval(train_steps):
   """Train and evaluate the model."""
-  share_data = load_and_prepdata()
+  share_data, transform_scaler = load_and_prepdata()
   gc.collect()
 
   msk = np.random.rand(len(share_data)) < 0.75
@@ -434,7 +460,12 @@ def train_and_eval(train_steps):
   clear_model_dir(model_dir)
 
   validation_metrics = {
-      "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error
+      "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
+      "covariance": tf.contrib.metrics.streaming_covariance,
+       "pearson": tf.contrib.metrics.streaming_pearson_correlation#,
+      # "mean_relative_error": tf.contrib.learn.MetricSpec(
+      #     metric_fn=tf.contrib.metrics.streaming_mean_relative_error(normalizer=tf.contrib.metrics.streaming_mean_tensor),
+      #     prediction_key="GENERIC"),
   }
 
 
@@ -450,13 +481,27 @@ def train_and_eval(train_steps):
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
   m.fit(input_fn=lambda: input_fn(df_train), steps=train_steps, monitors=[validation_monitor])
+  # evaluate using tensorflow evaluation
   results = m.evaluate(input_fn=lambda: input_fn(df_test), steps=1)
   for key in sorted(results):
         print("%s: %s" % (key, results[key]))
 
+  # evaluate using predictions
+  predictions = m.predict(input_fn=lambda: input_fn(df_test))
+
+  inverse_scaled_predictions = y_inverse_scaler(predictions, transform_scaler)
+
+  err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+  mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+  r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+
+  print("Fold mean mle (log of y): %s" % err)
+  print("Fold mean absolute error: %s" % mae)
+  print("Fold r2: %s" % r2)
 
 if __name__ == "__main__":
-  train_and_eval(20000)
+  train_and_eval(50000)
 
 # Hidden [100, 50]: 100 steps, : 6.25967
 # Hidden[184] Validation (step 14800): loss = 2.92982, mean_abs_error = 1.32353, global_step = 14786
+# Hidden[368, 184] Validation (step 20000): loss = 6.073651791, mean_abs_error = 2.086627007, global_step = 20000 -> needs more steps
