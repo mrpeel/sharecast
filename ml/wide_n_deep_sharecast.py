@@ -128,11 +128,11 @@ def safe_exp(input_array):
 def y_scaler(input_array):
     transformed_array = safe_log(input_array)
     scaler = MaxAbsScaler()
-    transformed_array = scaler.fit_transform(transformed_array)
+    #transformed_array = scaler.fit_transform(transformed_array)
     return transformed_array, scaler
 
 def y_inverse_scaler(prediction_array, scaler):
-    transformed_array = scaler.inverse_transform(prediction_array)
+    transformed_array = prediction_array #scaler.inverse_transform(prediction_array)
     transformed_array = safe_exp(transformed_array)
     return transformed_array
 
@@ -370,8 +370,12 @@ def build_estimator(model_dir):
 
 
   m = tf.contrib.learn.DNNLinearCombinedRegressor(model_dir=model_dir, linear_feature_columns=wide_columns,
-                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[368],
-                                                  dnn_optimizer=tf.train.AdadeltaOptimizer(),
+                                                  dnn_feature_columns=deep_columns, dnn_hidden_units=[175, 90, 90],
+                                                  dnn_optimizer=tf.train.AdamOptimizer(
+                                                      learning_rate=0.01,
+                                                      beta1=0.9,
+                                                      beta2=0.99,
+                                                  ),
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=60))
   return m
@@ -461,7 +465,6 @@ def train_and_eval(train_steps):
 
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
-      "covariance": tf.contrib.metrics.streaming_covariance,
        "pearson": tf.contrib.metrics.streaming_pearson_correlation#,
       # "mean_relative_error": tf.contrib.learn.MetricSpec(
       #     metric_fn=tf.contrib.metrics.streaming_mean_relative_error(normalizer=tf.contrib.metrics.streaming_mean_tensor),
@@ -476,7 +479,7 @@ def train_and_eval(train_steps):
       metrics=validation_metrics,
       early_stopping_metric="mean_abs_error",
       early_stopping_metric_minimize=True,
-      early_stopping_rounds=200)
+      early_stopping_rounds=300)
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
@@ -488,8 +491,9 @@ def train_and_eval(train_steps):
 
   # evaluate using predictions
   predictions = m.predict(input_fn=lambda: input_fn(df_test))
+  np_predictions = np.fromiter(predictions, np.float)
 
-  inverse_scaled_predictions = y_inverse_scaler(predictions, transform_scaler)
+  inverse_scaled_predictions = y_inverse_scaler(np_predictions, transform_scaler)
 
   err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
   mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
@@ -502,6 +506,11 @@ def train_and_eval(train_steps):
 if __name__ == "__main__":
   train_and_eval(50000)
 
-# Hidden [100, 50]: 100 steps, : 6.25967
-# Hidden[184] Validation (step 14800): loss = 2.92982, mean_abs_error = 1.32353, global_step = 14786
-# Hidden[368, 184] Validation (step 20000): loss = 6.073651791, mean_abs_error = 2.086627007, global_step = 20000 -> needs more steps
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[150]: loss = 3.34373, mean_abs_error = 1.43899, pearson = 0.735588, global_step = 2299
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[200]: loss = 3.60746, mean_abs_error = 1.51476, pearson = 0.708797, global_step = 896
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175]: loss = 3.19224, mean_abs_error = 1.39645, pearson = 0.748832, global_step = 2575
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90]: loss = 2.54716, mean_abs_error = 1.21458, pearson = 0.805559, global_step = 1986
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 50]: loss = 6.18547, mean_abs_error = 1.18301, pearson = 0.620208, global_step = 3177
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 30]: loss = 11.1669, mean_abs_error = 1.2851, pearson = 0.476241, global_step = 2696
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175]: loss = 1.92792, mean_abs_error = 0.97389, pearson = 0.85809, global_step = 3476
+# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 90]: loss = 2.24002, mean_abs_error = 1.08935, pearson = 0.832318, global_step = 1788
