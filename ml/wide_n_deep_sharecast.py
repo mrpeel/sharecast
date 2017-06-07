@@ -377,13 +377,13 @@ def build_estimator(model_dir):
                                                       beta2=0.999,
                                                   ),
                                                   dnn_feature_columns=deep_columns,
-                                                  dnn_hidden_units=[175, 90, 175],
+                                                  dnn_hidden_units=[175, 90, 175, 90, 175],
                                                   dnn_optimizer=tf.train.AdamOptimizer(
                                                       learning_rate=0.01,
                                                       beta1=0.9,
                                                       beta2=0.999,
                                                   ),
-                                                  dnn_dropout=0.05,
+                                                  dnn_dropout=0.1,
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=60))
   return m
@@ -514,15 +514,17 @@ def train_and_eval(train_steps):
 if __name__ == "__main__":
   train_and_eval(50000)
 
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[150]: loss = 3.34373, mean_abs_error = 1.43899, pearson = 0.735588, global_step = 2299
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[200]: loss = 3.60746, mean_abs_error = 1.51476, pearson = 0.708797, global_step = 896
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175]: loss = 3.19224, mean_abs_error = 1.39645, pearson = 0.748832, global_step = 2575
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90]: loss = 2.54716, mean_abs_error = 1.21458, pearson = 0.805559, global_step = 1986
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 50]: loss = 6.18547, mean_abs_error = 1.18301, pearson = 0.620208, global_step = 3177
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 30]: loss = 11.1669, mean_abs_error = 1.2851, pearson = 0.476241, global_step = 2696
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175]: loss = 1.92792, mean_abs_error = 0.97389, pearson = 0.85809, global_step = 3476
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 90]: loss = 2.24002, mean_abs_error = 1.08935, pearson = 0.832318, global_step = 1788
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 175, 175]: loss = 3.8374, mean_abs_error = 1.09894, pearson = 0.73462, global_step = 2096
-# Adam, learning_rate=0.01,  dnn_hidden_unit=[184, 90, 184, 90]: loss = 2.19823, mean_abs_error = 1.02721, pearson = 0.839332, global_step = 1798
-# Adam (dnn & linear), learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175, 90]: loss = 2.0614, mean_abs_error = 1.00151, pearson = 0.848826, global_step = 2088
-# Adam (dnn & linear) , learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175], dnn_dropout=0.05: :
+# loss = 3.34373, mean_abs_error = 1.43899, pearson = 0.735588, global_step = 2299: Adam, learning_rate=0.01,  dnn_hidden_unit=[150]
+# loss = 3.60746, mean_abs_error = 1.51476, pearson = 0.708797, global_step = 896: Adam, learning_rate=0.01,  dnn_hidden_unit=[200]
+# loss = 3.19224, mean_abs_error = 1.39645, pearson = 0.748832, global_step = 2575: Adam, learning_rate=0.01,  dnn_hidden_unit=[175]
+# loss = 2.54716, mean_abs_error = 1.21458, pearson = 0.805559, global_step = 1986: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90]
+# loss = 6.18547, mean_abs_error = 1.18301, pearson = 0.620208, global_step = 3177: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 50]
+# loss = 11.1669, mean_abs_error = 1.2851, pearson = 0.476241, global_step = 2696: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 30]
+# loss = 1.92792, mean_abs_error = 0.97389, pearson = 0.85809, global_step = 3476: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175]
+# loss = 2.24002, mean_abs_error = 1.08935, pearson = 0.832318, global_step = 1788: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 90, 90]
+# loss = 3.8374, mean_abs_error = 1.09894, pearson = 0.73462, global_step = 2096: Adam, learning_rate=0.01,  dnn_hidden_unit=[175, 175, 175]
+# loss = 2.19823, mean_abs_error = 1.02721, pearson = 0.839332, global_step = 1798: Adam, learning_rate=0.01,  dnn_hidden_unit=[184, 90, 184, 90]
+# loss = 2.0614, mean_abs_error = 1.00151, pearson = 0.848826, global_step = 2088: Adam (dnn & linear), learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175, 90]
+# loss = 1.99586, mean_abs_error = 1.01125, pearson = 0.851666, global_step = 3694: Adam (dnn & linear) , learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175], dnn_dropout=0.05
+# loss = 1.82366, mean_abs_error = 0.945565, pearson = 0.865931, global_step = 3696: Adam (dnn & linear) , learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175, 90], dnn_dropout=0.05
+# : Adam (dnn & linear) , learning_rate=0.01,  dnn_hidden_unit=[175, 90, 175, 90, 175], dnn_dropout=0.1
