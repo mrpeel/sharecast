@@ -17,14 +17,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
-import sys
 import tempfile
 import os, shutil
 
 import pandas as pd
 import numpy as np
 import tensorflow as tf
+import xgboost as xgb
 import gc
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MaxAbsScaler
@@ -147,6 +146,19 @@ def mle(actual_y, prediction_y):
     """
 
     return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
+
+def mle_eval(actual_y, eval_y):
+    """
+    Used during xgboost training
+
+    Args:
+        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
+        actual_y - numpy array containing targets with shape (n_samples, n_targets)
+    """
+    prediction_y = eval_y.get_label()
+    assert len(actual_y) == len(prediction_y)
+    return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
+
 
 def build_estimator(model_dir):
   """Build an estimator."""
@@ -390,30 +402,9 @@ def build_estimator(model_dir):
   return m
 
 
-def input_fn(df):
-  """Input builder function."""
-  # Creates a dictionary mapping from each continuous feature column name (k) to
-  # the values of that column stored in a constant Tensor.
-  continuous_cols = {k: tf.constant(df[k].values, shape=[df[k].size, 1]) for k in CONTINUOUS_COLUMNS}
-  # Creates a dictionary mapping from each categorical feature column name (k)
-  # to the values of that column stored in a tf.SparseTensor.
-  categorical_cols = {
-      k: tf.SparseTensor(
-          indices=[[i, 0] for i in range(df[k].size)],
-          values=df[k].values,
-          dense_shape=[df[k].size, 1])
-      for k in CATEGORICAL_COLUMNS}
-  # Merges the two dictionaries into one.
-  feature_cols = dict(continuous_cols)
-  feature_cols.update(categorical_cols)
-  # Converts the label column into a constant Tensor.
-  #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
-  label = tf.constant(df[LABEL_COLUMN + '_scaled'].values.astype(np.float32), shape=[df[LABEL_COLUMN + '_scaled'].size, 1])
-  # Returns the feature columns and the label.
-  return feature_cols, label
-
-
-def load_and_prepdata():
+def load_and_mask_data:
+    """Load pickled data and run combined prep """
+    # Return dataframe and mask to split data
     df = pd.read_pickle('data/ml-sample-data.pkl.gz', compression='gzip')
     gc.collect()
 
@@ -441,21 +432,51 @@ def load_and_prepdata():
 
     # Clip to -99 to 1000 range
     df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
-    df[LABEL_COLUMN + '_scaled'], transform_scaler = y_scaler(df[LABEL_COLUMN].values)
+
+    # Add scaled value for y - using log of y
+    df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
 
     # Fill N/A vals with dummy number
     df.fillna(-99999, inplace=True)
 
+    # Create mask for splitting data 75 / 25
+    msk = np.random.rand(len(df)) < 0.75
+
+    return df, msk
+
+def prep_tf_data():
+    df, msk = load_and_mask_data()
+
     scaler = StandardScaler()
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
-    return df, transform_scaler
+    return df, msk
 
-def train_and_eval(train_steps):
+def input_fn(df):
+  """Input builder function."""
+  # Creates a dictionary mapping from each continuous feature column name (k) to
+  # the values of that column stored in a constant Tensor.
+  continuous_cols = {k: tf.constant(df[k].values, shape=[df[k].size, 1]) for k in CONTINUOUS_COLUMNS}
+  # Creates a dictionary mapping from each categorical feature column name (k)
+  # to the values of that column stored in a tf.SparseTensor.
+  categorical_cols = {
+      k: tf.SparseTensor(
+          indices=[[i, 0] for i in range(df[k].size)],
+          values=df[k].values,
+          dense_shape=[df[k].size, 1])
+      for k in CATEGORICAL_COLUMNS}
+  # Merges the two dictionaries into one.
+  feature_cols = dict(continuous_cols)
+  feature_cols.update(categorical_cols)
+  # Converts the label column into a constant Tensor.
+  #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
+  label = tf.constant(df[LABEL_COLUMN + '_scaled'].values.astype(np.float32), shape=[df[LABEL_COLUMN + '_scaled'].size, 1])
+  # Returns the feature columns and the label.
+  return feature_cols, label
+
+def train_wide_and_deep(share_data, msk, max_train_steps):
   """Train and evaluate the model."""
-  share_data, transform_scaler = load_and_prepdata()
-  gc.collect()
 
-  msk = np.random.rand(len(share_data)) < 0.75
+  # Use mask to split data
   df_train = share_data[msk].copy()
   df_test = share_data[~msk].copy()
 
@@ -492,7 +513,7 @@ def train_and_eval(train_steps):
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
-  m.fit(input_fn=lambda: input_fn(df_train), steps=train_steps, monitors=[validation_monitor])
+  m.fit(input_fn=lambda: input_fn(df_train), steps=max_train_steps, monitors=[validation_monitor])
   # evaluate using tensorflow evaluation
   results = m.evaluate(input_fn=lambda: input_fn(df_test), steps=1)
   for key in sorted(results):
@@ -502,19 +523,100 @@ def train_and_eval(train_steps):
   predictions = m.predict(input_fn=lambda: input_fn(df_test))
   np_predictions = np.fromiter(predictions, np.float)
 
-  inverse_scaled_predictions = y_inverse_scaler(np_predictions, transform_scaler)
+  inverse_scaled_predictions = safe_exp(np_predictions)
 
   err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
   mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
   r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
 
-  print("Fold mean mle (log of y): %s" % err)
-  print("Fold mean absolute error: %s" % mae)
-  print("Fold r2: %s" % r2)
+  print('tf results')
+  print("Mean log of error: %s" % err)
+  print("Mean absolute error: %s" % mae)
+  print("r2: %s" % r2)
+
+  # return predicted values
+  return  share_data, msk, inverse_scaled_predictions, df_test[LABEL_COLUMN]
+
+
+def train_xgb(share_data, msk):
+    # Use dummy values for categorical colums
+    share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
+                                                          '4WeekBollingerType',
+                                                          '12WeekBollingerPrediction',
+                                                          '12WeekBollingerType'])
+
+    # Convert symbol to integer
+    share_data['symbol'] = pd.factorize(share_data['symbol'])[0]
+
+    #Create model
+    model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=70, base_score=0.35, colsample_bylevel=0.8,
+                             colsample_bytree=0.8, gamma=0, learning_rate=0.075, max_delta_step=0,
+                             min_child_weight=0)
+
+
+    # Set y values to log of y, and drop original label and log of y label for x values
+    train_y = share_data[msk][LABEL_COLUMN + '_scaled'].values
+    train_x = share_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+
+    test_y = share_data[~msk][LABEL_COLUMN + '_scaled'].values
+    test_x = share_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+
+
+    eval_set = [(test_x, test_y)]
+    model.fit(train_x, train_y, early_stopping_rounds=10, eval_metric=mle_eval, eval_set=eval_set, verbose=True)
+
+    gc.collect()
+
+    predictions = model.predict(test_x)
+
+    err = mle(test_y, predictions)
+    mae = mean_absolute_error(test_y, predictions)
+    r2 = r2_score(test_y, predictions)
+
+    print('xgboost results')
+    print("Mean log of error: %s" % err)
+    print("Mean absolute error: %s" % mae)
+    print("r2: %s" % r2)
+
+    return predictions
+
 
 if __name__ == "__main__":
-  train_and_eval(50000)
+    # Retrieve and run combined prep on data
+    share_data, msk = prep_tf_data()
+    gc.collect()
 
+    # Train deep learning model
+    tf_predictions, actuals = train_wide_and_deep(50000)
+    xgb_predictions = train_xgb(share_data, msk)
+
+    # Generate final and combined results
+    tf_err = mle(actuals, tf_predictions)
+    tf_mae = mean_absolute_error(actuals, tf_predictions)
+    tf_r2 = r2_score(actuals, tf_predictions)
+
+
+    xgb_err = mle(actuals, xgb_predictions)
+    xgb_mae = mean_absolute_error(actuals, xgb_predictions)
+    xgb_r2 = r2_score(actuals, xgb_predictions)
+
+    combined_err = mle(actuals, ((tf_predictions + xgb_predictions) / 2))
+    combined_mae = mean_absolute_error(actuals, ((tf_predictions + xgb_predictions) / 2))
+    combined_r2 = r2_score(actuals, ((tf_predictions + xgb_predictions) / 2))
+
+    # Print results
+    print('Mean log of error')
+    print('tf:', tf_err, ' xgb:', tf_xgb, 'combined: ', combined_err)
+
+    print('Mean absolute error')
+    print('tf:', tf_mae, ' xgb:', tf_mae, 'combined: ', combined_mae)
+
+    print('Mean r2')
+    print('tf:', tf_r2, ' xgb:', tf_r2, 'combined: ', combined_r2)
+
+
+
+# --------------------------------------------------
 # loss = 3.34373, mean_abs_error = 1.43899, pearson = 0.735588, global_step = 2299: Adam, learning_rate=0.01,  dnn_hidden_unit=[150]
 # loss = 3.60746, mean_abs_error = 1.51476, pearson = 0.708797, global_step = 896: Adam, learning_rate=0.01,  dnn_hidden_unit=[200]
 # loss = 3.19224, mean_abs_error = 1.39645, pearson = 0.748832, global_step = 2575: Adam, learning_rate=0.01,  dnn_hidden_unit=[175]
@@ -533,7 +635,7 @@ if __name__ == "__main__":
 
 
 # Test activations at 1100: relu: mean_abs_error = 1.04629
-#                           elu:
+#                           elu: 
 #                           crelu:
 #                           relu6:
 #                           sigmoid:
