@@ -379,11 +379,11 @@ def build_estimator(model_dir):
                                                   dnn_feature_columns=deep_columns,
                                                   dnn_hidden_units=[175, 90, 175, 90],
                                                   dnn_optimizer=tf.train.AdamOptimizer(
-                                                      learning_rate=0.01,
+                                                      learning_rate=0.0125,
                                                       beta1=0.9,
                                                       beta2=0.999,
                                                   ),
-                                                  dnn_activation_fn=tf.nn.elu,
+                                                  dnn_activation_fn=tf.nn.relu6,
                                                   dnn_dropout=0.05,
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
@@ -531,10 +531,11 @@ if __name__ == "__main__":
 # loss = 3.58419, mean_abs_error = 1.60344, pearson = 0.743906, global_step = 1797: Adam (dnn & linear) , learning_rate=0.02,  dnn_hidden_unit=[175, 90, 175, 90, 175], dnn_dropout=0.25
 # loss = 2.82921, mean_abs_error = 1.35015, pearson = 0.795055, global_step = 2199: Adam (dnn & linear) , learning_rate=0.01, dnn_hidden_unit=[175, 90, 175, 175], dnn_dropout=0.2
 
-
 # Test activations at 1100: relu: mean_abs_error = 1.04629
-#                           elu:
-#                           crelu:
-#                           relu6:
-#                           sigmoid:
-#                           tanh:
+#                           elu: mean_abs_error = 1.09357
+#                           crelu: stopped at 500 steps - loss increasing exponentially
+#                           relu6: mean_abs_error = 1.04059
+#                           sigmoid: mean_abs_error = 1.26732
+#                           tanh: mean_abs_error = 1.10535
+
+#   : Adam(dnn & linear), relu6, learning_rate = 0.0125, dnn_hidden_unit = [175, 90, 175, 175], dnn_dropout = 0.05

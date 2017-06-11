@@ -496,9 +496,6 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
        "pearson": tf.contrib.metrics.streaming_pearson_correlation#,
-      # "mean_relative_error": tf.contrib.learn.MetricSpec(
-      #     metric_fn=tf.contrib.metrics.streaming_mean_relative_error(normalizer=tf.contrib.metrics.streaming_mean_tensor),
-      #     prediction_key="GENERIC"),
   }
 
 
@@ -509,7 +506,7 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
       metrics=validation_metrics,
       early_stopping_metric="mean_abs_error",
       early_stopping_metric_minimize=True,
-      early_stopping_rounds=2000)
+      early_stopping_rounds=500)
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
@@ -539,7 +536,7 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
 
 
 def train_xgb(share_data, msk):
-    # Use dummy values for categorical colums
+    # Use pandas dummy columns for categorical columns
     share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
                                                           '4WeekBollingerType',
                                                           '12WeekBollingerPrediction',
@@ -587,7 +584,7 @@ if __name__ == "__main__":
     gc.collect()
 
     # Train deep learning model
-    tf_predictions, actuals = train_wide_and_deep(50000)
+    tf_predictions, actuals = train_wide_and_deep(5000)
     xgb_predictions = train_xgb(share_data, msk)
 
     # Generate final and combined results
