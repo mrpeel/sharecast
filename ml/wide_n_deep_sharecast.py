@@ -450,7 +450,7 @@ def load_and_prepdata():
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
     return df, transform_scaler
 
-def train_and_eval(train_steps):
+def train_and_eval(train_steps, continue_training=False):
   """Train and evaluate the model."""
   share_data, transform_scaler = load_and_prepdata()
   gc.collect()
@@ -470,7 +470,8 @@ def train_and_eval(train_steps):
   print("model directory = %s" % model_dir)
 
   # Clear model directpry
-  clear_model_dir(model_dir)
+  if not continue_training:
+    clear_model_dir(model_dir)
 
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
@@ -513,7 +514,7 @@ def train_and_eval(train_steps):
   print("Fold r2: %s" % r2)
 
 if __name__ == "__main__":
-  train_and_eval(50000)
+  train_and_eval(50000, continue_training=True)
 
 # loss = 3.34373, mean_abs_error = 1.43899, pearson = 0.735588, global_step = 2299: Adam, learning_rate=0.01,  dnn_hidden_unit=[150]
 # loss = 3.60746, mean_abs_error = 1.51476, pearson = 0.708797, global_step = 896: Adam, learning_rate=0.01,  dnn_hidden_unit=[200]
