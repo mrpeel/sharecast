@@ -2,9 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -20,8 +19,8 @@
       <file leaf-file-name="xgboost-regression-from-pickle.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/xgboost-regression-from-pickle.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="328">
-              <caret line="123" column="0" lean-forward="false" selection-start-line="118" selection-start-column="0" selection-end-line="123" selection-end-column="0" />
+            <state relative-caret-position="1650">
+              <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
               <folding>
                 <element signature="e#0#21#0" expanded="true" />
               </folding>
@@ -29,10 +28,10 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="wide_n_deep_sharecast.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="wide_n_deep_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-210">
+            <state relative-caret-position="7350">
               <caret line="506" column="0" lean-forward="false" selection-start-line="506" selection-start-column="0" selection-end-line="506" selection-end-column="0" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
@@ -44,32 +43,20 @@
       <file leaf-file-name="wide_n_deep_categories_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="481" column="33" lean-forward="false" selection-start-line="481" selection-start-column="33" selection-end-line="481" selection-end-column="33" />
+            <state relative-caret-position="324">
+              <caret line="454" column="26" lean-forward="false" selection-start-line="454" selection-start-column="26" selection-end-line="454" selection-end-column="26" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="28">
-              <caret line="572" column="28" lean-forward="false" selection-start-line="572" selection-start-column="28" selection-end-line="572" selection-end-column="28" />
+            <state relative-caret-position="123">
+              <caret line="581" column="44" lean-forward="true" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="prep-data-regression.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="193" column="62" lean-forward="false" selection-start-line="193" selection-start-column="4" selection-end-line="193" selection-end-column="62" />
-              <folding>
-                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -78,7 +65,7 @@
       <file leaf-file-name="prep-base-data.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prep-base-data.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="222">
+            <state relative-caret-position="1290">
               <caret line="89" column="0" lean-forward="false" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
               <folding />
             </state>
@@ -122,6 +109,8 @@
       <find>fill</find>
       <find>loss</find>
       <find>clear_model_dir</find>
+      <find>bins</find>
+      <find>fac</find>
     </findStrings>
     <replaceStrings>
       <replace>= tf.contrib.layers.real_valued_column(&quot;</replace>
@@ -197,6 +186,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scratches" />
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -231,8 +222,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -265,25 +254,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.wide_n_deep_xgboost_ensemble_sharecast">
-    <configuration default="false" name="tpot" type="PythonConfigurationType" factoryName="Python" temporary="true">
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="$USER_HOME$/anaconda/bin/python3" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="false" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <module name="ml" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tpot.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <method />
-    </configuration>
+  <component name="RunManager" selected="Python.wide_n_deep_categories_sharecast">
     <configuration default="false" name="tpot-xgboost" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -351,6 +322,24 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="ml" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <method />
+    </configuration>
+    <configuration default="false" name="wide_n_deep_categories_sharecast" type="PythonConfigurationType" factoryName="Python" temporary="true">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="$USER_HOME$/anaconda/bin/python3" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="ml" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -424,19 +413,19 @@
       <method />
     </configuration>
     <list size="5">
-      <item index="0" class="java.lang.String" itemvalue="Python.tpot" />
-      <item index="1" class="java.lang.String" itemvalue="Python.tpot-xgboost" />
-      <item index="2" class="java.lang.String" itemvalue="Python.consolidate-data" />
-      <item index="3" class="java.lang.String" itemvalue="Python.wide_n_deep_sharecast" />
-      <item index="4" class="java.lang.String" itemvalue="Python.wide_n_deep_xgboost_ensemble_sharecast" />
+      <item index="0" class="java.lang.String" itemvalue="Python.tpot-xgboost" />
+      <item index="1" class="java.lang.String" itemvalue="Python.consolidate-data" />
+      <item index="2" class="java.lang.String" itemvalue="Python.wide_n_deep_sharecast" />
+      <item index="3" class="java.lang.String" itemvalue="Python.wide_n_deep_xgboost_ensemble_sharecast" />
+      <item index="4" class="java.lang.String" itemvalue="Python.wide_n_deep_categories_sharecast" />
     </list>
     <recent_temporary>
       <list size="5">
-        <item index="0" class="java.lang.String" itemvalue="Python.wide_n_deep_xgboost_ensemble_sharecast" />
-        <item index="1" class="java.lang.String" itemvalue="Python.wide_n_deep_sharecast" />
-        <item index="2" class="java.lang.String" itemvalue="Python.consolidate-data" />
-        <item index="3" class="java.lang.String" itemvalue="Python.tpot-xgboost" />
-        <item index="4" class="java.lang.String" itemvalue="Python.tpot" />
+        <item index="0" class="java.lang.String" itemvalue="Python.wide_n_deep_categories_sharecast" />
+        <item index="1" class="java.lang.String" itemvalue="Python.wide_n_deep_xgboost_ensemble_sharecast" />
+        <item index="2" class="java.lang.String" itemvalue="Python.wide_n_deep_sharecast" />
+        <item index="3" class="java.lang.String" itemvalue="Python.consolidate-data" />
+        <item index="4" class="java.lang.String" itemvalue="Python.tpot-xgboost" />
       </list>
     </recent_temporary>
   </component>
@@ -512,9 +501,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2505">
           <caret line="174" column="0" lean-forward="true" selection-start-line="174" selection-start-column="0" selection-end-line="174" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#21#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -557,9 +543,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="75">
           <caret line="5" column="19" lean-forward="false" selection-start-line="5" selection-start-column="19" selection-end-line="5" selection-end-column="19" />
-          <folding>
-            <element signature="e#45#63#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -616,9 +599,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1575">
           <caret line="118" column="0" lean-forward="true" selection-start-line="118" selection-start-column="0" selection-end-line="118" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#21#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -626,9 +606,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-          <folding>
-            <element signature="e#45#63#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -636,9 +613,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="45">
           <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="35" />
-          <folding>
-            <element signature="e#0#21#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -740,25 +714,14 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1635">
           <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="26" />
-          <folding>
-            <element signature="e#45#63#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/tpot.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="209">
-          <caret line="49" column="33" lean-forward="true" selection-start-line="49" selection-start-column="33" selection-end-line="49" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/tpot.py" />
     <entry file="file://$PROJECT_DIR$/consolidate-data.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="342">
           <caret line="98" column="34" lean-forward="false" selection-start-line="98" selection-start-column="34" selection-end-line="98" selection-end-column="34" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -766,9 +729,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1348">
           <caret line="179" column="18" lean-forward="true" selection-start-line="179" selection-start-column="18" selection-end-line="179" selection-end-column="18" />
-          <folding>
-            <element signature="e#0#21#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -776,9 +736,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="81">
           <caret line="79" column="10" lean-forward="false" selection-start-line="79" selection-start-column="10" selection-end-line="79" selection-end-column="10" />
-          <folding>
-            <element signature="e#764#802#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -786,9 +743,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="140">
           <caret line="94" column="0" lean-forward="false" selection-start-line="94" selection-start-column="0" selection-end-line="100" selection-end-column="22" />
-          <folding>
-            <element signature="e#0#18#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -796,9 +750,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="18" />
-          <folding>
-            <element signature="e#0#18#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -806,9 +757,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="324">
           <caret line="94" column="0" lean-forward="false" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#18#0" expanded="false" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -823,7 +771,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="140">
           <caret line="70" column="51" lean-forward="false" selection-start-line="70" selection-start-column="51" selection-end-line="70" selection-end-column="51" />
-          <folding />
         </state>
       </provider>
     </entry>
@@ -831,60 +778,56 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-38">
           <caret line="436" column="29" lean-forward="false" selection-start-line="436" selection-start-column="29" selection-end-line="436" selection-end-column="29" />
-          <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/prep-base-data.py">
+    <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="222">
-          <caret line="89" column="0" lean-forward="false" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/xgboost-regression-from-pickle.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="328">
-          <caret line="123" column="0" lean-forward="false" selection-start-line="118" selection-start-column="0" selection-end-line="123" selection-end-column="0" />
-          <folding>
-            <element signature="e#0#21#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="193" column="62" lean-forward="false" selection-start-line="193" selection-start-column="4" selection-end-line="193" selection-end-column="62" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="252">
-          <caret line="481" column="33" lean-forward="false" selection-start-line="481" selection-start-column="33" selection-end-line="481" selection-end-column="33" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="28">
-          <caret line="572" column="28" lean-forward="false" selection-start-line="572" selection-start-column="28" selection-end-line="572" selection-end-column="28" />
+        <state relative-caret-position="7350">
+          <caret line="506" column="0" lean-forward="false" selection-start-line="506" selection-start-column="0" selection-end-line="506" selection-end-column="0" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/wide_n_deep_sharecast.py">
+    <entry file="file://$PROJECT_DIR$/xgboost-regression-from-pickle.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-210">
-          <caret line="506" column="0" lean-forward="false" selection-start-line="506" selection-start-column="0" selection-end-line="506" selection-end-column="0" />
+        <state relative-caret-position="1650">
+          <caret line="118" column="3" lean-forward="false" selection-start-line="118" selection-start-column="3" selection-end-line="118" selection-end-column="3" />
+          <folding>
+            <element signature="e#0#21#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prep-base-data.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1290">
+          <caret line="89" column="0" lean-forward="false" selection-start-line="89" selection-start-column="0" selection-end-line="89" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="269">
+          <caret line="191" column="35" lean-forward="true" selection-start-line="191" selection-start-column="35" selection-end-line="191" selection-end-column="35" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="324">
+          <caret line="454" column="26" lean-forward="false" selection-start-line="454" selection-start-column="26" selection-end-line="454" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="123">
+          <caret line="581" column="44" lean-forward="true" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>

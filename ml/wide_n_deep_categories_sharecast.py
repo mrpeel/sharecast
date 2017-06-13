@@ -372,7 +372,9 @@ def input_fn(df):
   feature_cols.update(categorical_cols)
   # Converts the label column into a constant Tensor.
   #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
-  label = tf.constant(df[LABEL_COLUMN + '_categories'].values, shape=[df[LABEL_COLUMN + '_categories'].size, 1])
+  label = tf.constant(df[LABEL_COLUMN + '_cat_class'].values)
+
+
   # Returns the feature columns and the label.
   return feature_cols, label
 
@@ -403,18 +405,21 @@ def load_and_prepdata():
 
     df = df.dropna(subset=[LABEL_COLUMN], how='all')
 
+    # Fill N/A vals with dummy number
+    df.fillna(-99999, inplace=True)
+
     # Clip to -99 to 1000 range
     df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
 
-    bins = [-99, -50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1000]
-    group_names = ['Wipeout', 'Lost 50 percent', 'Lost 25 percent', 'Lost 10 percent', 'Small loss', 'Steady',
-                   'Moderate gain','Solid gain','Gained 10 percent','Gained 20 percent','Gained 50 percent',
+    bins = [-100, -50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
+    group_names = ['Wipeout', 'Lost 25 to 50 percent', 'Lost 10 to 25 percent', 'Lost 5 to 10 percent',
+                   'Lost under 5 percent', 'Steady', 'Gained 2 to 5 percent','Gained 5 to 10 percent',
+                   'Gained 10 to 20 percent','Gained 20 to 50 percent','Gained 50 to 100 percent',
                    'More than doubled']
 
     df[LABEL_COLUMN + '_categories'] = pd.cut(df[LABEL_COLUMN], bins, labels=group_names)
 
-    # Fill N/A vals with dummy number
-    df.fillna(-99999, inplace=True)
+    df[LABEL_COLUMN + '_cat_class'] = pd.factorize(df[LABEL_COLUMN + '_categories'])[0]
 
     scaler = StandardScaler()
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
@@ -468,19 +473,6 @@ def train_and_eval(train_steps, continue_training=False):
   for key in sorted(results):
         print("%s: %s" % (key, results[key]))
 
-  # evaluate using predictions
-  predictions = m.predict(input_fn=lambda: input_fn(df_test))
-  np_predictions = np.fromiter(predictions, np.float)
-
-  inverse_scaled_predictions = y_inverse_scaler(np_predictions, transform_scaler)
-
-  err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-  mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-  r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-
-  print("Fold mean mle (log of y): %s" % err)
-  print("Fold mean absolute error: %s" % mae)
-  print("Fold r2: %s" % r2)
 
 if __name__ == "__main__":
   train_and_eval(50000, continue_training=False)

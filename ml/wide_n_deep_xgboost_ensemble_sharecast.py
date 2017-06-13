@@ -587,7 +587,7 @@ if __name__ == "__main__":
     actuals = share_data[~msk][LABEL_COLUMN]
 
     # Train deep learning model
-    tf_predictions = train_wide_and_deep(share_data, msk, 10000)
+    tf_predictions = train_wide_and_deep(share_data, msk, 15000)
     xgb_predictions = train_xgb(share_data, msk)
 
     # Generate final and combined results
