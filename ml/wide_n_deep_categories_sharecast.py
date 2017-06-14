@@ -459,11 +459,11 @@ def train_and_eval(train_steps, continue_training=False):
   validation_monitor = tf.contrib.learn.monitors.ValidationMonitor(
       input_fn=lambda: input_fn(df_test),
       eval_steps=1,
-      every_n_steps=100,
+      every_n_steps=25,
       metrics=validation_metrics,
       early_stopping_metric="accuracy",
       early_stopping_metric_minimize=True,
-      early_stopping_rounds=500)
+      early_stopping_rounds=50)
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))

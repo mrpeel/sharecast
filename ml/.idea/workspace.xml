@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -40,21 +38,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="wide_n_deep_categories_sharecast.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="wide_n_deep_categories_sharecast.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="324">
-              <caret line="454" column="26" lean-forward="false" selection-start-line="454" selection-start-column="26" selection-end-line="454" selection-end-column="26" />
+            <state relative-caret-position="325">
+              <caret line="465" column="31" lean-forward="true" selection-start-line="465" selection-start-column="31" selection-end-line="465" selection-end-column="31" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="123">
-              <caret line="581" column="44" lean-forward="true" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
+              <caret line="581" column="44" lean-forward="false" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
               </folding>
@@ -142,8 +140,8 @@
         <option value="$PROJECT_DIR$/xgboost.ipynb" />
         <option value="$PROJECT_DIR$/prep-base-data.py" />
         <option value="$PROJECT_DIR$/wide_n_deep_sharecast.py" />
-        <option value="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
         <option value="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" />
+        <option value="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
       </list>
     </option>
   </component>
@@ -816,21 +814,21 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="324">
-          <caret line="454" column="26" lean-forward="false" selection-start-line="454" selection-start-column="26" selection-end-line="454" selection-end-column="26" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="123">
-          <caret line="581" column="44" lean-forward="true" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
+          <caret line="581" column="44" lean-forward="false" selection-start-line="581" selection-start-column="44" selection-end-line="581" selection-end-column="44" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/wide_n_deep_categories_sharecast.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="325">
+          <caret line="465" column="31" lean-forward="true" selection-start-line="465" selection-start-column="31" selection-end-line="465" selection-end-column="31" />
+          <folding />
         </state>
       </provider>
     </entry>
