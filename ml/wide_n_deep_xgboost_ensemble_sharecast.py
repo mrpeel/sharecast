@@ -78,8 +78,8 @@ COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBo
 LABEL_COLUMN = "Future8WeekReturn"
 CATEGORICAL_COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType',
                        '12WeekBollingerPrediction', '12WeekBollingerType']
-CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteMonth', 'volume', 'previousClose', 'change', 'changeInPercent',
-                '52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
+CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteMonth', 'quoteYear', 'volume', 'previousClose', 'change',
+                'changeInPercent','52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
                 'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'Price200DayAverage',
                 'Price52WeekPercChange', '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility',
                 '12WeekVolatility', '26WeekVolatility', '52WeekVolatility', 'allordpreviousclose', 'allordchange',
@@ -159,6 +159,18 @@ def mle_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
 
+def drop_unused_columns(df, data_cols):
+    # Check for columns to drop
+    print('Keeping columns:', list(data_cols))
+    cols_to_drop = []
+    for col in df.columns:
+        if col not in data_cols:
+            cols_to_drop.append(col)
+
+    print('Dropping columns:', list(cols_to_drop))
+    df.drop(cols_to_drop, axis=1, inplace=True)
+
+    return df
 
 def build_estimator(model_dir):
   """Build an estimator."""
@@ -177,6 +189,7 @@ def build_estimator(model_dir):
 
   # Continuous base columns.
   quoteMonth = tf.contrib.layers.real_valued_column("quoteMonth")
+  quoteYear = tf.contrib.layers.real_valued_column("quoteYear")
   adjustedPrice = tf.contrib.layers.real_valued_column("adjustedPrice")
   volume = tf.contrib.layers.real_valued_column("volume")
   previousClose = tf.contrib.layers.real_valued_column("previousClose")
@@ -291,6 +304,7 @@ def build_estimator(model_dir):
       tf.contrib.layers.embedding_column(_12WeekBollingerType, dimension=8),
       adjustedPrice,
       quoteMonth,
+      quoteYear,
       volume,
       previousClose,
       change,
@@ -396,7 +410,7 @@ def build_estimator(model_dir):
                                                       beta2=0.999,
                                                   ),
                                                   dnn_activation_fn=tf.nn.relu6,
-                                                  dnn_dropout=0.075,
+                                                  dnn_dropout=0.1,
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
   return m
@@ -407,6 +421,12 @@ def load_and_mask_data():
     # Return dataframe and mask to split data
     df = pd.read_pickle('data/ml-sample-data.pkl.gz', compression='gzip')
     gc.collect()
+
+    # Remove columns not referenced in either algorithm
+    columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
+    columns_to_keep.extend(CONTINUOUS_COLUMNS)
+    columns_to_keep.extend(CATEGORICAL_COLUMNS)
+    df = drop_unused_columns(df, columns_to_keep)
 
     # Convert quote dates data to year and month
     df['quoteDate'] = pd.to_datetime(df['quoteDate'])
@@ -547,22 +567,28 @@ def train_xgb(share_data, msk):
 
     #Create model
     model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
-                             colsample_bytree=0.8, gamma=0, learning_rate=0.0125, max_delta_step=0,
+                             colsample_bytree=0.8, gamma=0, learning_rate=0.01, max_delta_step=0,
                              min_child_weight=0)
+
 
 
     # Set y values to log of y, and drop original label and log of y label for x values
     train_y = share_data[msk][LABEL_COLUMN + '_scaled'].values
-    train_x = share_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+    df_train_x = share_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1)
+    train_x = df_train_x.values
 
     actuals = share_data[~msk][LABEL_COLUMN].values
     test_y = share_data[~msk][LABEL_COLUMN + '_scaled'].values
-    test_x = share_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+    df_test_x = share_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1)
+    test_x = df_test_x.values
 
+    # Check columns being used
+    print('train_x: ', list(df_train_x.columns.values))
+    print('test_x: ', list(df_test_x.columns.values))
 
 
     eval_set = [(test_x, test_y)]
-    model.fit(train_x, train_y, early_stopping_rounds=20, eval_metric=mle_eval, eval_set=eval_set, verbose=True)
+    model.fit(train_x, train_y, early_stopping_rounds=25, eval_metric=mle_eval, eval_set=eval_set, verbose=True)
 
     gc.collect()
 
