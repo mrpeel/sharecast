@@ -615,13 +615,13 @@ if __name__ == "__main__":
     print('Overall results')
     print('-------------------')
     print('Mean log of error')
-    print('tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
+    print('  tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
 
     print('Mean absolute error')
-    print('tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
+    print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
 
     print('Mean r2')
-    print('tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
+    print('  tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
     print('-------------------')
 
     result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
@@ -653,13 +653,13 @@ if __name__ == "__main__":
         print('Results:', lower_range, 'to', upper_range)
         print('-------------------')
         print('Mean log of error')
-        print('tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
+        print('  tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
 
         print('Mean absolute error')
-        print('tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
+        print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
 
         print('Mean r2')
-        print('tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
+        print('  tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
         print('-------------------')
 
         lower_range = upper_range
