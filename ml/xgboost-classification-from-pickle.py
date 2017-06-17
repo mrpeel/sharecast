@@ -1,6 +1,11 @@
+import xgboost as xgb
 import numpy as np
 import pandas as pd
 from memory_profiler import profile
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+import time
 import gc
 
 
@@ -72,29 +77,122 @@ returns = {
     '52ra': 'Future52WeekRiskAdjustedReturn'
 }
 
-# Load data
-# raw_data = pd.read_csv('data/companyQuotes-20170417-001.csv')
-def load_data(base_path, increments):
-    loading_data = pd.DataFrame()
-    for increment in increments:
-        path = base_path % increment
-        frame = pd.read_csv(path, compression='gzip', parse_dates=['quoteDate'], infer_datetime_format=True, low_memory=False)
-        loading_data = loading_data.append(frame, ignore_index=True)
-        del frame
-        print('Loaded:', path)
-
-    return loading_data
+LABEL_COLUMN = 'Future8WeekReturn'
 
 
+def drop_unused_columns(df, data_cols):
+    # Check for columns to drop
+    print('Keeping columns:', list(data_cols))
+    cols_to_drop = []
+    for col in df.columns:
+        if col not in data_cols:
+            cols_to_drop.append(col)
 
-share_data = load_data(base_path='data/companyQuotes-20170514-%03d.csv.gz', increments=range(1, 77))
+    print('Dropping columns:', list(cols_to_drop))
+    df.drop(cols_to_drop, axis=1, inplace=True)
+
+    return df
+
+
+
+print('Loading pickled data')
+
+df = pd.read_pickle('data/ml-sample-data-2.pkl.gz', compression='gzip')
 gc.collect()
 
+# Set-up columns to keep
+data_columns.append(LABEL_COLUMN)
+
+drop_unused_columns(df, data_columns)
 
 
-print('Pickling data')
+# Convert quote dates data to year and month
+df['quoteDate'] = pd.to_datetime(df['quoteDate'])
+df['exDividendDate'] = pd.to_datetime(df['exDividendDate'])
 
-msk = np.random.rand(len(share_data)) < 0.10
-sample2 = share_data[msk].copy()
+# Reset divident date as a number
+df['exDividendRelative'] = \
+    df['exDividendDate'] - \
+    df['quoteDate']
 
-sample2.to_pickle('data/ml-sample-data-2.pkl.gz', compression='gzip')
+# convert string difference value to integer
+df['exDividendRelative'] = df['exDividendRelative'].apply(
+    lambda x: np.nan if pd.isnull(x) else x.days)
+
+df['quoteYear'], df['quoteMonth'], = \
+    df['quoteDate'].dt.year, \
+    df['quoteDate'].dt.month.astype('int8')
+
+# Remove dates columns
+df.drop(['quoteDate', 'exDividendDate'], axis=1, inplace=True)
+
+df = df.dropna(subset=[LABEL_COLUMN], how='all')
+
+# Clip to -99 to 1000 range
+df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
+
+bins = [-100, -50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
+group_names = ['Wipeout', 'Lost 25 to 50 percent', 'Lost 10 to 25 percent', 'Lost 5 to 10 percent',
+               'Lost under 5 percent', 'Steady', 'Gained 2 to 5 percent', 'Gained 5 to 10 percent',
+               'Gained 10 to 20 percent', 'Gained 20 to 50 percent', 'Gained 50 to 100 percent',
+               'More than doubled']
+
+df[LABEL_COLUMN + '_categories'] = pd.cut(df[LABEL_COLUMN], bins, labels=group_names)
+df[LABEL_COLUMN + '_cat_class'] = pd.factorize(df[LABEL_COLUMN + '_categories'])[0]
+
+# Drop base label cols
+df.drop([LABEL_COLUMN, LABEL_COLUMN + '_categories'], axis=1, inplace=True)
+
+
+# Fill N/A vals with dummy number
+df.fillna(-99999, inplace=True)
+
+# Convert symbol to integer
+df['symbol'] = pd.factorize(df['symbol'])[0]
+
+df = pd.get_dummies(data=df, columns=['4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerPrediction',
+                                      '12WeekBollingerType'])
+
+
+print('Training for', LABEL_COLUMN)
+
+
+# Create mask for splitting data 75 / 25
+msk = np.random.rand(len(df)) < 0.75
+
+
+
+model = xgb.XGBClassifier(nthread=-1, objective='multi:softmax',
+                          n_estimators=1000, max_depth=110, base_score = 0.35, colsample_bylevel = 0.8,
+                          colsample_bytree = 0.8, gamma = 0, learning_rate = 0.015, max_delta_step = 0,
+                          min_child_weight = 0)
+
+# Set y values to log of y, and drop original label and log of y label for x values
+train_y = df[msk][LABEL_COLUMN + '_cat_class'].values
+train_x = df[msk].drop([LABEL_COLUMN + '_cat_class'], axis=1).values
+
+test_y = df[~msk][LABEL_COLUMN + '_cat_class'].values
+test_x = df[~msk].drop([LABEL_COLUMN + '_cat_class'], axis=1).values
+
+start = time.time()
+
+eval_set = [(test_x, test_y)]
+model.fit(train_x, train_y, early_stopping_rounds=10, eval_metric='mlogloss', eval_set=eval_set, verbose=True)
+
+# Output model settings
+fit_time = time.time()
+print('Fit elapsed time: %d' % (fit_time - start))
+
+gc.collect()
+
+predictions = model.predict(test_x)
+predition_time = time.time()
+print('Prediction elapsed time: %d' % (predition_time - fit_time))
+print(model)
+
+# evaluate predictions
+accuracy = accuracy_score(test_y, predictions)
+print('Accuracy:', accuracy)
+
+print(confusion_matrix(test_y, predictions))
+

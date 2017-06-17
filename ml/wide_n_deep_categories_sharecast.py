@@ -354,30 +354,6 @@ def build_estimator(model_dir):
   return m
 
 
-def input_fn(df):
-  """Input builder function."""
-  # Creates a dictionary mapping from each continuous feature column name (k) to
-  # the values of that column stored in a constant Tensor.
-  continuous_cols = {k: tf.constant(df[k].values, shape=[df[k].size, 1]) for k in CONTINUOUS_COLUMNS}
-  # Creates a dictionary mapping from each categorical feature column name (k)
-  # to the values of that column stored in a tf.SparseTensor.
-  categorical_cols = {
-      k: tf.SparseTensor(
-          indices=[[i, 0] for i in range(df[k].size)],
-          values=df[k].values,
-          dense_shape=[df[k].size, 1])
-      for k in CATEGORICAL_COLUMNS}
-  # Merges the two dictionaries into one.
-  feature_cols = dict(continuous_cols)
-  feature_cols.update(categorical_cols)
-  # Converts the label column into a constant Tensor.
-  #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
-  label = tf.constant(df[LABEL_COLUMN + '_cat_class'].values)
-
-
-  # Returns the feature columns and the label.
-  return feature_cols, label
-
 
 def load_and_prepdata():
     df = pd.read_pickle('data/ml-sample-data.pkl.gz', compression='gzip')
@@ -425,6 +401,29 @@ def load_and_prepdata():
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
     return df
 
+def input_fn(df):
+  """Input builder function."""
+  # Creates a dictionary mapping from each continuous feature column name (k) to
+  # the values of that column stored in a constant Tensor.
+  continuous_cols = {k: tf.constant(df[k].values, shape=[df[k].size, 1]) for k in CONTINUOUS_COLUMNS}
+  # Creates a dictionary mapping from each categorical feature column name (k)
+  # to the values of that column stored in a tf.SparseTensor.
+  categorical_cols = {
+      k: tf.SparseTensor(
+          indices=[[i, 0] for i in range(df[k].size)],
+          values=df[k].values,
+          dense_shape=[df[k].size, 1])
+      for k in CATEGORICAL_COLUMNS}
+  # Merges the two dictionaries into one.
+  feature_cols = dict(continuous_cols)
+  feature_cols.update(categorical_cols)
+  # Converts the label column into a constant Tensor.
+  #label = tf.constant(df[LABEL_COLUMN].values, shape=[df[LABEL_COLUMN].size, 1])
+  label = tf.constant(df[LABEL_COLUMN + '_cat_class'].values)
+
+
+  # Returns the feature columns and the label.
+  return feature_cols, label
 def train_and_eval(train_steps, continue_training=False):
   """Train and evaluate the model."""
   share_data = load_and_prepdata()
@@ -467,7 +466,11 @@ def train_and_eval(train_steps, continue_training=False):
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
-  m.fit(input_fn=lambda: input_fn(df_train), steps=train_steps, monitors=[validation_monitor])
+  # run process multiple times
+  m.fit(input_fn=lambda: input_fn(df_train.quantile([0, 0.25])), steps=train_steps, monitors=[validation_monitor])
+  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.25, 0.5])), steps=train_steps, monitors=[validation_monitor])
+  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.5, 0.75])), steps=train_steps, monitors=[validation_monitor])
+  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.75, 1.0])), steps=train_steps, monitors=[validation_monitor])
   # evaluate using tensorflow evaluation
   results = m.evaluate(input_fn=lambda: input_fn(df_test), steps=1)
   for key in sorted(results):
@@ -475,6 +478,6 @@ def train_and_eval(train_steps, continue_training=False):
 
 
 if __name__ == "__main__":
-  train_and_eval(50000, continue_training=False)
+  train_and_eval(20000, continue_training=False)
 
 

@@ -391,7 +391,7 @@ def build_estimator(model_dir):
                                                   dnn_feature_columns=deep_columns,
                                                   dnn_hidden_units=[175, 90, 175, 90],
                                                   dnn_optimizer=tf.train.AdamOptimizer(
-                                                      learning_rate=0.0125,
+                                                      learning_rate=0.01,
                                                       beta1=0.9,
                                                       beta2=0.999,
                                                   ),
@@ -546,8 +546,8 @@ def train_xgb(share_data, msk):
     share_data['symbol'] = pd.factorize(share_data['symbol'])[0]
 
     #Create model
-    model = xgb.XGBRegressor(nthread=-1, n_estimators=250, max_depth=70, base_score=0.35, colsample_bylevel=0.8,
-                             colsample_bytree=0.8, gamma=0, learning_rate=0.075, max_delta_step=0,
+    model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
+                             colsample_bytree=0.8, gamma=0, learning_rate=0.0125, max_delta_step=0,
                              min_child_weight=0)
 
 
@@ -560,22 +560,24 @@ def train_xgb(share_data, msk):
 
 
     eval_set = [(test_x, test_y)]
-    model.fit(train_x, train_y, early_stopping_rounds=10, eval_metric=mle_eval, eval_set=eval_set, verbose=True)
+    model.fit(train_x, train_y, early_stopping_rounds=20, eval_metric=mle_eval, eval_set=eval_set, verbose=True)
 
     gc.collect()
 
     predictions = model.predict(test_x)
 
-    err = mle(test_y, predictions)
-    mae = mean_absolute_error(test_y, predictions)
-    r2 = r2_score(test_y, predictions)
+    inverse_scaled_predictions = safe_exp(predictions)
+
+    err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+    mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+    r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
 
     print('xgboost results')
     print("Mean log of error: %s" % err)
     print("Mean absolute error: %s" % mae)
     print("r2: %s" % r2)
 
-    return predictions
+    return inverse_scaled_predictions
 
 
 if __name__ == "__main__":
@@ -587,8 +589,13 @@ if __name__ == "__main__":
     actuals = share_data[~msk][LABEL_COLUMN]
 
     # Train deep learning model
-    tf_predictions = train_wide_and_deep(share_data, msk, 15000)
+    tf_predictions = train_wide_and_deep(share_data, msk, 50000)
     xgb_predictions = train_xgb(share_data, msk)
+
+    results = pd.DataFrame()
+    results['actuals'] = actuals
+    results['tf_predictions'] = tf_predictions
+    results['xgb_predictions'] = xgb_predictions
 
     # Generate final and combined results
     tf_err = mle(actuals, tf_predictions)
@@ -605,6 +612,8 @@ if __name__ == "__main__":
     combined_r2 = r2_score(actuals, ((tf_predictions + xgb_predictions) / 2))
 
     # Print results
+    print('Overall results')
+    print('-------------------')
     print('Mean log of error')
     print('tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
 
@@ -613,4 +622,44 @@ if __name__ == "__main__":
 
     print('Mean r2')
     print('tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
+    print('-------------------')
 
+    result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
+    lower_range = -100
+
+    for upper_range in result_ranges:
+        range_results = results.loc[(results['actuals'] >= lower_range) &
+                                    (results['actuals'] < upper_range)]
+        # Generate final and combined results
+        range_actuals = range_results['actuals'].values
+        range_tf_predictions = range_results['tf_predictions'].values
+        range_xgb_predictions = range_results['xgb_predictions'].values
+
+        tf_err = mle(range_actuals, range_tf_predictions)
+        tf_mae = mean_absolute_error(range_actuals, range_tf_predictions)
+        tf_r2 = r2_score(range_actuals, range_tf_predictions)
+
+
+        xgb_err = mle(range_actuals, range_xgb_predictions)
+        xgb_mae = mean_absolute_error(range_actuals, range_xgb_predictions)
+        xgb_r2 = r2_score(range_actuals, range_xgb_predictions)
+
+        combined_err = mle(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
+        combined_mae = mean_absolute_error(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
+        combined_r2 = r2_score(range_actuals, ((range_tf_predictions +
+                                                range_xgb_predictions) / 2))
+
+        # Print results
+        print('Results:', lower_range, 'to', upper_range)
+        print('-------------------')
+        print('Mean log of error')
+        print('tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
+
+        print('Mean absolute error')
+        print('tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
+
+        print('Mean r2')
+        print('tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
+        print('-------------------')
+
+        lower_range = upper_range
