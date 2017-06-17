@@ -396,7 +396,7 @@ def build_estimator(model_dir):
                                                       beta2=0.999,
                                                   ),
                                                   dnn_activation_fn=tf.nn.relu6,
-                                                  dnn_dropout=0.05,
+                                                  dnn_dropout=0.075,
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
   return m
@@ -555,8 +555,10 @@ def train_xgb(share_data, msk):
     train_y = share_data[msk][LABEL_COLUMN + '_scaled'].values
     train_x = share_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
+    actuals = share_data[~msk][LABEL_COLUMN].values
     test_y = share_data[~msk][LABEL_COLUMN + '_scaled'].values
     test_x = share_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+
 
 
     eval_set = [(test_x, test_y)]
@@ -568,9 +570,9 @@ def train_xgb(share_data, msk):
 
     inverse_scaled_predictions = safe_exp(predictions)
 
-    err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-    mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-    r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
+    err = mle(actuals, inverse_scaled_predictions)
+    mae = mean_absolute_error(actuals, inverse_scaled_predictions)
+    r2 = r2_score(actuals, inverse_scaled_predictions)
 
     print('xgboost results')
     print("Mean log of error: %s" % err)
