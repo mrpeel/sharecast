@@ -515,8 +515,7 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
 
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
-      "pearson": tf.contrib.metrics.streaming_pearson_correlation,
-      "mean_relative_error": tf.contrib.metrics.streaming_mean_relative_error
+      "pearson": tf.contrib.metrics.streaming_pearson_correlation
   }
 
 
