@@ -405,12 +405,12 @@ def build_estimator(model_dir):
                                                   dnn_feature_columns=deep_columns,
                                                   dnn_hidden_units=[175, 90, 175, 90],
                                                   dnn_optimizer=tf.train.AdamOptimizer(
-                                                      learning_rate=0.01,
+                                                      learning_rate=0.0125,
                                                       beta1=0.9,
                                                       beta2=0.999,
                                                   ),
                                                   dnn_activation_fn=tf.nn.relu6,
-                                                  dnn_dropout=0.1,
+                                                  dnn_dropout=0.05,
                                                   fix_global_step_increment_bug=True,
                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
   return m
@@ -515,7 +515,8 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
 
   validation_metrics = {
       "mean_abs_error": tf.contrib.metrics.streaming_mean_absolute_error,
-       "pearson": tf.contrib.metrics.streaming_pearson_correlation#,
+      "pearson": tf.contrib.metrics.streaming_pearson_correlation,
+      "mean_relative_error": tf.contrib.metrics.streaming_mean_relative_error
   }
 
 
@@ -526,7 +527,7 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
       metrics=validation_metrics,
       early_stopping_metric="mean_abs_error",
       early_stopping_metric_minimize=True,
-      early_stopping_rounds=500)
+      early_stopping_rounds=1000)
 
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
@@ -544,12 +545,10 @@ def train_wide_and_deep(share_data, msk, max_train_steps):
 
   err = mle(df_test[LABEL_COLUMN], inverse_scaled_predictions)
   mae = mean_absolute_error(df_test[LABEL_COLUMN], inverse_scaled_predictions)
-  r2 = r2_score(df_test[LABEL_COLUMN], inverse_scaled_predictions)
 
   print('tf results')
   print("Mean log of error: %s" % err)
   print("Mean absolute error: %s" % mae)
-  print("r2: %s" % r2)
 
   # return predicted values
   return  inverse_scaled_predictions
@@ -594,16 +593,15 @@ def train_xgb(share_data, msk):
 
     predictions = model.predict(test_x)
 
+
     inverse_scaled_predictions = safe_exp(predictions)
 
     err = mle(actuals, inverse_scaled_predictions)
     mae = mean_absolute_error(actuals, inverse_scaled_predictions)
-    r2 = r2_score(actuals, inverse_scaled_predictions)
 
     print('xgboost results')
     print("Mean log of error: %s" % err)
     print("Mean absolute error: %s" % mae)
-    print("r2: %s" % r2)
 
     return inverse_scaled_predictions
 
@@ -628,16 +626,13 @@ if __name__ == "__main__":
     # Generate final and combined results
     tf_err = mle(actuals, tf_predictions)
     tf_mae = mean_absolute_error(actuals, tf_predictions)
-    tf_r2 = r2_score(actuals, tf_predictions)
 
 
     xgb_err = mle(actuals, xgb_predictions)
     xgb_mae = mean_absolute_error(actuals, xgb_predictions)
-    xgb_r2 = r2_score(actuals, xgb_predictions)
 
     combined_err = mle(actuals, ((tf_predictions + xgb_predictions) / 2))
     combined_mae = mean_absolute_error(actuals, ((tf_predictions + xgb_predictions) / 2))
-    combined_r2 = r2_score(actuals, ((tf_predictions + xgb_predictions) / 2))
 
     # Print results
     print('Overall results')
@@ -648,9 +643,6 @@ if __name__ == "__main__":
     print('Mean absolute error')
     print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
 
-    print('Mean r2')
-    print('  tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
-    print('-------------------')
 
     result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
     lower_range = -100
@@ -665,17 +657,13 @@ if __name__ == "__main__":
 
         tf_err = mle(range_actuals, range_tf_predictions)
         tf_mae = mean_absolute_error(range_actuals, range_tf_predictions)
-        tf_r2 = r2_score(range_actuals, range_tf_predictions)
 
 
         xgb_err = mle(range_actuals, range_xgb_predictions)
         xgb_mae = mean_absolute_error(range_actuals, range_xgb_predictions)
-        xgb_r2 = r2_score(range_actuals, range_xgb_predictions)
 
         combined_err = mle(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
         combined_mae = mean_absolute_error(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
-        combined_r2 = r2_score(range_actuals, ((range_tf_predictions +
-                                                range_xgb_predictions) / 2))
 
         # Print results
         print('Results:', lower_range, 'to', upper_range)
@@ -686,8 +674,5 @@ if __name__ == "__main__":
         print('Mean absolute error')
         print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
 
-        print('Mean r2')
-        print('  tf:', tf_r2, ' xgb:', xgb_r2, 'combined: ', combined_r2)
-        print('-------------------')
 
         lower_range = upper_range
