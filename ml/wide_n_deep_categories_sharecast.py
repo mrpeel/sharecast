@@ -341,16 +341,14 @@ def build_estimator(model_dir):
                                                       beta2=0.999,
                                                    ),
                                                    dnn_feature_columns=deep_columns,
-                                                   dnn_hidden_units=[175, 90, 175, 90],
+                                                   dnn_hidden_units=[10], #, 90, 175, 90],
                                                    dnn_optimizer=tf.train.AdamOptimizer(
                                                       learning_rate=0.0125,
                                                       beta1=0.9,
                                                       beta2=0.999,
                                                    ),
-                                                   dnn_activation_fn=tf.nn.relu6,
-                                                   dnn_dropout=0.05,
-                                                   fix_global_step_increment_bug=True,
-                                                   config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
+                                                   fix_global_step_increment_bug=True)#,
+                                                   #config=tf.contrib.learn.RunConfig(save_checkpoints_secs=90))
   return m
 
 
@@ -448,10 +446,18 @@ def train_and_eval(train_steps, continue_training=False):
     clear_model_dir(model_dir)
 
   validation_metrics = {
-      "accuracy": tf.contrib.metrics.streaming_accuracy,
-      "precision": tf.contrib.metrics.streaming_precision,
-      "recall": tf.contrib.metrics.streaming_recall,
-      "auc": tf.contrib.metrics.streaming_auc,
+      "accuracy":
+          tf.contrib.learn.MetricSpec(
+              metric_fn=tf.contrib.metrics.streaming_accuracy,
+              prediction_key=tf.contrib.learn.PredictionKey.CLASSES),
+      "precision":
+          tf.contrib.learn.MetricSpec(
+              metric_fn=tf.contrib.metrics.streaming_precision,
+              prediction_key=tf.contrib.learn.PredictionKey.CLASSES),
+      "recall":
+          tf.contrib.learn.MetricSpec(
+              metric_fn=tf.contrib.metrics.streaming_recall,
+              prediction_key=tf.contrib.learn.PredictionKey.CLASSES)
   }
 
 
@@ -467,10 +473,7 @@ def train_and_eval(train_steps, continue_training=False):
   m = build_estimator(model_dir)
   print(m.get_params(deep=True))
   # run process multiple times
-  m.fit(input_fn=lambda: input_fn(df_train.quantile([0, 0.25])), steps=train_steps, monitors=[validation_monitor])
-  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.25, 0.5])), steps=train_steps, monitors=[validation_monitor])
-  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.5, 0.75])), steps=train_steps, monitors=[validation_monitor])
-  m.fit(input_fn=lambda: input_fn(df_train.quantile([0.75, 1.0])), steps=train_steps, monitors=[validation_monitor])
+  m.fit(input_fn=lambda: input_fn(df_train), steps=train_steps)#, monitors=[validation_monitor])
   # evaluate using tensorflow evaluation
   results = m.evaluate(input_fn=lambda: input_fn(df_test), steps=1)
   for key in sorted(results):
