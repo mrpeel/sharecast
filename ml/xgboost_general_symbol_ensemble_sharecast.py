@@ -3,17 +3,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os, shutil
 
+import pickle
+import gzip
 import pandas as pd
 import numpy as np
-import tensorflow as tf
 import xgboost as xgb
 import gc
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
-
+from sklearn.metrics import r2_score
 
 
 
@@ -84,6 +84,26 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteMonth', 'quoteYear', 'volume', 'pre
                 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
 
 
+def save(object, filename, protocol = 0):
+        """Saves a compressed object to disk
+        """
+        file = gzip.GzipFile(filename, 'wb')
+        file.write(pickle.dumps(object, protocol))
+        file.close()
+
+def load(filename):
+        """Loads a compressed object from disk
+        """
+        file = gzip.GzipFile(filename, 'rb')
+        buffer = ""
+        while True:
+                data = file.read()
+                if data == "":
+                        break
+                buffer += data
+        object = pickle.loads(buffer)
+        file.close()
+        return object
 
 def safe_log(input_array):
     return_vals = input_array.copy()
@@ -200,8 +220,7 @@ def prep_data():
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
     return df
 
-
-def train_xgb(share_data):
+def divide_data(share_data):
     # Use pandas dummy columns for categorical columns
     share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
                                                           '4WeekBollingerType',
@@ -215,11 +234,11 @@ def train_xgb(share_data):
 
     print('No of symbols:', len(symbols))
 
-    all_train_x = pd.DataFrame()
-    all_train_y = pd.DataFrame()
-    all_test_x = pd.DataFrame()
-    all_test_y = pd.DataFrame()
-    all_test_actuals = pd.DataFrame()
+    df_all_train_x = pd.DataFrame()
+    df_all_train_y = pd.DataFrame()
+    df_all_test_x = pd.DataFrame()
+    df_all_test_y = pd.DataFrame()
+    df_all_test_actuals = pd.DataFrame()
 
     symbols_train_x = {}
     symbols_train_y = {}
@@ -229,97 +248,167 @@ def train_xgb(share_data):
 
     # prep data for fitting into both model types
     for symbol in symbols:
+        gc.collect()
+
         # Set up map of symbol name to number
         symbol_map[symbol] = symbol_num
+
+        print('Symbol:', symbol, 'num:', symbol_num)
 
         # Update string to integer
         share_data.loc[share_data.symbol == symbol, 'symbol'] = symbol_num
 
-        # Take copy of model data
+        # Take copy of model data and re-set the pandas indexes
         model_data = share_data.loc[share_data['symbol'] == symbol_num]
+
 
         msk = np.random.rand(len(model_data)) < 0.75
 
-        symbols_test_x = {}
-        symbols_test_y = {}
-        symbols_test_actuals = {}
+        # Prep dataframes and reset index for appending
+        df_train = model_data[msk]
+        df_test = model_data[~msk]
+        df_train.reset_index()
+        df_test.reset_index()
 
-        symbols_train_y[symbol] = model_data[msk][LABEL_COLUMN + '_scaled']
-        symbols_train_x[symbol] = model_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1)
 
-        symbols_test_actuals[symbol] = model_data[~msk][LABEL_COLUMN]
-        symbols_test_y[symbol] = model_data[~msk][LABEL_COLUMN + '_scaled']
-        symbols_test_x[symbol] = model_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1)
+        symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
+        symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
-        all_train_y = all_train_y.append(model_data[msk][LABEL_COLUMN + '_scaled'])
-        all_train_x = all_train_x.append(model_data[msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+        symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
+        symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
+        symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
-        all_test_actuals = all_test_actuals.append(model_data[~msk][LABEL_COLUMN])
-        all_test_y = all_test_y.append(model_data[~msk][LABEL_COLUMN + '_scaled'])
-        all_test_x = all_test_x.append(model_data[~msk].drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+        df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
+        df_all_train_x = df_all_train_x.append(df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+
+        df_all_test_actuals = pd.concat([df_all_test_actuals, df_test[LABEL_COLUMN]])
+        df_all_test_y = pd.concat([df_all_test_y, df_test[LABEL_COLUMN + '_scaled']])
+        df_all_test_x = df_all_test_x.append(df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+
+        symbol_num += 1
 
     print(symbol_map)
 
+    # Clean-up the initial data variable
+    return symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y, symbols_test_x, \
+           df_all_train_y, df_all_train_x, df_all_test_actuals, df_all_test_y, df_all_test_x
+
+
+def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
     model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
                              colsample_bytree=0.8, gamma=0, learning_rate=0.01, max_delta_step=0,
                              min_child_weight=0)
 
+    all_train_y = df_all_train_y.as_matrix()
+    all_train_x = df_all_train_x.as_matrix()
+    all_test_actuals = df_all_test_actuals.as_matrix()
+    all_test_y = df_all_test_y.as_matrix()
+    all_test_x = df_all_test_x.as_matrix()
+
     eval_set = [(all_test_x, all_test_y)]
-    model.fit(all_train_x, all_train_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set, verbose=True)
+    model.fit(all_train_x, all_train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+              verbose=False)
 
     gc.collect()
 
     predictions = model.predict(all_test_x)
     inverse_scaled_predictions = safe_exp(predictions)
 
-    err = mle(all_test_actuals, inverse_scaled_predictions)
+    err = mean_absolute_error(all_test_y, predictions)
     mae = mean_absolute_error(all_test_actuals, inverse_scaled_predictions)
+    r2 = r2_score(all_test_actuals, inverse_scaled_predictions)
 
     print('General model xgboost results')
     print("Mean log of error: %s" % err)
     print("Mean absolute error: %s" % mae)
+    print("r2: %s" % r2)
 
-    # Prepare results holders
-    results = pd.DataFrame()
-    #results['actuals'] = actuals
-    #results['general_predictions'] = general_predictions
-    #results['symbol_predictions'] = symbol_predictions
+    return model
+
+def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y,
+                        symbols_test_x, gen_model):
 
     # Create and execute models
+    symbol_models = {}
+    all_results = pd.DataFrame()
+
     ## Run the predictions across using each symbol model and the genral model
-    for symbol, symbol_num in symbol_map:
+    for symbol in symbol_map:
         # Create model
         symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35,
                                         colsample_bylevel=0.8, colsample_bytree = 0.8, gamma = 0, learning_rate = 0.01,
                                         max_delta_step = 0, min_child_weight = 0)
 
+        train_y = symbols_train_y[symbol]
+        train_x = symbols_train_x[symbol]
+        test_actuals = symbols_test_actuals[symbol]
+        test_y = symbols_test_y[symbol]
+        test_x = symbols_test_x[symbol]
+
         eval_set = [(test_x, test_y)]
-        symbol_model.fit(train_x, train_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set, verbose=True)
+        symbol_model.fit(train_x, train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+                         verbose=False)
 
         gc.collect()
 
+        # Add model to models dictionary
+        symbol_models[symbol] = symbol_model
+
+        # Run predictions and prepare results
         predictions = symbol_model.predict(test_x)
         inverse_scaled_predictions = safe_exp(predictions)
 
-        err = mle(actuals, inverse_scaled_predictions)
-        mae = mean_absolute_error(actuals, inverse_scaled_predictions)
+        gen_predictions = gen_model.predict(test_x)
+        gen_inverse_scaled_predictions = safe_exp(gen_predictions)
 
-        print('xgboost results for', symbol)
-        print("Mean log of error: %s" % err)
-        print("Mean absolute error: %s" % mae)
+        #Evaluet results
+        symbol_err = mean_absolute_error(test_y, predictions)
+        symbol_mae = mean_absolute_error(test_actuals, inverse_scaled_predictions)
+        symbol_r2 = r2_score(test_actuals, inverse_scaled_predictions)
 
-        symbol_models[symbol] = symbol_model
-
-        symbol_num += 1
-
-
-
+        gen_err = mean_absolute_error(test_y, gen_predictions)
+        gen_mae = mean_absolute_error(test_actuals, gen_inverse_scaled_predictions)
+        gen_r2 = r2_score(test_actuals, gen_inverse_scaled_predictions)
 
 
+        fifty_err = mean_absolute_error(test_y, ((gen_predictions + predictions) / 2))
+        fifty_mae = mean_absolute_error(test_actuals, ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
+        fifty_r2 = r2_score(test_actuals, ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
 
 
+        sixty_err = mean_absolute_error(test_y, ((gen_predictions + (predictions*2)) / 3))
+        sixty_mae = mean_absolute_error(test_actuals, ((gen_inverse_scaled_predictions + (inverse_scaled_predictions*2)) / 3))
+        sixty_r2 = r2_score(test_actuals, ((gen_inverse_scaled_predictions + (inverse_scaled_predictions*2)) / 3))
+
+
+        all_results = all_results.append(pd.DataFrame.from_dict({'actuals': test_actuals,
+                                                                'gen_predictions': gen_inverse_scaled_predictions,
+                                                                'symbol_predictions': inverse_scaled_predictions
+                                                                }))
+
+        # Print results
+        print('Results for', symbol)
+        print('-------------------')
+        print('Mean log of error')
+        print('     gen:', gen_err)
+        print('  symbol:', symbol_err)
+        print('   50/50:', fifty_err)
+        print('   66/32:', sixty_err)
+        print('Mean absolute error')
+        print('     gen:', gen_mae)
+        print('  symbol:', symbol_mae)
+        print('   50/50:', fifty_mae)
+        print('   66/32:', sixty_mae)
+        print('r2')
+        print('     gen:', gen_r2)
+        print('  symbol:', symbol_r2)
+        print('   50/50:', fifty_r2)
+        print('   66/32:', sixty_r2)
+
+
+    return symbol_models, all_results
 
 
 if __name__ == "__main__":
@@ -327,62 +416,76 @@ if __name__ == "__main__":
     share_data  = prep_data()
     gc.collect()
 
-    # Train model
-    results = train_xgb(share_data)
+    # Divide data into symbol and general data for training an testing
+    symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y, symbols_test_x, df_all_train_y, \
+    df_all_train_x, df_all_test_actuals, df_all_test_y, df_all_test_x = divide_data(share_data)
+
+    del share_data
+    gc.collect()
+
+    # Train the general model
+    gen_model = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+
+    # Remove combined data, only required for general model
+    del df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x
+    gc.collect()
+
+    symbol_models, all_results = train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals,
+                                                     symbols_test_y, symbols_test_x, gen_model)
+
+    gc.collect()
+
+    # Save models to file
+    save(gen_model, 'xgboost-models/general.xgb.gz')
+    save(symbol_models, 'xgboost-models/symbols.xgb.gz')
+    save(symbol_map, 'xgboost-models/symbol-map.gz')
+
+    # Generate final and combined results
+    gen_err = mean_absolute_error(all_results['actuals'].values, all_results['gen_predictions'].values)
+    symbol_err = mean_absolute_error(all_results['actuals'].values, all_results['symbol_predictions'].values)
+
+    gen_r2 = r2_score(all_results['actuals'].values, all_results['gen_predictions'].values)
+    symbol_r2 = r2_score(all_results['actuals'].values, all_results['symbol_predictions'].values)
+
+    # Print results
+    print('Overall results')
+    print('-------------------')
+    print('Mean absolute error')
+    print('     gen:', gen_err)
+    print('  symbol:', symbol_err)
+
+    print('r2')
+    print('     gen:', gen_r2)
+    print('  symbol:', symbol_r2)
 
 
-    # results['xgb_predictions'] = xgb_predictions
-    #
-    # # Generate final and combined results
-    # tf_err = mle(actuals, tf_predictions)
-    # tf_mae = mean_absolute_error(actuals, tf_predictions)
-    #
-    #
-    # xgb_err = mle(actuals, xgb_predictions)
-    # xgb_mae = mean_absolute_error(actuals, xgb_predictions)
-    #
-    # combined_err = mle(actuals, ((tf_predictions + xgb_predictions) / 2))
-    # combined_mae = mean_absolute_error(actuals, ((tf_predictions + xgb_predictions) / 2))
-    #
-    # # Print results
-    # print('Overall results')
-    # print('-------------------')
-    # print('Mean log of error')
-    # print('  tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
-    #
-    # print('Mean absolute error')
-    # print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
-    #
-    #
-    # result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
-    # lower_range = -100
-    #
-    # for upper_range in result_ranges:
-    #     range_results = results.loc[(results['actuals'] >= lower_range) &
-    #                                 (results['actuals'] < upper_range)]
-    #     # Generate final and combined results
-    #     range_actuals = range_results['actuals'].values
-    #     range_tf_predictions = range_results['tf_predictions'].values
-    #     range_xgb_predictions = range_results['xgb_predictions'].values
-    #
-    #     tf_err = mle(range_actuals, range_tf_predictions)
-    #     tf_mae = mean_absolute_error(range_actuals, range_tf_predictions)
-    #
-    #
-    #     xgb_err = mle(range_actuals, range_xgb_predictions)
-    #     xgb_mae = mean_absolute_error(range_actuals, range_xgb_predictions)
-    #
-    #     combined_err = mle(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
-    #     combined_mae = mean_absolute_error(range_actuals, ((range_tf_predictions + range_xgb_predictions) / 2))
-    #
-    #     # Print results
-    #     print('Results:', lower_range, 'to', upper_range)
-    #     print('-------------------')
-    #     print('Mean log of error')
-    #     print('  tf:', tf_err, ' xgb:', xgb_err, 'combined: ', combined_err)
-    #
-    #     print('Mean absolute error')
-    #     print('  tf:', tf_mae, ' xgb:', xgb_mae, 'combined: ', combined_mae)
-    #
-    #
-    #     lower_range = upper_range
+    result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
+    lower_range = -100
+
+    for upper_range in result_ranges:
+        range_results = all_results.loc[(all_results['actuals'] >= lower_range) &
+                                        (all_results['actuals'] < upper_range)]
+        # Generate final and combined results
+        range_actuals = range_results['actuals'].values
+        range_gen_predictions = range_results['gen_predictions'].values
+        range_symbol_predictions = range_results['symbol_predictions'].values
+
+        gen_mae = mean_absolute_error(range_actuals, range_gen_predictions)
+        symbol_mae = mean_absolute_error(range_actuals, range_symbol_predictions)
+        gen_r2 = r2_score(range_actuals, range_gen_predictions)
+        symbol_r2 = r2_score(range_actuals, range_symbol_predictions)
+
+
+        # Print results
+        print('Results:', lower_range, 'to', upper_range)
+        print('-------------------')
+        print('Mean absolute error')
+        print('     gen:', gen_mae)
+        print('  symbol:', symbol_mae)
+
+        print('r2')
+        print('     gen:', gen_r2)
+        print('  symbol:', symbol_r2)
+
+
+        lower_range = upper_range

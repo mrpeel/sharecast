@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" afterPath="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" afterPath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -19,8 +17,8 @@
       <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="5970">
-              <caret line="413" column="33" lean-forward="false" selection-start-line="413" selection-start-column="33" selection-end-line="413" selection-end-column="33" />
+            <state relative-caret-position="208">
+              <caret line="623" column="0" lean-forward="false" selection-start-line="620" selection-start-column="0" selection-end-line="623" selection-end-column="0" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
               </folding>
@@ -31,10 +29,22 @@
       <file leaf-file-name="xgboost_general_symbol_ensemble_sharecast.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="314">
-              <caret line="283" column="29" lean-forward="true" selection-start-line="283" selection-start-column="29" selection-end-line="283" selection-end-column="29" />
+            <state relative-caret-position="4320">
+              <caret line="288" column="0" lean-forward="true" selection-start-line="288" selection-start-column="0" selection-end-line="288" selection-end-column="0" />
               <folding>
                 <element signature="e#1#39#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="prep-data-regression.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="358">
+              <caret line="199" column="8" lean-forward="false" selection-start-line="199" selection-start-column="8" selection-end-line="199" selection-end-column="8" />
+              <folding>
+                <element signature="e#0#18#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -44,7 +54,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>median absolute error (robust to outliers)</find>
       <find>fix</find>
       <find>d</find>
       <find>_transform</find>
@@ -73,6 +82,8 @@
       <find>start</find>
       <find>year</find>
       <find>quoteyear</find>
+      <find>results</find>
+      <find>concat</find>
     </findStrings>
     <replaceStrings>
       <replace>= tf.contrib.layers.real_valued_column(&quot;</replace>
@@ -415,13 +426,13 @@
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41852286" sideWeight="0.23958333" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41852286" sideWeight="0.7604167" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41852286" sideWeight="0.25208333" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.41852286" sideWeight="0.74791664" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32942554" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41031653" sideWeight="0.69166666" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41031653" sideWeight="0.67430556" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32942554" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39976552" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39976552" sideWeight="0.76180553" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -438,6 +449,9 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints-dialog>
+        <breakpoints-dialog />
+      </breakpoints-dialog>
       <default-breakpoints>
         <breakpoint type="python-exception">
           <properties notifyOnTerminate="true" exception="BaseException">
@@ -445,7 +459,7 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="7" />
+      <option name="time" value="44" />
     </breakpoint-manager>
     <watches-manager>
       <configuration name="PythonConfigurationType">
@@ -668,13 +682,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/xgboost-regression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1348">
-          <caret line="179" column="18" lean-forward="true" selection-start-line="179" selection-start-column="18" selection-end-line="179" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lightgbm-regression-from-pickle.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="140">
@@ -752,13 +759,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="424">
-          <caret line="191" column="35" lean-forward="false" selection-start-line="191" selection-start-column="35" selection-end-line="191" selection-end-column="35" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/xgboost-classification-from-pickle.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="403">
@@ -773,20 +773,38 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/xgboost-regression.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="90">
+          <caret line="6" column="36" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="36" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="5970">
-          <caret line="413" column="33" lean-forward="false" selection-start-line="413" selection-start-column="33" selection-end-line="413" selection-end-column="33" />
+        <state relative-caret-position="208">
+          <caret line="623" column="0" lean-forward="false" selection-start-line="620" selection-start-column="0" selection-end-line="623" selection-end-column="0" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="358">
+          <caret line="199" column="8" lean-forward="false" selection-start-line="199" selection-start-column="8" selection-end-line="199" selection-end-column="8" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="314">
-          <caret line="283" column="29" lean-forward="true" selection-start-line="283" selection-start-column="29" selection-end-line="283" selection-end-column="29" />
+        <state relative-caret-position="4320">
+          <caret line="288" column="0" lean-forward="true" selection-start-line="288" selection-start-column="0" selection-end-line="288" selection-end-column="0" />
           <folding>
             <element signature="e#1#39#0" expanded="true" />
           </folding>
