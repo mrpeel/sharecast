@@ -5,7 +5,7 @@ from __future__ import print_function
 
 
 import pickle
-import gzip
+import datetime
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -87,22 +87,24 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteMonth', 'quoteYear', 'volume', 'pre
 def save(object, filename, protocol = 0):
         """Saves a compressed object to disk
         """
-        file = gzip.GzipFile(filename, 'wb')
-        file.write(pickle.dumps(object, protocol))
-        file.close()
+        #file = gzip.GzipFile(filename, 'wb')
+        #file.write(pickle.dumps(object, protocol))
+        #file.close()
+
 
 def load(filename):
         """Loads a compressed object from disk
         """
-        file = gzip.GzipFile(filename, 'rb')
-        buffer = ""
-        while True:
-                data = file.read()
-                if data == "":
-                        break
-                buffer += data
-        object = pickle.loads(buffer)
-        file.close()
+        # file = gzip.GzipFile(filename, 'rb')
+        # buffer = ""
+        # while True:
+        #         data = file.read()
+        #         if data == "":
+        #                 break
+        #         buffer += data
+        # object = pickle.loads(buffer)
+        # file.close()
+        object = pickle.dump(object, open(filename, "rb"))
         return object
 
 def safe_log(input_array):
@@ -297,7 +299,7 @@ def divide_data(share_data):
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
-    model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
+    model = xgb.XGBRegressor(nthread=-1, n_estimators=10, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
                              colsample_bytree=0.8, gamma=0, learning_rate=0.01, max_delta_step=0,
                              min_child_weight=0)
 
@@ -333,11 +335,12 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
     # Create and execute models
     symbol_models = {}
     all_results = pd.DataFrame()
+    results_output = pd.DataFrame()
 
     ## Run the predictions across using each symbol model and the genral model
     for symbol in symbol_map:
         # Create model
-        symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35,
+        symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=10, max_depth=110, base_score=0.35,
                                         colsample_bylevel=0.8, colsample_bytree = 0.8, gamma = 0, learning_rate = 0.01,
                                         max_delta_step = 0, min_child_weight = 0)
 
@@ -388,7 +391,23 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
                                                                 'symbol_predictions': inverse_scaled_predictions
                                                                 }))
 
-        # Print results
+        results_output = results_output.append(pd.DataFrame.from_dict({'symbol': [symbol],
+                                                                       'general_mle': [gen_err],
+                                                                       'symbol_mle': [symbol_err],
+                                                                       'fifty_fifty_mle': [fifty_err],
+                                                                       'sixty_thirty_mle': [sixty_err],
+                                                                       'general_mae': [gen_mae],
+                                                                       'symbol_mae': [symbol_mae],
+                                                                       'fifty_fifty_mae': [fifty_mae],
+                                                                       'sixty_thirty_mae': [sixty_mae],
+                                                                       'general_r2': [gen_r2],
+                                                                       'symbol_r2': [symbol_r2],
+                                                                       'fifty_fifty_r2': [fifty_r2],
+                                                                       'sixty_thirty_r2': [sixty_r2]
+                                                                       }))
+
+
+                                                                       # Print results
         print('Results for', symbol)
         print('-------------------')
         print('Mean log of error')
@@ -408,10 +427,13 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         print('   66/32:', sixty_r2)
 
 
-    return symbol_models, all_results
+    return symbol_models, all_results, results_output
 
 
 if __name__ == "__main__":
+    # Prepare run_str
+    run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
+
     # Retrieve and run combined prep on data
     share_data  = prep_data()
     gc.collect()
@@ -430,15 +452,21 @@ if __name__ == "__main__":
     del df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x
     gc.collect()
 
-    symbol_models, all_results = train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals,
-                                                     symbols_test_y, symbols_test_x, gen_model)
+    symbol_models, all_results, results_output = train_symbol_models(symbol_map, symbols_train_y, symbols_train_x,
+                                                                     symbols_test_actuals, symbols_test_y,
+                                                                     symbols_test_x, gen_model)
 
     gc.collect()
 
+    # Save results as csv
+    results_output.to_csv('xgboost-models/results-' + run_str + '.csv')
+
+
     # Save models to file
-    save(gen_model, 'xgboost-models/general.xgb.gz')
-    save(symbol_models, 'xgboost-models/symbols.xgb.gz')
-    save(symbol_map, 'xgboost-models/symbol-map.gz')
+    pickle.dump(symbol_map, open('xgboost-models/symbol-map.pkl', 'wb'))
+    gen_model.save_model('xgboost-models/general.xgb')
+    #save(symbol_models, 'xgboost-models/symbols.pkl')
+
 
     # Generate final and combined results
     gen_err = mean_absolute_error(all_results['actuals'].values, all_results['gen_predictions'].values)
@@ -457,6 +485,8 @@ if __name__ == "__main__":
     print('r2')
     print('     gen:', gen_r2)
     print('  symbol:', symbol_r2)
+
+    overall_results_output = pd.DataFrame()
 
 
     result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
@@ -487,5 +517,17 @@ if __name__ == "__main__":
         print('     gen:', gen_r2)
         print('  symbol:', symbol_r2)
 
+        overall_results_output = overall_results_output.append(pd.DataFrame.from_dict(
+            {'lower_range': [lower_range],
+             'upper_range': [upper_range],
+             'gen_mae': [gen_mae],
+             'symbol_mae': [symbol_mae],
+             'gen_r2': [gen_r2],
+             'symbol_r2': [symbol_r2]
+             }))
+
 
         lower_range = upper_range
+
+    # Output range results as csv
+    overall_results_output.to_csv('xgboost-models/range-results-' + run_str+ '.csv')
