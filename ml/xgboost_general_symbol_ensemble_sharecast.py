@@ -5,6 +5,9 @@ from __future__ import print_function
 
 
 import pickle
+import gzip
+import sys
+from sklearn.externals import joblib
 import datetime
 import pandas as pd
 import numpy as np
@@ -84,12 +87,19 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteMonth', 'quoteYear', 'volume', 'pre
                 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
 
 
-def save(object, filename, protocol = 0):
+def save(object, filename):
         """Saves a compressed object to disk
         """
-        #file = gzip.GzipFile(filename, 'wb')
-        #file.write(pickle.dumps(object, protocol))
-        #file.close()
+        with gzip.open(filename, 'wb') as f:
+            f.write(pickle.dumps(object, pickle.HIGHEST_PROTOCOL))
+
+        # max_bytes = 2 ** 31 - 1
+        #
+        # ## write
+        # bytes_out = pickle.dumps(object)
+        # with open(filename, 'wb') as f_out:
+        #     for idx in range(0, sys.getsizeof(object), max_bytes):
+        #         f_out.write(bytes_out[idx:idx + max_bytes])
 
 
 def load(filename):
@@ -149,12 +159,30 @@ def mle_eval(actual_y, eval_y):
     Used during xgboost training
 
     Args:
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
+        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
     prediction_y = eval_y.get_label()
     assert len(actual_y) == len(prediction_y)
     return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
+
+def safe_mape(actual_y, prediction_y):
+    """
+    Calculate mean absolute percentage error
+
+    Args:
+        actual_y - numpy array containing targets with shape (n_samples, n_targets)
+        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+    denominators = actual_y.copy()
+    set_ones = (denominators >= 0) & (denominators <= 1)
+    set_neg_ones = (denominators >= -1) & (denominators < 0)
+    denominators[set_ones] = 1
+    denominators[set_neg_ones] = -1
+
+    return np.mean(np.absolute((prediction_y - actual_y) / denominators * 100))
+
+
 
 def drop_unused_columns(df, data_cols):
     # Check for columns to drop
@@ -252,9 +280,6 @@ def divide_data(share_data):
     for symbol in symbols:
         gc.collect()
 
-        # Set up map of symbol name to number
-        symbol_map[symbol] = symbol_num
-
         print('Symbol:', symbol, 'num:', symbol_num)
 
         # Update string to integer
@@ -272,20 +297,24 @@ def divide_data(share_data):
         df_train.reset_index()
         df_test.reset_index()
 
+        # MAke sure a monimum number of rows are present in sample for symbol
+        if (len(df_train) > 150 & len(df_test) > 50):
+            symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
+            symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
-        symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
-        symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+            symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
+            symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
+            symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
-        symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
-        symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
-        symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+            df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
+            df_all_train_x = df_all_train_x.append(df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
 
-        df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
-        df_all_train_x = df_all_train_x.append(df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+            df_all_test_actuals = pd.concat([df_all_test_actuals, df_test[LABEL_COLUMN]])
+            df_all_test_y = pd.concat([df_all_test_y, df_test[LABEL_COLUMN + '_scaled']])
+            df_all_test_x = df_all_test_x.append(df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
 
-        df_all_test_actuals = pd.concat([df_all_test_actuals, df_test[LABEL_COLUMN]])
-        df_all_test_y = pd.concat([df_all_test_y, df_test[LABEL_COLUMN + '_scaled']])
-        df_all_test_x = df_all_test_x.append(df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+            # Set up map of symbol name to number
+            symbol_map[symbol] = symbol_num
 
         symbol_num += 1
 
@@ -299,7 +328,7 @@ def divide_data(share_data):
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
-    model = xgb.XGBRegressor(nthread=-1, n_estimators=10, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
+    model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
                              colsample_bytree=0.8, gamma=0, learning_rate=0.01, max_delta_step=0,
                              min_child_weight=0)
 
@@ -320,11 +349,13 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
 
     err = mean_absolute_error(all_test_y, predictions)
     mae = mean_absolute_error(all_test_actuals, inverse_scaled_predictions)
+    mape = safe_mape(all_test_actuals, inverse_scaled_predictions)
     r2 = r2_score(all_test_actuals, inverse_scaled_predictions)
 
     print('General model xgboost results')
     print("Mean log of error: %s" % err)
     print("Mean absolute error: %s" % mae)
+    print("Mean absolute percentage error: %s" % mape)
     print("r2: %s" % r2)
 
     return model
@@ -340,7 +371,7 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
     ## Run the predictions across using each symbol model and the genral model
     for symbol in symbol_map:
         # Create model
-        symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=10, max_depth=110, base_score=0.35,
+        symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35,
                                         colsample_bylevel=0.8, colsample_bytree = 0.8, gamma = 0, learning_rate = 0.01,
                                         max_delta_step = 0, min_child_weight = 0)
 
@@ -369,20 +400,24 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         #Evaluet results
         symbol_err = mean_absolute_error(test_y, predictions)
         symbol_mae = mean_absolute_error(test_actuals, inverse_scaled_predictions)
+        symbol_mape = safe_mape(test_actuals, inverse_scaled_predictions)
         symbol_r2 = r2_score(test_actuals, inverse_scaled_predictions)
 
         gen_err = mean_absolute_error(test_y, gen_predictions)
         gen_mae = mean_absolute_error(test_actuals, gen_inverse_scaled_predictions)
+        gen_mape = safe_mape(test_actuals, gen_inverse_scaled_predictions)
         gen_r2 = r2_score(test_actuals, gen_inverse_scaled_predictions)
 
 
         fifty_err = mean_absolute_error(test_y, ((gen_predictions + predictions) / 2))
         fifty_mae = mean_absolute_error(test_actuals, ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
+        fifty_mape = safe_mape(test_actuals, ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
         fifty_r2 = r2_score(test_actuals, ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
 
 
         sixty_err = mean_absolute_error(test_y, ((gen_predictions + (predictions*2)) / 3))
         sixty_mae = mean_absolute_error(test_actuals, ((gen_inverse_scaled_predictions + (inverse_scaled_predictions*2)) / 3))
+        sixty_mape = safe_mape(test_actuals, ((gen_inverse_scaled_predictions + (inverse_scaled_predictions*2)) / 3))
         sixty_r2 = r2_score(test_actuals, ((gen_inverse_scaled_predictions + (inverse_scaled_predictions*2)) / 3))
 
 
@@ -400,6 +435,10 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
                                                                        'symbol_mae': [symbol_mae],
                                                                        'fifty_fifty_mae': [fifty_mae],
                                                                        'sixty_thirty_mae': [sixty_mae],
+                                                                       'general_mape': [gen_mape],
+                                                                       'symbol_mape': [symbol_mape],
+                                                                       'fifty_fifty_mape': [fifty_mape],
+                                                                       'sixty_thirty_mape': [sixty_mape],
                                                                        'general_r2': [gen_r2],
                                                                        'symbol_r2': [symbol_r2],
                                                                        'fifty_fifty_r2': [fifty_r2],
@@ -420,6 +459,11 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         print('  symbol:', symbol_mae)
         print('   50/50:', fifty_mae)
         print('   66/32:', sixty_mae)
+        print("Mean absolute percentage error")
+        print('     gen:', gen_mape)
+        print('  symbol:', symbol_mape)
+        print('   50/50:', fifty_mape)
+        print('   66/32:', sixty_mape)
         print('r2')
         print('     gen:', gen_r2)
         print('  symbol:', symbol_r2)
@@ -459,18 +503,40 @@ if __name__ == "__main__":
     gc.collect()
 
     # Save results as csv
-    results_output.to_csv('xgboost-models/results-' + run_str + '.csv')
+    results_output.to_csv('xgboost-models/results-' + run_str + '.csv', columns = ['symbol',
+                                                                                   'general_mle',
+                                                                                    'symbol_mle',
+                                                                                    'fifty_fifty_mle',
+                                                                                   'sixty_thirty_mle',
+                                                                                   'general_mae',
+                                                                                   'symbol_mae',
+                                                                                   'fifty_fifty_mae',
+                                                                                   'sixty_thirty_mae',
+                                                                                   'general_mape',
+                                                                                   'symbol_mape',
+                                                                                   'fifty_fifty_mape',
+                                                                                   'sixty_thirty_mape',
+                                                                                   'general_r2',
+                                                                                   'symbol_r2',
+                                                                                   'fifty_fifty_r2',
+                                                                                   'sixty_thirty_r2'])
 
 
     # Save models to file
-    pickle.dump(symbol_map, open('xgboost-models/symbol-map.pkl', 'wb'))
-    gen_model.save_model('xgboost-models/general.xgb')
-    #save(symbol_models, 'xgboost-models/symbols.pkl')
+    save(symbol_map, 'xgboost-models/symbol-map.dat.gz')
+    save(gen_model, 'xgboost-models/general.dat.gz')
+    save(symbol_models, 'xgboost-models/symbols.dat.gz')
+    # joblib.dump(symbol_map, 'xgboost-models/symbol-map.dat.gz', compress=('gzip', 3))
+    # joblib.dump(symbol_map, 'xgboost-models/general.xgb.gz', compress=('gzip', 3))
+    # joblib.dump(symbol_map, 'xgboost-models/symbols.xgb.gz', compress=('gzip', 3))
 
 
     # Generate final and combined results
     gen_err = mean_absolute_error(all_results['actuals'].values, all_results['gen_predictions'].values)
     symbol_err = mean_absolute_error(all_results['actuals'].values, all_results['symbol_predictions'].values)
+
+    gen_mape = safe_mape(all_results['actuals'].values, all_results['gen_predictions'].values)
+    symbol_mape = safe_mape(all_results['actuals'].values, all_results['symbol_predictions'].values)
 
     gen_r2 = r2_score(all_results['actuals'].values, all_results['gen_predictions'].values)
     symbol_r2 = r2_score(all_results['actuals'].values, all_results['symbol_predictions'].values)
@@ -481,6 +547,10 @@ if __name__ == "__main__":
     print('Mean absolute error')
     print('     gen:', gen_err)
     print('  symbol:', symbol_err)
+
+    print('Mean absolute percentage error')
+    print('     gen:', gen_mape)
+    print('  symbol:', symbol_mape)
 
     print('r2')
     print('     gen:', gen_r2)
@@ -502,8 +572,10 @@ if __name__ == "__main__":
 
         gen_mae = mean_absolute_error(range_actuals, range_gen_predictions)
         symbol_mae = mean_absolute_error(range_actuals, range_symbol_predictions)
-        gen_r2 = r2_score(range_actuals, range_gen_predictions)
-        symbol_r2 = r2_score(range_actuals, range_symbol_predictions)
+        gen_mape = safe_mape(range_actuals, range_gen_predictions)
+        symbol_mape = safe_mape(range_actuals, range_symbol_predictions)
+        gen_mlpa = safe_mlpa(range_actuals, range_gen_predictions)
+        symbol_mlpa = safe_mlpa(range_actuals, range_symbol_predictions)
 
 
         # Print results
@@ -513,21 +585,28 @@ if __name__ == "__main__":
         print('     gen:', gen_mae)
         print('  symbol:', symbol_mae)
 
-        print('r2')
-        print('     gen:', gen_r2)
-        print('  symbol:', symbol_r2)
+        print('Mean absolute percentage error')
+        print('     gen:', gen_mape)
+        print('  symbol:', symbol_mape)
+
+
 
         overall_results_output = overall_results_output.append(pd.DataFrame.from_dict(
             {'lower_range': [lower_range],
              'upper_range': [upper_range],
              'gen_mae': [gen_mae],
              'symbol_mae': [symbol_mae],
-             'gen_r2': [gen_r2],
-             'symbol_r2': [symbol_r2]
+             'gen_mape': [gen_mape],
+             'symbol_mape': [symbol_mape]
              }))
 
 
         lower_range = upper_range
 
     # Output range results as csv
-    overall_results_output.to_csv('xgboost-models/range-results-' + run_str+ '.csv')
+    overall_results_output.to_csv('xgboost-models/range-results-' + run_str+ '.csv', columns=['lower_range',
+                                                                                              'upper_range',
+                                                                                              'gen_mae',
+                                                                                              'symbol_mae',
+                                                                                              'gen_mape',
+                                                                                              'symbol_mape'])
