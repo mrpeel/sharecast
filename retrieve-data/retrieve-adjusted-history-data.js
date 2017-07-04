@@ -19,7 +19,7 @@ const lambda = new aws.Lambda({
 * @param {String} symbol - the company to reload
 * @param {String} endDate - the the date to retrieve up to
 */
-let reloadAdjustedPrices = asyncify(function(params) {
+let retrieveAdjustedHistoryData = asyncify(function(params) {
   try {
     if (!params.symbol) {
       console.error(`Symbol parameter not provided`);
@@ -55,14 +55,19 @@ let reloadAdjustedPrices = asyncify(function(params) {
       let t1 = new Date();
 
       if (utils.dateDiff(t0, t1, 'seconds') > 250) {
-        let reinvokeEvent = {
-          'symbol': symbol,
-          'results': results,
-        };
-
-        invokeLambda('reloadAdjustedPrices', reinvokeEvent);
         break;
       }
+    }
+
+    /*  If results is not empty, more procesing is required
+         re-invoke lambda with remaining results */
+    if (results.length) {
+      let reinvokeEvent = {
+        'symbol': symbol,
+        'results': results,
+      };
+
+      awaitify(invokeLambda('retrieveAdjustedHistoryData', reinvokeEvent));
     }
 
     return true;
@@ -168,6 +173,10 @@ let updateAdjustedPrice = asyncify(function(quoteData) {
 
 let invokeLambda = function(lambdaName, event) {
   return new Promise(function(resolve, reject) {
+    console.log(`Invoking lambda ${lambdaName} with event: ${event}`);
+    resolve(true);
+    return;
+
     lambda.invoke({
       FunctionName: lambdaName,
       Payload: JSON.stringify(event, null, 2),
@@ -185,5 +194,5 @@ let invokeLambda = function(lambdaName, event) {
 
 
 module.exports = {
-  reloadAdjustedPrices: reloadAdjustedPrices,
+  retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };

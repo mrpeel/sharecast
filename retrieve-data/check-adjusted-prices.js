@@ -3,6 +3,7 @@
 const utils = require('./utils');
 const retrieveData = require('./dynamo-retrieve-share-data');
 const yahooFinance = require('yahoo-finance');
+const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const aws = require('aws-sdk');
@@ -33,7 +34,6 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
     let historyOptions = {
       from: startDate,
       to: endDate,
-      period: 'd',
     };
 
     // Check if one or many symbols
@@ -59,27 +59,47 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
 */
 let checkForAdjustments = asyncify(function(compDate) {
   let endDate = compDate || utils.returnDateAsString(Date.now());
-  let startDate = utils.dateAdd(endDate, 'weeks', -2);
+  /* This assumes process is being run on a Friday night and the look back
+      period allows going back over the last days of the previous week */
+  let startDate = utils.dateAdd(endDate, 'days', -9);
   let symbolResult = awaitify(retrieveData.setupSymbols());
 
   let companies = symbolResult.companies;
+  let symbolLookup = symbolResult.symbolLookup;
+  let symbolGroups = [];
 
-  companies.forEach((symbol) => {
+
+  /* Split companies into groups of 15 to ensure request doesn't exceed api
+      url length */
+  for (let companyCounter = 0; companyCounter < companies.length;
+    companyCounter += 20) {
+    symbolGroups.push(companies.slice(companyCounter, companyCounter + 20));
+  }
+
+  symbolGroups.forEach((symbolGroup) => {
+    // companies.forEach((symbol) => {
     try {
-      let result = awaitify(retrieveDailyHistory(symbol,
+      let results = awaitify(retrieveDailyHistory(symbolGroup,
         startDate, endDate));
 
-      /* If the adjusted price differs from the close price on any of the days
-         then adjustments have happened and the entire history needs to be
-         re-retrieved */
-      if (result.some((historyRecord) => {
-          return (historyRecord.adjClose !== historyRecord.close);
-        })) {
-        invokeLambda('retrieveAdjustedHistoryData', {
-          symbol: symbol,
-          endDate: endDate,
-        });
-      }
+      Object.keys(results).forEach((resultSymbol) => {
+        // Retrieve individual result
+        let result = results[resultSymbol];
+        /* If the adjusted price differs from the close price on any of the days
+           then adjustments have happened and the entire history needs to be
+           re-retrieved */
+        if (result.some((historyRecord) => {
+            return (historyRecord.adjClose !== historyRecord.close);
+          })) {
+          // Retrieve original symbol from yahoo symbol
+          let retrieveSymbol = symbolLookup[resultSymbol];
+
+          invokeLambda('retrieveAdjustedHistoryData', {
+            symbol: retrieveSymbol,
+            endDate: endDate,
+          });
+        }
+      });
     } catch (err) {
       console.error(err);
     }
@@ -88,6 +108,10 @@ let checkForAdjustments = asyncify(function(compDate) {
 
 let invokeLambda = function(lambdaName, event) {
   return new Promise(function(resolve, reject) {
+    console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
+    resolve(true);
+    return;
+
     lambda.invoke({
       FunctionName: lambdaName,
       Payload: JSON.stringify(event, null, 2),
@@ -106,3 +130,6 @@ let invokeLambda = function(lambdaName, event) {
 module.exports = {
   checkForAdjustments: checkForAdjustments,
 };
+
+dynamodb.setLocalAccessConfig();
+checkForAdjustments('2017-03-03');

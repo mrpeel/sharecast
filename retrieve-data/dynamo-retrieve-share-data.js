@@ -137,7 +137,7 @@ let setupSymbols = asyncify(function(indicesOnly) {
 */
 let retrieveSnapshot = function(symbol, fields) {
   return new Promise(function(resolve, reject) {
-    let snapshotOptions = {
+    /* let snapshotOptions = {
       fields: fields,
     };
 
@@ -149,6 +149,23 @@ let retrieveSnapshot = function(symbol, fields) {
     }
     yahooFinance.snapshot(snapshotOptions).then((result) => {
       resolve(result);
+    }).catch((err) => {
+      reject(err);
+    }); */
+
+    let quoteOptions = {
+      modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
+        'financialData'],
+    };
+
+    // Check if one or many symbols
+    if (Array.isArray(symbol)) {
+      quoteOptions.symbols = symbol;
+    } else {
+      quoteOptions.symbol = symbol;
+    }
+    yahooFinance.quote(quoteOptions).then((result) => {
+      resolve(mapFields(result));
     }).catch((err) => {
       reject(err);
     });
