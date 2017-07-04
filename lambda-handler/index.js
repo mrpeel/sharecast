@@ -245,4 +245,22 @@ let handler = asyncify(function(event, context) {
   }
 });
 
-module.exports.handler = handler;
+let checkForAdjustments = asyncify(function(event, context) {
+  try {
+  } catch (err) {
+    console.error('checkForAdjustments function failed: ', err);
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          'Lambda checkForAdjustments failed'));
+    } catch (err) {}
+    context.fail('checkForAdjustments function failed');
+  }
+});
+
+
+module.exports = {
+  handler: handler,
+  chedkForAdjustments: checkForAdjustments
+};

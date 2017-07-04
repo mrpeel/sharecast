@@ -3,6 +3,7 @@
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const program = require('commander');
+const dynamodb = require('../retrieve-data/dynamodb');
 const retrieval = require('./dynamo-retrieve-share-data');
 const utils = require('./utils');
 
@@ -214,6 +215,7 @@ let executeCommand = asyncify(function() {
     .parse(process.argv);
 
   try {
+    dynamodb.setLocalAccessConfig();
     let t0 = new Date();
 
     if (program.financial) {

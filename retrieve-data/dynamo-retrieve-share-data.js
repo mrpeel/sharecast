@@ -44,6 +44,7 @@ const fields = {
   s6: 'revenue',
 };
 
+
 const indiceFields = {
   d1: 'last-trade-date',
   p: 'previous-close',
@@ -152,6 +153,39 @@ let retrieveSnapshot = function(symbol, fields) {
       reject(err);
     });
   });
+};
+
+/**  Map the return from the update yahoo API to the previous quote structure
+* @param {Object} quote - the quote object from Yahoo
+* @return {Object} quote restructured into previous format
+*/
+let mapFields = function(quote) {
+  let updatedQuote = {
+    '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh,
+    '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow,
+    'bookValue': quote.defaultKeyStatistics.bookValue,
+    'change': quote.price.regularMarketChange,
+    'changeInPercent': quote.price.regularMarketChangePercent,
+    'daysHigh': quote.summaryDetail.dayHigh,
+    'daysLow': quote.summaryDetail.dayLow,
+    'earningsPerShare': quote.defaultKeyStatistics.forwardEps,
+    'ebitda': quote.financialData.ebitda,
+    'exDividendDate': quote.summaryDetail.exDividendDate,
+    'exDividendPayout': quote.summaryDetail.dividendRate,
+    'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield,
+    'Float': quote.defaultKeyStatistics.floatShares,
+    'lastTradePriceOnly': quote.price.regularMarketPrice,
+    'name': quote.price.longName,
+    'pegRatio': quote.defaultKeyStatistics.pegRatio,
+    'peRatio': quote.summaryDetail.trailingPE,
+    'previousClose': quote.summaryDetail.previousClose,
+    'Price200DayAverage': quote.summaryDetail.twoHundredDayAverage,
+    'Price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'],
+    'pricePerBook': quote.defaultKeyStatistics.priceToBook,
+    'symbol': quote.price.symbol,
+    'volume': quote.summaryDetail.volume,
+  };
+  return updatedQuote;
 };
 
 /**  Process an array of index quote results
@@ -818,177 +852,6 @@ let executeMetricsUpdate = asyncify(function(recLimits) {
     awaitify(updateQuotesWithMetrics(companies, metricsDate, recLimits || {}));
   }
 });
-
-/**  Executes all retrieval and update logic for the day's data
-*/
-/* let executeAll = asyncify(function() {
-  let t0 = new Date();
-
-  console.log('Executing retrieve financial indicators');
-  awaitify(executeFinancialIndicators());
-  let tf = new Date();
-
-  console.log('Executing retrieve company metrics');
-  awaitify(executeCompanyMetrics());
-  let tm = new Date();
-
-  console.log('Executing retrieve index quotes');
-  awaitify(executeIndexQuoteRetrieval());
-  let ti = new Date();
-
-  console.log('Executing retrieve company quotes - phase 1');
-  awaitify(executeCompanyQuoteRetrieval({
-    startRec: 0,
-    endRec: 599,
-  }));
-  let tc = new Date();
-
-  console.log('Executing retrieve company quotes - phase 2');
-  awaitify(executeCompanyQuoteRetrieval({
-    startRec: 600,
-    endRec: 1199,
-  }));
-  let tc2 = new Date();
-
-  console.log('Executing retrieve company quotes - phase 3');
-  awaitify(executeCompanyQuoteRetrieval({
-    startRec: 1200,
-    endRec: 1799,
-  }));
-  let tc3 = new Date();
-
-  console.log('Executing retrieve company quotes - phase 3');
-  awaitify(executeCompanyQuoteRetrieval({
-    startRec: 1800,
-  }));
-  let tc4 = new Date();
-
-  console.log('Executing update company quotes with metrics - phase 1');
-  awaitify(executeMetricsUpdate({
-    startRec: 0,
-    endRec: 599,
-  }));
-  let tu = new Date();
-
-  console.log('Executing update company quotes with metrics - phase 2');
-  awaitify(executeMetricsUpdate({
-    startRec: 600,
-    endRec: 1199,
-  }));
-  let tu2 = new Date();
-
-  console.log('Executing update company quotes with metrics - phase 3');
-  awaitify(executeMetricsUpdate({
-    startRec: 1200,
-    startRec: 1799,
-  }));
-  let tu3 = new Date();
-
-  console.log('Executing update company quotes with metrics - phase 4');
-  awaitify(executeMetricsUpdate({
-    startRec: 1800,
-  }));
-  let tu4 = new Date();
-
-  console.log('--------- All done --------');
-
-  console.log('Retrieve financial indicators: ',
-    utils.dateDiff(t0, tf, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve company metrics: ',
-    utils.dateDiff(tf, tm, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve index quotes: ',
-    utils.dateDiff(tm, ti, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve company quotes - phase 1: ',
-    utils.dateDiff(ti, tc, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve company quotes - phase 2: ',
-    utils.dateDiff(tc, tc2, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve company quotes - phase 3: ',
-    utils.dateDiff(tc2, tc3, 'seconds'), ' seconds to execute.');
-
-  console.log('Retrieve company quotes - phase 4: ',
-    utils.dateDiff(tc3, tc4, 'seconds'), ' seconds to execute.');
-
-  console.log('Update company quotes with metrics data - phase 1: ',
-    utils.dateDiff(tc4, tu, 'seconds'), ' seconds to execute.');
-
-  console.log('Update company quotes with metrics data - phase 2: ',
-    utils.dateDiff(tu, tu2, 'seconds'), ' seconds to execute.');
-
-  console.log('Update company quotes with metrics data - phase 3: ',
-    utils.dateDiff(tu2, tu3, 'seconds'), ' seconds to execute.');
-
-  console.log('Update company quotes with metrics data - phase 4: ',
-    utils.dateDiff(tu3, tu4, 'seconds'), ' seconds to execute.');
-
-
-  console.log('Total time for all operations: ',
-    utils.dateDiff(t0, tu, 'seconds'), ' seconds to execute.');
-}); */
-
-/**  Check the command line option specified and execute the appropriate
-*     function(s).
-*/
-/* let executeCommand = asyncify(function() {
-  program
-    .version('0.0.1')
-    .description('Sharecast share data retrieval')
-    .option('-f, --financial', 'Retrieve financial indicators')
-    .option('-m, --metrics', 'Retrieve company metrics')
-    .option('-i, --indices', 'Retrieve index quotes')
-    .option('-c, --companies', 'Retrieve company quotes')
-    .option('-u, --updates', 'Update company quotes with metrics data')
-    .option('-a, --all', 'Perform complete series of operations')
-    .parse(process.argv);
-
-  let t0 = new Date();
-
-  if (program.financial) {
-    console.log('Executing retrieve financial indicators');
-    awaitify(executeFinancialIndicators());
-    let tf = new Date();
-    console.log('Retrieve financial indicators: ',
-      utils.dateDiff(t0, tf, 'seconds'), ' seconds to execute.');
-  }
-  if (program.metrics) {
-    console.log('Executing retrieve company metrics');
-    awaitify(executeCompanyMetrics());
-    let tm = new Date();
-    console.log('Retrieve company metrics: ',
-      utils.dateDiff(t0, tm, 'seconds'), ' seconds to execute.');
-  }
-  if (program.indices) {
-    console.log('Executing retrieve index quotes');
-    awaitify(executeIndexQuoteRetrieval());
-    let ti = new Date();
-    console.log('Retrieve index quotes: ',
-      utils.dateDiff(t0, ti, 'seconds'), ' seconds to execute.');
-  }
-  if (program.companies) {
-    console.log('Executing retrieve company quotes');
-    awaitify(executeCompanyQuoteRetrieval());
-    let tc = new Date();
-    console.log('Retrieve company quotes: ',
-      utils.dateDiff(t0, tc, 'seconds'), ' seconds to execute.');
-  }
-  if (program.updates) {
-    console.log('Executing update company quotes with metrics');
-    awaitify(executeMetricsUpdate());
-    let tu = new Date();
-    console.log('Update company quotes with metrics data: ',
-      utils.dateDiff(t0, tu, 'seconds'), ' seconds to execute.');
-  }
-  if (program.all) {
-    console.log('Executing complete series');
-    executeAll();
-  }
-}); */
-
-// executeCommand();
 
 
 module.exports = {

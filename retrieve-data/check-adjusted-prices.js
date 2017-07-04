@@ -1,11 +1,16 @@
 'use strict';
 
 const utils = require('./utils');
-const dynamodb = require('./dynamodb');
 const retrieveData = require('./dynamo-retrieve-share-data');
 const yahooFinance = require('yahoo-finance');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
+const aws = require('aws-sdk');
+
+const lambda = new aws.Lambda({
+  region: 'ap-southeast-2',
+});
+
 
 /** Retrieve daily history values for symbol(s) from yahoo finance
 * @param {Array} symbol - one or more yahoo symbols to lookup
@@ -52,29 +57,52 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
 *    2006-07-01, so trigger a complete re-check of prices.
 *
 */
-let checkForAdjustments = asyncify(function() {
-  let endDate = utils.returnDateAsString(Date.now());
+let checkForAdjustments = asyncify(function(compDate) {
+  let endDate = compDate || utils.returnDateAsString(Date.now());
   let startDate = utils.dateAdd(endDate, 'weeks', -2);
   let symbolResult = awaitify(retrieveData.setupSymbols());
-  let symbolGroups = [];
 
   let companies = symbolResult.companies;
 
-  for (let companyCounter = 0; companyCounter < companies.length;
-    companyCounter += 15) {
-    symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
-  }
-
-  symbolGroups.forEach((symbolGroup) => {
+  companies.forEach((symbol) => {
     try {
-      let result = awaitify(retrieveDailyHistory(symbolGroup,
+      let result = awaitify(retrieveDailyHistory(symbol,
         startDate, endDate));
 
-      result.forEach((historyRecord) => {
-        // Check whether adjClose is different to close
-      });
+      /* If the adjusted price differs from the close price on any of the days
+         then adjustments have happened and the entire history needs to be
+         re-retrieved */
+      if (result.some((historyRecord) => {
+          return (historyRecord.adjClose !== historyRecord.close);
+        })) {
+        invokeLambda('retrieveAdjustedHistoryData', {
+          symbol: symbol,
+          endDate: endDate,
+        });
+      }
     } catch (err) {
       console.error(err);
     }
   });
 });
+
+let invokeLambda = function(lambdaName, event) {
+  return new Promise(function(resolve, reject) {
+    lambda.invoke({
+      FunctionName: lambdaName,
+      Payload: JSON.stringify(event, null, 2),
+    }, function(err, data) {
+      if (err) {
+        reject(err);
+      } else {
+        console.log(`Function ${lambdaName} executed with event: `,
+          `${JSON.stringify(event)}`);
+        resolve(true);
+      }
+    });
+  });
+};
+
+module.exports = {
+  checkForAdjustments: checkForAdjustments,
+};

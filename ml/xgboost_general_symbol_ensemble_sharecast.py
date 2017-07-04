@@ -137,7 +137,7 @@ def y_scaler(input_array):
     #transformed_array = scaler.fit_transform(transformed_array)
     return transformed_array, scaler
 
-def y_inverse_scaler(prediction_array, scaler):
+def y_inverse_scaler(prediction_array):
     transformed_array = prediction_array #scaler.inverse_transform(prediction_array)
     transformed_array = safe_exp(transformed_array)
     return transformed_array
@@ -175,13 +175,39 @@ def safe_mape(actual_y, prediction_y):
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
     denominators = actual_y.copy()
-    set_ones = (denominators >= 0) & (denominators <= 1)
-    set_neg_ones = (denominators >= -1) & (denominators < 0)
-    denominators[set_ones] = 1
-    denominators[set_neg_ones] = -1
+    set_pos = (denominators >= 0) & (denominators <= 1)
+    set_neg = (denominators >= -1) & (denominators < 0)
+    denominators[set_pos] = 1
+    denominators[set_neg] = -1
 
     return np.mean(np.absolute((prediction_y - actual_y) / denominators * 100))
 
+def mape_eval(actual_y, eval_y):
+    """
+    Used during xgboost training
+
+    Args:
+        actual_y - numpy array containing targets with shape (n_samples, n_targets)
+        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+    prediction_y = eval_y.get_label()
+    assert len(actual_y) == len(prediction_y)
+    return 'error', safe_mape(actual_y, prediction_y)
+
+def mape_log_y(actual_y, prediction_y):
+    inverse_actual = actual_y.copy()
+    inverse_actual = y_inverse_scaler(inverse_actual)
+
+    inverse_prediction = prediction_y.copy()
+    inverse_prediction = y_inverse_scaler(inverse_prediction)
+
+    return safe_mape(inverse_actual, inverse_prediction)
+
+
+def mape_log_y_eval(actual_y, eval_y):
+    prediction_y = eval_y.get_label()
+    assert len(actual_y) == len(prediction_y)
+    return 'error', mape_log_y(actual_y, prediction_y)
 
 
 def drop_unused_columns(df, data_cols):
@@ -339,8 +365,10 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     all_test_x = df_all_test_x.as_matrix()
 
     eval_set = [(all_test_x, all_test_y)]
-    model.fit(all_train_x, all_train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
-              verbose=False)
+    #model.fit(all_train_x, all_train_y, early_stopping_rounds=250, eval_metric='mae', eval_set=eval_set,
+    model.fit(all_train_x, all_train_y, early_stopping_rounds=250, eval_metric=mape_log_y_eval, eval_set=eval_set,
+              verbose=True)
+
 
     gc.collect()
 
@@ -382,7 +410,8 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         test_x = symbols_test_x[symbol]
 
         eval_set = [(test_x, test_y)]
-        symbol_model.fit(train_x, train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+        #symbol_model.fit(train_x, train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+        symbol_model.fit(train_x, train_y, early_stopping_rounds=250, eval_metric=mape_log_y_eval, eval_set=eval_set,
                          verbose=False)
 
         gc.collect()
@@ -453,22 +482,22 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         print('     gen:', gen_err)
         print('  symbol:', symbol_err)
         print('   50/50:', fifty_err)
-        print('   66/32:', sixty_err)
+        print('   66/33:', sixty_err)
         print('Mean absolute error')
         print('     gen:', gen_mae)
         print('  symbol:', symbol_mae)
         print('   50/50:', fifty_mae)
-        print('   66/32:', sixty_mae)
+        print('   66/33:', sixty_mae)
         print("Mean absolute percentage error")
         print('     gen:', gen_mape)
         print('  symbol:', symbol_mape)
         print('   50/50:', fifty_mape)
-        print('   66/32:', sixty_mape)
+        print('   66/33:', sixty_mape)
         print('r2')
         print('     gen:', gen_r2)
         print('  symbol:', symbol_r2)
         print('   50/50:', fifty_r2)
-        print('   66/32:', sixty_r2)
+        print('   66/33:', sixty_r2)
 
 
     return symbol_models, all_results, results_output
@@ -541,20 +570,34 @@ if __name__ == "__main__":
     gen_r2 = r2_score(all_results['actuals'].values, all_results['gen_predictions'].values)
     symbol_r2 = r2_score(all_results['actuals'].values, all_results['symbol_predictions'].values)
 
+    fifty_err = mean_absolute_error(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
+    fifty_mape = safe_mape(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
+    fifty_r2 = r2_score(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
+
+    sixty_err = mean_absolute_error(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
+    sixty_mape = safe_mape(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
+    sixty_r2 = r2_score(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
+
     # Print results
     print('Overall results')
     print('-------------------')
     print('Mean absolute error')
     print('     gen:', gen_err)
     print('  symbol:', symbol_err)
+    print('   50/50:', fifty_err)
+    print('   66/33:', sixty_err)
 
     print('Mean absolute percentage error')
     print('     gen:', gen_mape)
     print('  symbol:', symbol_mape)
+    print('   50/50:', fifty_mape)
+    print('   66/33:', sixty_mape)
 
     print('r2')
     print('     gen:', gen_r2)
     print('  symbol:', symbol_r2)
+    print('   50/50:', fifty_r2)
+    print('   66/33:', sixty_r2)
 
     overall_results_output = pd.DataFrame()
 
@@ -574,9 +617,12 @@ if __name__ == "__main__":
         symbol_mae = mean_absolute_error(range_actuals, range_symbol_predictions)
         gen_mape = safe_mape(range_actuals, range_gen_predictions)
         symbol_mape = safe_mape(range_actuals, range_symbol_predictions)
-        gen_mlpa = safe_mlpa(range_actuals, range_gen_predictions)
-        symbol_mlpa = safe_mlpa(range_actuals, range_symbol_predictions)
 
+        fifty_mae = mean_absolute_error(range_actuals, ((range_gen_predictions + range_symbol_predictions) / 2))
+        fifty_mape = safe_mape(range_actuals, (range_gen_predictions + range_symbol_predictions) / 2)
+
+        sixty_mae = mean_absolute_error(range_actuals, ((range_gen_predictions + (range_symbol_predictions * 2)) / 3))
+        sixty_mape = safe_mape(range_actuals, ((range_gen_predictions + (range_symbol_predictions * 2)) / 3))
 
         # Print results
         print('Results:', lower_range, 'to', upper_range)
@@ -584,10 +630,14 @@ if __name__ == "__main__":
         print('Mean absolute error')
         print('     gen:', gen_mae)
         print('  symbol:', symbol_mae)
+        print('   50/50:', fifty_mae)
+        print('   66/33:', sixty_mae)
 
         print('Mean absolute percentage error')
         print('     gen:', gen_mape)
         print('  symbol:', symbol_mape)
+        print('   50/50:', fifty_mape)
+        print('   66/33:', sixty_mape)
 
 
 
@@ -596,8 +646,12 @@ if __name__ == "__main__":
              'upper_range': [upper_range],
              'gen_mae': [gen_mae],
              'symbol_mae': [symbol_mae],
+             'fifty_mae': [fifty_mae],
+             'sixty_mae': [sixty_mae],
              'gen_mape': [gen_mape],
-             'symbol_mape': [symbol_mape]
+             'symbol_mape': [symbol_mape],
+             'fifty_mape': [fifty_mape],
+             'sixty_mape': [sixty_mape]
              }))
 
 
