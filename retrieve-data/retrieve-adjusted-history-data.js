@@ -46,7 +46,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
         '2008-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
     }
 
-    for (let c = 0; c < results.length; c++) {
+    while (results.length) {
       let result = results.shift(1);
       result.adjustedPrice = result.adjClose;
       result.symbol = symbol;
@@ -67,7 +67,14 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
         'results': results,
       };
 
-      awaitify(invokeLambda('retrieveAdjustedHistoryData', reinvokeEvent));
+      let description = `Continuing retrieveAdjustedHistoryData. ` +
+        `${results.length} still to complete`;
+
+      awaitify(invokeLambda('retrieveAdjustedHistoryData', reinvokeEvent, description));
+    } else {
+      awaitify(
+        sns.publishMsg(snsArn,
+          'reloadAdjustedPrices completed.'));
     }
 
     return true;
@@ -171,9 +178,16 @@ let updateAdjustedPrice = asyncify(function(quoteData) {
   return awaitify(dynamodb.updateRecord(updateDetails));
 });
 
-let invokeLambda = function(lambdaName, event) {
+let invokeLambda = function(lambdaName, event, description) {
   return new Promise(function(resolve, reject) {
     console.log(`Invoking lambda ${lambdaName} with event: ${event}`);
+    if (description) {
+      console.log(description);
+    }
+
+    // Re-invoke function to simulate lambda
+    retrieveAdjustedHistoryData(event);
+
     resolve(true);
     return;
 

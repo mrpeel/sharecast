@@ -6,6 +6,8 @@ const yahooFinance = require('yahoo-finance');
 const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
+const sns = require('./publish-sns');
+const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 const aws = require('aws-sdk');
 
 const lambda = new aws.Lambda({
@@ -57,8 +59,8 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
 *    2006-07-01, so trigger a complete re-check of prices.
 *
 */
-let checkForAdjustments = asyncify(function(compDate) {
-  let endDate = compDate || utils.returnDateAsString(Date.now());
+let checkForAdjustments = asyncify(function(event) {
+  let endDate = event.compDate || utils.returnDateAsString(Date.now());
   /* This assumes process is being run on a Friday night and the look back
       period allows going back over the last days of the previous week */
   let startDate = utils.dateAdd(endDate, 'days', -9);
@@ -68,16 +70,25 @@ let checkForAdjustments = asyncify(function(compDate) {
   let symbolLookup = symbolResult.symbolLookup;
   let symbolGroups = [];
 
+  let t0 = new Date();
 
-  /* Split companies into groups of 15 to ensure request doesn't exceed api
-      url length */
-  for (let companyCounter = 0; companyCounter < companies.length;
-    companyCounter += 20) {
-    symbolGroups.push(companies.slice(companyCounter, companyCounter + 20));
+  // If continuing used supplied symbolGroups, otherwise create the groups
+  if (event.symbolGroups) {
+    symbolGroups = event.symbolGroups;
+  } else {
+    symbolGroups = [];
+    /* Split companies into groups of 15 to ensure request doesn't exceed api
+        url length */
+    for (let companyCounter = 0; companyCounter < companies.length;
+      companyCounter += 20) {
+      symbolGroups.push(companies.slice(companyCounter, companyCounter + 20));
+    }
   }
 
-  symbolGroups.forEach((symbolGroup) => {
-    // companies.forEach((symbol) => {
+
+  while (symbolGroups.length) {
+    let symbolGroup = symbolGroups.shift(1);
+
     try {
       let results = awaitify(retrieveDailyHistory(symbolGroup,
         startDate, endDate));
@@ -103,12 +114,43 @@ let checkForAdjustments = asyncify(function(compDate) {
     } catch (err) {
       console.error(err);
     }
-  });
+    let t1 = new Date();
+
+    if (utils.dateDiff(t0, t1, 'seconds') > 250) {
+      break;
+    }
+  }
+
+  /*  If results is not empty, more procesing is required
+       re-invoke lambda with remaining symbolGroups */
+  if (symbolGroups.length) {
+    let reinvokeEvent = {
+      'symbolGroups': symbolGroups,
+      'compDate': endDate,
+    };
+
+    let description = `Continuing checkForAdjustments. ` +
+      `${symbolGroups.length} symbol groups still to complete`;
+
+    awaitify(invokeLambda('checkForAdjustments', reinvokeEvent, description));
+  } else {
+    awaitify(
+      sns.publishMsg(snsArn,
+        'checkForAdjustments completed.'));
+  }
+
+  return true;
 });
 
-let invokeLambda = function(lambdaName, event) {
+let invokeLambda = function(lambdaName, event, description) {
   return new Promise(function(resolve, reject) {
     console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
+    if (description) {
+      console.log(description);
+    }
+    if (lambdaName === 'checkForAdjustments') {
+      checkForAdjustments(event);
+    }
     resolve(true);
     return;
 
@@ -132,4 +174,6 @@ module.exports = {
 };
 
 dynamodb.setLocalAccessConfig();
-checkForAdjustments('2017-03-03');
+checkForAdjustments({
+  compDate: '2017-03-03',
+});
