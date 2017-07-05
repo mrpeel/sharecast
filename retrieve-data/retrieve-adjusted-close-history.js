@@ -73,8 +73,8 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
       awaitify(invokeLambda('retrieveAdjustedHistoryData', reinvokeEvent, description));
     } else {
       awaitify(
-        sns.publishMsg(snsArn,
-          'reloadAdjustedPrices completed.'));
+        sns.publishMsg(snsArn, 'reloadAdjustedPrices completed.',
+          `reloadAdjustedPrices for ${symbol} completed.`));
     }
 
     return true;
@@ -210,3 +210,9 @@ let invokeLambda = function(lambdaName, event, description) {
 module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };
+
+dynamodb.setLocalAccessConfig();
+retrieveAdjustedHistoryData({
+  endDate: '2017-03-03',
+  symbol: 'JBH',
+});
