@@ -173,7 +173,7 @@ module.exports = {
   checkForAdjustments: checkForAdjustments,
 };
 
-dynamodb.setLocalAccessConfig();
+/*dynamodb.setLocalAccessConfig();
 checkForAdjustments({
   compDate: '2017-03-03',
-});
+});*/

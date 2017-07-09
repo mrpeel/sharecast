@@ -2,7 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" afterPath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" afterPath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" afterPath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -17,8 +19,8 @@
       <file leaf-file-name="wide_n_deep_xgboost_ensemble_sharecast.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="226">
-              <caret line="620" column="32" lean-forward="true" selection-start-line="620" selection-start-column="32" selection-end-line="620" selection-end-column="32" />
+            <state relative-caret-position="9075">
+              <caret line="620" column="32" lean-forward="false" selection-start-line="620" selection-start-column="32" selection-end-line="620" selection-end-column="32" />
               <folding>
                 <element signature="e#764#802#0" expanded="true" />
               </folding>
@@ -30,7 +32,7 @@
         <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="209">
-              <caret line="621" column="101" lean-forward="true" selection-start-line="621" selection-start-column="101" selection-end-line="621" selection-end-column="101" />
+              <caret line="621" column="101" lean-forward="false" selection-start-line="621" selection-start-column="101" selection-end-line="621" selection-end-column="101" />
               <folding>
                 <element signature="e#1#39#0" expanded="true" />
               </folding>
@@ -41,8 +43,8 @@
       <file leaf-file-name="prep-data-regression.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1529">
-              <caret line="199" column="63" lean-forward="true" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
+            <state relative-caret-position="2940">
+              <caret line="199" column="63" lean-forward="false" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
               </folding>
@@ -161,6 +163,8 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
+      <pane id="Scratches" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -195,8 +199,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scratches" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -432,7 +434,7 @@
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.41031653" sideWeight="0.65347224" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32942554" sideWeight="0.5" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.39976552" sideWeight="0.7451389" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39976552" sideWeight="0.7451389" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -777,14 +779,13 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="6" column="36" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="36" />
-          <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1529">
-          <caret line="199" column="63" lean-forward="true" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
+        <state relative-caret-position="2940">
+          <caret line="199" column="63" lean-forward="false" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
@@ -793,8 +794,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="226">
-          <caret line="620" column="32" lean-forward="true" selection-start-line="620" selection-start-column="32" selection-end-line="620" selection-end-column="32" />
+        <state relative-caret-position="9075">
+          <caret line="620" column="32" lean-forward="false" selection-start-line="620" selection-start-column="32" selection-end-line="620" selection-end-column="32" />
           <folding>
             <element signature="e#764#802#0" expanded="true" />
           </folding>
@@ -804,7 +805,7 @@
     <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="209">
-          <caret line="621" column="101" lean-forward="true" selection-start-line="621" selection-start-column="101" selection-end-line="621" selection-end-column="101" />
+          <caret line="621" column="101" lean-forward="false" selection-start-line="621" selection-start-column="101" selection-end-line="621" selection-end-column="101" />
           <folding>
             <element signature="e#1#39#0" expanded="true" />
           </folding>

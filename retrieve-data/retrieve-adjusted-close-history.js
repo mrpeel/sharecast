@@ -1,6 +1,7 @@
 const yahooFinance = require('yahoo-finance');
 const utils = require('../retrieve-data/utils');
 const dynamodb = require('../retrieve-data/dynamodb');
+const retrieveData = require('./dynamo-retrieve-share-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const moment = require('moment-timezone');
@@ -54,7 +55,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 250) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 25000) {
         break;
       }
     }
@@ -168,8 +169,7 @@ let updateAdjustedPrice = asyncify(function(quoteData) {
   expressionAttributeValues[':adjustedPrice'] = quoteData['adjustedPrice'];
   expressionAttributeNames['#adjustedPrice'] = 'adjustedPrice';
 
-  updateExpression = 'set #adjustedPrice = :adjustedPrice' +
-    ', #updated = :updated';
+  updateExpression = 'set #adjustedPrice = :adjustedPrice';
 
   updateDetails.updateExpression = updateExpression;
   updateDetails.expressionAttributeValues = expressionAttributeValues;
@@ -211,8 +211,21 @@ module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };
 
-dynamodb.setLocalAccessConfig();
-retrieveAdjustedHistoryData({
-  endDate: '2017-03-03',
-  symbol: 'JBH',
+let oneOffLoad = asyncify(function() {
+  dynamodb.setLocalAccessConfig();
+  let symbolResult = awaitify(retrieveData.setupSymbols());
+
+  let companies = [];
+  Object.keys(symbolResult.companyLookup).forEach((company) => {
+    companies.push(symbolResult.companyLookup[company]);
+  });
+
+  companies.forEach((company) => {
+    awaitify(retrieveAdjustedHistoryData({
+      endDate: '2017-07-08',
+      symbol: company,
+    }));
+  });
 });
+
+oneOffLoad();

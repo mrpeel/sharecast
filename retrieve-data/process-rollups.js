@@ -6,6 +6,7 @@ const stats = require('./stats');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
+
 /** Calculates the return for a company from a startDate to an endDate.  Adds
 *    the capital gain and any dividends paid out and returns the percentage
    increase / decrease and the risk adjusted increase / decrease
@@ -54,7 +55,7 @@ let calculateReturnForPeriod = function(currentPrice, purchasePrice,
 * @param {Array} dividends - dividends object in form:
   @return {Number} total dividends for period
 */
-let returnDividendsForPeriod = asyncify(function(startDate, endDate,
+let returnDividendsForPeriod = function(startDate, endDate,
   dividends) {
   let totalDividend = 0;
   Object.keys(dividends).forEach((dividendDate) => {
@@ -64,7 +65,7 @@ let returnDividendsForPeriod = asyncify(function(startDate, endDate,
   });
 
   return totalDividend;
-});
+};
 
 /** Updates the returns for previous periods using the prices and dividends.
    Updates total return for 1,2,4,8,12,26,52 weeks as well as risk adjusted
@@ -82,119 +83,154 @@ let returnDividendsForPeriod = asyncify(function(startDate, endDate,
 */
 let updateReturns = asyncify(function(symbol, currentDate, currentPrice,
   historicalValues, dividends) {
-  // Set-up update details, only update the record if it is found
-  let updateDetails = {
-    tableName: 'companyQuotes',
-    key: {
-      symbol: symbol,
-    },
-    conditionExpression: 'attribute_exists(symbol) and ' +
-      'attribute_exists(quoteDate)',
-  };
-  // Return arrays for prices by time period
-  let weeklyStats = getWeeklyStats(historicalValues, currentDate);
+  try {
+    // Return arrays for prices by time period
+    let weeklyStats = getWeeklyStats(historicalValues, currentDate);
 
-  // Get prices and dividends
-  let pricesAndDividends = {
-    week1: {
-      num: 1,
-      quoteDate: weeklyStats['1WeekDate'],
-      price: historicalValues[weeklyStats['1WeekDate']] || 0,
-      stdDev: weeklyStats['1WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['1WeekDate'],
-        currentDate, dividends)),
-    },
-    week2: {
-      num: 2,
-      quoteDate: weeklyStats['2WeekDate'],
-      price: historicalValues[weeklyStats['2WeekDate']] || 0,
-      stdDev: weeklyStats['2WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['2WeekDate'],
-        currentDate, dividends)),
-    },
-    week4: {
-      num: 4,
-      quoteDate: weeklyStats['4WeekDate'],
-      price: historicalValues[weeklyStats['4WeekDate']] || 0,
-      stdDev: weeklyStats['4WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['4WeekDate'],
-        currentDate, dividends)),
-    },
-    week8: {
-      num: 8,
-      quoteDate: weeklyStats['8WeekDate'],
-      price: historicalValues[weeklyStats['8WeekDate']] || 0,
-      stdDev: weeklyStats['8WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['8WeekDate'],
-        currentDate, dividends)),
-    },
-    week12: {
-      num: 12,
-      quoteDate: weeklyStats['12WeekDate'],
-      price: historicalValues[weeklyStats['12WeekDate']] || 0,
-      stdDev: weeklyStats['12WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['12WeekDate'],
-        currentDate, dividends)),
-    },
-    week26: {
-      num: 26,
-      quoteDate: weeklyStats['26WeekDate'],
-      price: historicalValues[weeklyStats['26WeekDate']] || 0,
-      stdDev: weeklyStats['26WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['26WeekDate'],
-        currentDate, dividends)),
-    },
-    week52: {
-      num: 52,
-      quoteDate: weeklyStats['52WeekDate'],
-      price: historicalValues[weeklyStats['52WeekDate']] || 0,
-      stdDev: weeklyStats['52WeekStdDev'],
-      dividends: awaitify(returnDividendsForPeriod(weeklyStats['52WeekDate'],
-        currentDate, dividends)),
-    },
-  };
+    // Get prices and dividends
+    let pricesAndDividends = {
+      week1: {
+        num: 1,
+        quoteDate: weeklyStats['1WeekDate'],
+        price: historicalValues[weeklyStats['1WeekDate']] || 0,
+        stdDev: weeklyStats['1WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['1WeekDate'],
+          currentDate, dividends),
+      },
+      week2: {
+        num: 2,
+        quoteDate: weeklyStats['2WeekDate'],
+        price: historicalValues[weeklyStats['2WeekDate']] || 0,
+        stdDev: weeklyStats['2WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['2WeekDate'],
+          currentDate, dividends),
+      },
+      week4: {
+        num: 4,
+        quoteDate: weeklyStats['4WeekDate'],
+        price: historicalValues[weeklyStats['4WeekDate']] || 0,
+        stdDev: weeklyStats['4WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['4WeekDate'],
+          currentDate, dividends),
+      },
+      week8: {
+        num: 8,
+        quoteDate: weeklyStats['8WeekDate'],
+        price: historicalValues[weeklyStats['8WeekDate']] || 0,
+        stdDev: weeklyStats['8WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['8WeekDate'],
+          currentDate, dividends),
+      },
+      week12: {
+        num: 12,
+        quoteDate: weeklyStats['12WeekDate'],
+        price: historicalValues[weeklyStats['12WeekDate']] || 0,
+        stdDev: weeklyStats['12WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['12WeekDate'],
+          currentDate, dividends),
+      },
+      week26: {
+        num: 26,
+        quoteDate: weeklyStats['26WeekDate'],
+        price: historicalValues[weeklyStats['26WeekDate']] || 0,
+        stdDev: weeklyStats['26WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['26WeekDate'],
+          currentDate, dividends),
+      },
+      week52: {
+        num: 52,
+        quoteDate: weeklyStats['52WeekDate'],
+        price: historicalValues[weeklyStats['52WeekDate']] || 0,
+        stdDev: weeklyStats['52WeekStdDev'],
+        dividends: returnDividendsForPeriod(weeklyStats['52WeekDate'],
+          currentDate, dividends),
+      },
+    };
 
-  // Calculate return and risk adjusted return for each period
-  Object.keys(pricesAndDividends).forEach((week) => {
-    let prefix = pricesAndDividends[week]['num'];
-    let quoteDate = pricesAndDividends[week]['quoteDate'];
-    let weekPrice = pricesAndDividends[week]['price'];
-    let weekStd = pricesAndDividends[week]['stdDev'];
-    let weekDividends = pricesAndDividends[week]['dividends'];
+    // for (let c = 0; c < Object.keys(pricesAndDividends).length; c++) {
+    Object.keys(pricesAndDividends).forEach((week) => {
+      // let week = Object.keys(pricesAndDividends)[c];
+      // Calculate return and risk adjusted return for each period
+      let prefix = pricesAndDividends[week]['num'];
+      let quoteDate = pricesAndDividends[week]['quoteDate'];
+      let weekPrice = pricesAndDividends[week]['price'];
+      let weekStd = pricesAndDividends[week]['stdDev'];
+      let weekDividends = pricesAndDividends[week]['dividends'];
 
-    if (weekPrice) {
-      let weekReturns = calculateReturnForPeriod(currentPrice, weekPrice,
-        weekDividends || 0, weekStd);
+      awaitify(updateReturn({
+        symbol: symbol,
+        prefix: prefix,
+        quoteDate: quoteDate,
+        currentPrice: currentPrice,
+        weekPrice: weekPrice,
+        weekStd: weekStd,
+        weekDividends: weekDividends,
+      }));
+    });
+    // }
 
-      updateDetails.key.quoteDate = quoteDate;
-      updateDetails.updateExpression = 'set ' +
-        '#Future' + prefix + 'WeekPrice = :' + prefix + 'WeekFuturePrice, ' +
-        '#Future' + prefix + 'WeekDividend = :' +
-        prefix + 'WeekFutureDividend, ' +
-        '#Future' + prefix + 'WeekReturn = :' + prefix + 'WeekFutureReturn, ' +
-        '#Future' + prefix + 'WeekRiskAdjustedReturn = :' +
-        prefix + 'WeekFutureRiskAdjustedReturn';
+    return true;
+  } catch (err) {
+    console.log(err);
+    return false;
+  }
+});
 
-      updateDetails.expressionAttributeNames = {};
-      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekPrice'] = 'Future' + prefix + 'WeekPrice';
-      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekDividend'] = 'Future' + prefix + 'WeekDividend';
-      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekReturn'] = 'Future' + prefix + 'WeekReturn';
-      updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekRiskAdjustedReturn'] = 'Future' + prefix + 'WeekRiskAdjustedReturn';
+let updateReturn = asyncify(function(updateValues) {
+  try {
+    // Set-up update details, only update the record if it is found
+    let symbol = updateValues.symbol;
+    let prefix = updateValues.prefix;
+    let quoteDate = updateValues.quoteDate;
+    let weekPrice = updateValues.weekPrice;
+    let weekStd = updateValues.weekStd;
+    let weekDividends = updateValues.weekDividends;
+    let currentPrice = updateValues.currentPrice;
 
-
-      updateDetails.expressionAttributeValues = {};
-      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFuturePrice'] = currentPrice;
-      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureDividend'] = weekDividends || 0;
-      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureReturn'] = weekReturns.returns;
-      updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureRiskAdjustedReturn'] = weekReturns.riskAdjustedReturns;
-
-      try {
-        awaitify(dynamodb.updateRecord(updateDetails));
-      } catch (err) {
-        console.log(err);
-      }
+    if (!weekPrice) {
+      return;
     }
-  });
+
+    // Set-up update details, only update the record if it is found
+    let updateDetails = {
+      tableName: 'companyQuotes',
+      key: {
+        symbol: symbol,
+      },
+      conditionExpression: 'attribute_exists(symbol) and ' +
+        'attribute_exists(quoteDate)',
+    };
+
+    let weekReturns = calculateReturnForPeriod(currentPrice, weekPrice,
+      weekDividends || 0, weekStd);
+
+
+    updateDetails.key.quoteDate = quoteDate;
+    updateDetails.updateExpression = 'set ' +
+      '#Future' + prefix + 'WeekPrice = :' + prefix + 'WeekFuturePrice, ' +
+      '#Future' + prefix + 'WeekDividend = :' +
+      prefix + 'WeekFutureDividend, ' +
+      '#Future' + prefix + 'WeekReturn = :' + prefix + 'WeekFutureReturn, ' +
+      '#Future' + prefix + 'WeekRiskAdjustedReturn = :' +
+      prefix + 'WeekFutureRiskAdjustedReturn';
+    ;
+
+    updateDetails.expressionAttributeNames = {};
+    updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekPrice'] = 'Future' + prefix + 'WeekPrice';
+    updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekDividend'] = 'Future' + prefix + 'WeekDividend';
+    updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekReturn'] = 'Future' + prefix + 'WeekReturn';
+    updateDetails.expressionAttributeNames['#Future' + prefix + 'WeekRiskAdjustedReturn'] = 'Future' + prefix + 'WeekRiskAdjustedReturn';
+
+    updateDetails.expressionAttributeValues = {};
+    updateDetails.expressionAttributeValues[':' + prefix + 'WeekFuturePrice'] = currentPrice;
+    updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureDividend'] = weekDividends || 0;
+    updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureReturn'] = weekReturns.returns;
+    updateDetails.expressionAttributeValues[':' + prefix + 'WeekFutureRiskAdjustedReturn'] = weekReturns.riskAdjustedReturns;
+
+    awaitify(dynamodb.updateRecord(updateDetails));
+  } catch (err) {
+    console.log(err);
+  }
 });
 
 

@@ -84,7 +84,6 @@ let setupSymbols = asyncify(function(indicesOnly) {
     console.log('----- Start setup symbols -----');
     let indexValues = awaitify(symbols.getIndices());
     let wSymbolLookup = {};
-    let wSymbolLastAdjustedDate = {};
     let wIndexLookup = {};
     let wIndexSymbols = [];
     let wCompanyLookup = {};
@@ -176,32 +175,74 @@ let retrieveSnapshot = function(symbol, fields) {
 * @param {Object} quote - the quote object from Yahoo
 * @return {Object} quote restructured into previous format
 */
-let mapFields = function(quote) {
-  let updatedQuote = {
-    '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh,
-    '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow,
-    'bookValue': quote.defaultKeyStatistics.bookValue,
-    'change': quote.price.regularMarketChange,
-    'changeInPercent': quote.price.regularMarketChangePercent,
-    'daysHigh': quote.summaryDetail.dayHigh,
-    'daysLow': quote.summaryDetail.dayLow,
-    'earningsPerShare': quote.defaultKeyStatistics.forwardEps,
-    'ebitda': quote.financialData.ebitda,
-    'exDividendDate': quote.summaryDetail.exDividendDate,
-    'exDividendPayout': quote.summaryDetail.dividendRate,
-    'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield,
-    'Float': quote.defaultKeyStatistics.floatShares,
-    'lastTradePriceOnly': quote.price.regularMarketPrice,
-    'name': quote.price.longName,
-    'pegRatio': quote.defaultKeyStatistics.pegRatio,
-    'peRatio': quote.summaryDetail.trailingPE,
-    'previousClose': quote.summaryDetail.previousClose,
-    'Price200DayAverage': quote.summaryDetail.twoHundredDayAverage,
-    'Price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'],
-    'pricePerBook': quote.defaultKeyStatistics.priceToBook,
-    'symbol': quote.price.symbol,
-    'volume': quote.summaryDetail.volume,
-  };
+let mapFields = function(quote, symbolType) {
+  let updatedQuote;
+  let quotePrice;
+
+  if (symbolType === 'index') {
+    updatedQuote = {
+      '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh,
+      '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow,
+      'change': quote.price.regularMarketChange,
+      'changeInPercent': quote.price.regularMarketChangePercent,
+      'daysHigh': quote.summaryDetail.dayHigh,
+      'daysLow': quote.summaryDetail.dayLow,
+      'name': quote.price.longName,
+      'previousClose': quote.summaryDetail.previousClose,
+      'symbol': quote.price.symbol,
+    };
+
+    // Set price to use for 52 week comparisons
+    quotePrice = quote.summaryDetail.previousClose;
+  } else {
+    updatedQuote = {
+      '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh,
+      '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow,
+      'bookValue': quote.defaultKeyStatistics.bookValue,
+      'change': quote.price.regularMarketChange,
+      'changeInPercent': quote.price.regularMarketChangePercent,
+      'daysHigh': quote.summaryDetail.dayHigh,
+      'daysLow': quote.summaryDetail.dayLow,
+      'earningsPerShare': quote.defaultKeyStatistics.forwardEps,
+      'ebitda': quote.financialData.ebitda,
+      'exDividendDate': quote.summaryDetail.exDividendDate,
+      'exDividendPayout': quote.summaryDetail.dividendRate,
+      'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield,
+      'Float': quote.defaultKeyStatistics.floatShares,
+      'lastTradePriceOnly': quote.price.regularMarketPrice,
+      'name': quote.price.longName,
+      'pegRatio': quote.defaultKeyStatistics.pegRatio,
+      'peRatio': quote.summaryDetail.trailingPE,
+      'previousClose': quote.summaryDetail.previousClose,
+      'Price200DayAverage': quote.summaryDetail.twoHundredDayAverage,
+      'Price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'],
+      'pricePerBook': quote.defaultKeyStatistics.priceToBook,
+      'symbol': quote.price.symbol,
+      'volume': quote.summaryDetail.volume,
+    };
+
+    // Set price to use for 52 week comparisons
+    quotePrice = quote.price.regularMarketPrice;
+  }
+
+  // Calculate 52 week changes
+  updatedQuote['changeFrom52WeekHigh'] = quotePrice - updatedQuote['52WeekHigh'];
+  updatedQuote['changeFrom52WeekLow'] = quotePrice - updatedQuote['52WeekLow'];
+  if (updatedQuote['52WeekHigh']) {
+    updatedQuote['percebtChangeFrom52WeekHigh'] = (quotePrice -
+    updatedQuote['52WeekHigh']) /
+    updatedQuote['52WeekHigh'];
+  } else {
+    updatedQuote['percebtChangeFrom52WeekHigh'] = 0;
+  }
+  if (updatedQuote['52WeekLow']) {
+    updatedQuote['percentChangeFrom52WeekLow'] = (quotePrice -
+    updatedQuote['52WeekLow']) /
+    updatedQuote['52WeekLow'];
+  } else {
+    updatedQuote['percentChangeFrom52WeekLow'] = 0;
+  }
+
   return updatedQuote;
 };
 

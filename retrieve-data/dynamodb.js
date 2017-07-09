@@ -169,9 +169,12 @@ let insertRecord = function(insertDetails) {
 * queryDetails = {
 *  tableName: 'companies',
 *  indexName: 'company-created-index' (optional secondary index to use),
-*  keyConditionExpression: 'symbol = :symbol',
+*  keyConditionExpression: '#symbol = :symbol',
 *  expressionAttributeValues: {
 *  ':symbol': 'AAD',
+*  },
+*  expressionAttributeNames: {
+*  '#symbol': 'symbol',
 *  },
 *  filterExpression: 'quoteDate <= :quoteDate' (optional),
 *  limit: 1, (optional query limit)
@@ -228,6 +231,10 @@ let queryTable = function(queryDetails) {
 
     if (queryDetails.projectionExpression) {
       params.ProjectionExpression = queryDetails.projectionExpression;
+    }
+
+    if (queryDetails.expressionAttributeNames) {
+      params.ExpressionAttributeNames = queryDetails.expressionAttributeNames;
     }
 
     console.log('Query table request: ', JSON.stringify(params));
@@ -442,8 +449,18 @@ let updateRecord = function(updateDetails) {
 
     awaitify(getTableInfo());
 
+    // Make sure updates have a timestamp
+    params.ExpressionAttributeValues[':updated'] = moment().tz('Australia/Sydney').format();
+    params.UpdateExpression = params.UpdateExpression +
+      ', #updated = :updated';
+
     if (updateDetails.expressionAttributeNames) {
       params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
+      params.ExpressionAttributeNames['#updated'] = 'updated';
+    } else {
+      params.ExpressionAttributeNames = {
+        '#updated': 'updated',
+      };
     }
 
     if (updateDetails.conditionExpression) {
