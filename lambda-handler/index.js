@@ -3,6 +3,9 @@
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const retrieval = require('./retrieve/dynamo-retrieve-share-data');
+const checkAdjustedPrices = require('./retrieve/check-adjusted-prices');
+const retrieveAdjustedPrices = require('./retrieve/retrieve-adjusted-close-history');
+const processReturns = require('./retrieve/process-returns');
 const utils = require('./retrieve/utils');
 const sns = require('./publish-sns');
 const aws = require('aws-sdk');
@@ -33,7 +36,7 @@ let invokeLambda = function(lambdaName, event) {
 
 /**  Executes function
 */
-let handler = asyncify(function(event, context) {
+let dailyHandler = asyncify(function(event, context) {
   try {
     let lastExecuted;
     let executionList;
@@ -245,8 +248,10 @@ let handler = asyncify(function(event, context) {
   }
 });
 
-let checkForAdjustments = asyncify(function(event, context) {
+let checkForAdjustmentsHandler = asyncify(function(event, context) {
   try {
+    awaitify(checkAdjustedPrices.checkForAdjustments(event));
+    context.succeed();
   } catch (err) {
     console.error('checkForAdjustments function failed: ', err);
     try {
@@ -259,8 +264,43 @@ let checkForAdjustments = asyncify(function(event, context) {
   }
 });
 
+let processReturnsHandler = asyncify(function(event, context) {
+  try {
+    awaitify(processReturns.processReturns(event));
+    context.succeed();
+  } catch (err) {
+    console.error('processReturns function failed: ', err);
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          'Lambda processReturns failed'));
+    } catch (err) {}
+    context.fail('processReturns function failed');
+  }
+});
+
+let retrieveAdjustedHistoryDataHandler = asyncify(function(event, context) {
+  try {
+    awaitify(retrieveAdjustedPrices.retrieveAdjustedHistoryData(event));
+    context.succeed();
+  } catch (err) {
+    console.error('retrieveAdjustedHistoryData function failed: ', err);
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          'Lambda retrieveAdjustedHistoryData failed'));
+    } catch (err) {}
+    context.fail('retrieveAdjustedHistoryData function failed');
+  }
+});
+
 
 module.exports = {
-  handler: handler,
-  chedkForAdjustments: checkForAdjustments
+  dailyHandler: dailyHandler,
+  checkForAdjustmentsHandler: checkForAdjustmentsHandler,
+  processReturnsHandler: processReturnsHandler,
+  retrieveAdjustedHistoryDataHandler,
+  retrieveAdjustedHistoryDataHandler,
 };

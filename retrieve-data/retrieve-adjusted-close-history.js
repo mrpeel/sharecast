@@ -44,7 +44,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
     } else {
       let endDate = params.endDate;
       results = awaitify(retrieveHistory(companySymbol,
-        '2008-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
+        '2007-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
     }
 
     while (results.length) {
@@ -55,7 +55,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 25000) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 250) {
         break;
       }
     }
@@ -185,11 +185,12 @@ let invokeLambda = function(lambdaName, event, description) {
       console.log(description);
     }
 
+    /*
     // Re-invoke function to simulate lambda
     retrieveAdjustedHistoryData(event);
 
     resolve(true);
-    return;
+    return; */
 
     lambda.invoke({
       FunctionName: lambdaName,
@@ -211,7 +212,7 @@ module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };
 
-let oneOffLoad = asyncify(function() {
+/* let oneOffLoad = asyncify(function() {
   dynamodb.setLocalAccessConfig();
   let symbolResult = awaitify(retrieveData.setupSymbols());
 
@@ -228,4 +229,4 @@ let oneOffLoad = asyncify(function() {
   });
 });
 
-oneOffLoad();
+oneOffLoad(); */

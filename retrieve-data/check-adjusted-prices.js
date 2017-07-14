@@ -2,6 +2,7 @@
 
 const utils = require('./utils');
 const retrieveData = require('./dynamo-retrieve-share-data');
+const retrieveAdjustedData = require('./retrieve-adjusted-close-history');
 const yahooFinance = require('yahoo-finance');
 const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
@@ -36,6 +37,7 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
     let historyOptions = {
       from: startDate,
       to: endDate,
+      period: 'd',
     };
 
     // Check if one or many symbols
@@ -53,7 +55,7 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
   });
 };
 
-/** Check through each company symbol, retrieve the last 2 weeks history data
+/** Check through each company symbol, retrieve the last 8 days history data
 *    and see if any prices have closePrice !== adjustedPrice.  If a discrepancy
 *    is found, then all prices for that symbol need to be re-checked back to
 *    2006-07-01, so trigger a complete re-check of prices.
@@ -63,7 +65,7 @@ let checkForAdjustments = asyncify(function(event) {
   let endDate = event.compDate || utils.returnDateAsString(Date.now());
   /* This assumes process is being run on a Friday night and the look back
       period allows going back over the last days of the previous week */
-  let startDate = utils.dateAdd(endDate, 'days', -9);
+  let startDate = utils.dateAdd(endDate, 'days', -8);
   let symbolResult = awaitify(retrieveData.setupSymbols());
 
   let companies = symbolResult.companies;
@@ -100,7 +102,11 @@ let checkForAdjustments = asyncify(function(event) {
            then adjustments have happened and the entire history needs to be
            re-retrieved */
         if (result.some((historyRecord) => {
-            return (historyRecord.adjClose !== historyRecord.close);
+            if (historyRecord.adjClose && historyRecord.close) {
+              return (historyRecord.adjClose !== historyRecord.close);
+            } else {
+              return false;
+            }
           })) {
           // Retrieve original symbol from yahoo symbol
           let retrieveSymbol = symbolLookup[resultSymbol];
@@ -148,11 +154,17 @@ let invokeLambda = function(lambdaName, event, description) {
     if (description) {
       console.log(description);
     }
+
+    /*
+    // Simulate lambda invoke
     if (lambdaName === 'checkForAdjustments') {
       checkForAdjustments(event);
+    } else if (lambdaName === 'retrieveAdjustedHistoryData') {
+      retrieveAdjustedData.retrieveAdjustedHistoryData(event);
     }
+
     resolve(true);
-    return;
+    return; */
 
     lambda.invoke({
       FunctionName: lambdaName,
@@ -173,7 +185,7 @@ module.exports = {
   checkForAdjustments: checkForAdjustments,
 };
 
-/*dynamodb.setLocalAccessConfig();
+/* dynamodb.setLocalAccessConfig();
 checkForAdjustments({
-  compDate: '2017-03-03',
-});*/
+  compDate: '2017-07-15',
+}); */

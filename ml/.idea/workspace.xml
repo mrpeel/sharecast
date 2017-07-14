@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" afterPath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/dynamo-retrieve-share-data.js" afterPath="$PROJECT_DIR$/../retrieve-data/dynamo-retrieve-share-data.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/process-returns.js" afterPath="$PROJECT_DIR$/../retrieve-data/process-returns.js" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" afterPath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />

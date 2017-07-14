@@ -333,11 +333,11 @@ let invokeLambda = function(lambdaName, event, description) {
     if (description) {
       console.log(description);
     }
-    if (lambdaName === 'processReturns') {
+    /* if (lambdaName === 'processReturns') {
       processReturns(event);
     }
     resolve(true);
-    return;
+    return; */
 
     lambda.invoke({
       FunctionName: lambdaName,
@@ -358,7 +358,7 @@ module.exports = {
   processReturns: processReturns,
 };
 
-dynamodb.setLocalAccessConfig();
+/* dynamodb.setLocalAccessConfig();
 processReturns({
   endDate: '2017-02-11',
-});
+}); */

@@ -7,9 +7,54 @@ const del = require('del');
 const awsLambda = require('gulp-aws-lambda');
 const credentials = require('./credentials/aws.json');
 
-const lambdaParams = {
+const lambdaParamsRetrieveDaily = {
   FunctionName: 'retrieveShareData',
-  Handler: 'index.handler',
+  Handler: 'index.dailyHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs4.3',
+  Description: 'Retrieve share data and store in dynamodb',
+  MemorySize: 1024,
+  Timeout: 300,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
+
+const lambdaParamsCheckAdjustedPrices = {
+  FunctionName: 'checkForAdjustments',
+  Handler: 'index.checkForAdjustmentsHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs4.3',
+  Description: 'Retrieve share data and store in dynamodb',
+  MemorySize: 1024,
+  Timeout: 300,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
+
+const lambdaParamsRetrieveAdjustedPrices = {
+  FunctionName: 'retrieveAdjustedHistoryData',
+  Handler: 'index.retrieveAdjustedHistoryDataHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs4.3',
+  Description: 'Retrieve share data and store in dynamodb',
+  MemorySize: 1024,
+  Timeout: 300,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
+
+const lambdaParamsProcessReturns = {
+  FunctionName: 'processReturns',
+  Handler: 'index.processReturnsHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
   Description: 'Retrieve share data and store in dynamodb',
@@ -59,6 +104,18 @@ gulp.task('install_dependencies', ['credentials'], function() {
 
 gulp.task('deploy', ['install_dependencies'], function() {
   gulp.src(['dist/**/*'])
-    .pipe(zip('retrieve-share-data.zip'))
-    .pipe(awsLambda(awsCredentials, lambdaParams));
+    .pipe(zip('daily-retrieve-share-data.zip'))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily));
+
+  gulp.src(['dist/**/*'])
+    .pipe(zip('check-adjusted-data.zip'))
+    .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices));
+
+  gulp.src(['dist/**/*'])
+    .pipe(zip('retrieve-adjusted-data.zip'))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices));
+
+  gulp.src(['dist/**/*'])
+    .pipe(zip('process-returns.zip'))
+    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
 });
