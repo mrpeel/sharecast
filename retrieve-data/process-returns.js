@@ -1,3 +1,5 @@
+'use strict';
+
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
@@ -341,6 +343,7 @@ let invokeLambda = function(lambdaName, event, description) {
 
     lambda.invoke({
       FunctionName: lambdaName,
+      InvocationType: 'Event',
       Payload: JSON.stringify(event, null, 2),
     }, function(err, data) {
       if (err) {

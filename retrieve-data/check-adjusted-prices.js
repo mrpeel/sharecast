@@ -2,9 +2,7 @@
 
 const utils = require('./utils');
 const retrieveData = require('./dynamo-retrieve-share-data');
-const retrieveAdjustedData = require('./retrieve-adjusted-close-history');
 const yahooFinance = require('yahoo-finance');
-const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const sns = require('./publish-sns');
@@ -168,6 +166,7 @@ let invokeLambda = function(lambdaName, event, description) {
 
     lambda.invoke({
       FunctionName: lambdaName,
+      InvocationType: 'Event',
       Payload: JSON.stringify(event, null, 2),
     }, function(err, data) {
       if (err) {

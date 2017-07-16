@@ -104,18 +104,21 @@ gulp.task('install_dependencies', ['credentials'], function() {
 
 gulp.task('deploy', ['install_dependencies'], function() {
   gulp.src(['dist/**/*'])
-    .pipe(zip('daily-retrieve-share-data.zip'))
-    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily));
-
-  gulp.src(['dist/**/*'])
-    .pipe(zip('check-adjusted-data.zip'))
-    .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices));
-
-  gulp.src(['dist/**/*'])
-    .pipe(zip('retrieve-adjusted-data.zip'))
-    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices));
-
-  gulp.src(['dist/**/*'])
-    .pipe(zip('process-returns.zip'))
+    .pipe(zip('retrieve-share-data.zip'))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
+    .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices))
     .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
+
+    // gulp.src(['dist/**/*'])
+    //  .pipe(zip('check-adjusted-data.zip'))
+    //  .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices));
+
+    // gulp.src(['dist/**/*'])
+    //  .pipe(zip('retrieve-adjusted-data.zip'))
+    //  .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices));
+
+// gulp.src(['dist/**/*'])
+//  .pipe(zip('process-returns.zip'))
+//  .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
 });

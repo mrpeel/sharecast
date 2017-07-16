@@ -1,7 +1,9 @@
+'use strict';
+
 const yahooFinance = require('yahoo-finance');
-const utils = require('../retrieve-data/utils');
-const dynamodb = require('../retrieve-data/dynamodb');
-const retrieveData = require('./dynamo-retrieve-share-data');
+const utils = require('./utils');
+const dynamodb = require('./dynamodb');
+// const retrieveData = require('./dynamo-retrieve-share-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const moment = require('moment-timezone');
@@ -194,6 +196,7 @@ let invokeLambda = function(lambdaName, event, description) {
 
     lambda.invoke({
       FunctionName: lambdaName,
+      InvocationType: 'Event',
       Payload: JSON.stringify(event, null, 2),
     }, function(err, data) {
       if (err) {
