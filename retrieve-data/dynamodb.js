@@ -140,7 +140,7 @@ let insertRecord = function(insertDetails) {
       ' ', JSON.stringify(keyVals));
 
     let onPut = function(err, data) {
-      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
@@ -252,7 +252,7 @@ let queryTable = function(queryDetails) {
     console.log('Query table request: ', JSON.stringify(params));
 
     let onQuery = function(err, data) {
-      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
@@ -340,7 +340,7 @@ let scanTable = function(scanDetails) {
     console.log('Scan table request: ', JSON.stringify(params));
 
     let onScan = function(err, data) {
-      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
@@ -419,7 +419,7 @@ let getTable = asyncify(function(tableDetails) {
     console.log('Get table request: ', JSON.stringify(params));
 
     let onScan = function(err, data) {
-      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
@@ -514,7 +514,7 @@ let updateRecord = function(updateDetails) {
 
     let onUpdate = function(err, data) {
       // Check for throughput exceeded
-      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
