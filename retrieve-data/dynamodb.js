@@ -104,6 +104,7 @@ let insertRecord = function(insertDetails) {
   return new Promise(function(resolve, reject) {
     // Set-up item details for insert
     let item = {};
+    let backoff = 1;
 
     awaitify(getTableInfo());
 
@@ -138,8 +139,16 @@ let insertRecord = function(insertDetails) {
     console.log('Put table request: ', insertDetails.tableName,
       ' ', JSON.stringify(keyVals));
 
-    client.put(params, function(err, data) {
-      if (err && err.code === 'ConditionalCheckFailedException') {
+    let onPut = function(err, data) {
+      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+        && backoff < 20) {
+        console.log('ProvisionedThroughputExceededException, backing off');
+        // Wait at least one second before the next query
+        awaitify(sleep(backoff * 1000));
+        // Increment backoff
+        backoff *= 2;
+        client.put(params, onPut);
+      } else if (err && err.code === 'ConditionalCheckFailedException') {
         console.log(`Skipping add to ${insertDetails.tableName} : `,
           JSON.stringify(insertDetails.primaryKey), ' already exists');
         resolve({
@@ -160,7 +169,9 @@ let insertRecord = function(insertDetails) {
           result: 'inserted',
         });
       }
-    });
+    };
+
+    client.put(params, onPut);
   });
 };
 
@@ -196,6 +207,7 @@ let queryTable = function(queryDetails) {
 
     let maxCapacity = 5; // default read capacity to 5
     let resultsLimit;
+    let backoff = 1;
 
     awaitify(getTableInfo());
 
@@ -240,7 +252,15 @@ let queryTable = function(queryDetails) {
     console.log('Query table request: ', JSON.stringify(params));
 
     let onQuery = function(err, data) {
-      if (err) {
+      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+        && backoff < 20) {
+        console.log('ProvisionedThroughputExceededException, backing off');
+        // Wait at least one second before the next query
+        awaitify(sleep(backoff * 1000));
+        // Increment backoff
+        backoff *= 2;
+        client.query(params, onQuery);
+      } else if (err) {
         console.error(`Unable to query ${queryDetails.tableName}. Error: `,
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
@@ -294,6 +314,7 @@ let scanTable = function(scanDetails) {
 
     let maxCapacity = 5; // default read capacity to 5
     let resultsLimit;
+    let backoff = 1;
 
     awaitify(getTableInfo());
 
@@ -319,7 +340,15 @@ let scanTable = function(scanDetails) {
     console.log('Scan table request: ', JSON.stringify(params));
 
     let onScan = function(err, data) {
-      if (err) {
+      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+        && backoff < 20) {
+        console.log('ProvisionedThroughputExceededException, backing off');
+        // Wait at least one second before the next query
+        awaitify(sleep(backoff * 1000));
+        // Increment backoff
+        backoff *= 2;
+        client.scan(params, onScan);
+      } else if (err) {
         console.error(`Unable to scan ${scanDetails.tableName}. Error: `,
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
@@ -365,6 +394,7 @@ let getTable = asyncify(function(tableDetails) {
     };
 
     let scanDataItems = [];
+    let backoff = 1;
 
     let maxCapacity = 5; // default read capacity to 5
 
@@ -389,7 +419,15 @@ let getTable = asyncify(function(tableDetails) {
     console.log('Get table request: ', JSON.stringify(params));
 
     let onScan = function(err, data) {
-      if (err) {
+      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+        && backoff < 20) {
+        console.log('ProvisionedThroughputExceededException, backing off');
+        // Wait at least one second before the next query
+        awaitify(sleep(backoff * 1000));
+        // Increment backoff
+        backoff *= 2;
+        client.scan(params, onScan);
+      } else if (err) {
         console.error(`Unable to get table  ${tableDetails.tableName}. Error: `,
           JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
@@ -447,6 +485,8 @@ let updateRecord = function(updateDetails) {
       ExpressionAttributeValues: updateDetails.expressionAttributeValues,
     };
 
+    let backoff = 1;
+
     awaitify(getTableInfo());
 
     // Make sure updates have a timestamp
@@ -472,8 +512,17 @@ let updateRecord = function(updateDetails) {
     console.log('Update table request: ', updateDetails.tableName,
       ' ', JSON.stringify(params.Key));
 
-    client.update(params, function(err, data) {
-      if (err && err.code === 'ConditionalCheckFailedException') {
+    let onUpdate = function(err, data) {
+      // Check for throughput exceeded
+      if (err.code && err.code == 'ProvisionedThroughputExceededException'
+        && backoff < 20) {
+        console.log('ProvisionedThroughputExceededException, backing off');
+        // Wait at least one second before the next query
+        awaitify(sleep(backoff * 1000));
+        // Increment backoff
+        backoff *= 2;
+        client.update(params, onUpdate);
+      } else if (err && err.code === 'ConditionalCheckFailedException') {
         console.log(`Skipping update to table  ${updateDetails.tableName}.`,
           ` Condition expression not satisifed`);
         resolve({
@@ -486,10 +535,15 @@ let updateRecord = function(updateDetails) {
           ' Error:', JSON.stringify(err, null, 2));
         reject(JSON.stringify(err, null, 2));
       } else {
+        // Reset backoff
+        backoff = 1;
+
         console.log(`Update table ${updateDetails.tableName} succeeded.`);
         resolve(data || null);
       }
-    });
+    };
+
+    client.update(params, onUpdate);
   });
 };
 
@@ -555,6 +609,15 @@ let deleteRecord = function(deleteDetails) {
         });
       }
     });
+  });
+};
+
+let sleep = function(ms) {
+  if (!ms) {
+    ms = 1;
+  }
+  return new Promise((r) => {
+    setTimeout(r, ms);
   });
 };
 

@@ -175,22 +175,6 @@ let retrieveSnapshot = function(symbols, type) {
 */
 let retrieveQuote = function(symbol) { // }, fields) {
   return new Promise(function(resolve, reject) {
-    /* let snapshotOptions = {
-      fields: fields,
-    };
-
-    // Check if one or many symbols
-    if (Array.isArray(symbol)) {
-      snapshotOptions.symbols = symbol;
-    } else {
-      snapshotOptions.symbol = symbol;
-    }
-    yahooFinance.snapshot(snapshotOptions).then((result) => {
-      resolve(result);
-    }).catch((err) => {
-      reject(err);
-    }); */
-
     let quoteOptions = {
       modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
         'financialData'],
