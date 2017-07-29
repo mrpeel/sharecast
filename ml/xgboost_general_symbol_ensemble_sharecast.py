@@ -632,9 +632,16 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
     gbms = {}
 
+    train_y = df_all_train_y[0].values
+    train_log_y = safe_log(train_y)
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_y = df_all_test_y[0].values
+    test_log_y = safe_log(test_y)
+
+
     # Set-up lightgbm
-    train_set = lgb.Dataset(df_all_train_x, label=df_all_train_y[0].values)
-    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=df_all_test_y[0].values)
+    train_set = lgb.Dataset(df_all_train_x, label=train_y)
+    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=test_y)
 
 
     # feature_name and categorical_feature
@@ -655,19 +662,23 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Make predictions
-    predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
+    log_predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions)
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
 
-    eval_results('General model lgbm log_y results', df_all_test_y[0].values,
-                                  df_all_test_actuals[0].values,
-                                  predictions,
-                                  inverse_scaled_predictions)
+    eval_results({'lgbm_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': log_inverse_scaled_predictions
+                }
+    })
+
 
     # Set-up lightgbm
-    train_set = lgb.Dataset(df_all_train_x, label=safe_log(df_all_train_y[0].values))
-    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=safe_log(df_all_test_y[0].values))
+    train_set = lgb.Dataset(df_all_train_x, label=train_log_y)
+    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=test_log_y)
 
 
     # feature_name and categorical_feature
@@ -688,16 +699,29 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Make predictions
-    predictions = gbms['log_log_y'].predict(df_all_test_x, num_iteration=iteration_number)
-    predictions_log_y = safe_exp(predictions)
+    log_log_predictions = gbms['log_log_y'].predict(df_all_test_x, num_iteration=iteration_number)
+    predictions_log_y = safe_exp(log_log_predictions)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions_log_y)
+    log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
-    eval_results('General model lgbm log_log_y results', df_all_test_y[0].values,
-                                    df_all_test_actuals[0].values,
-                                    predictions_log_y,
-                                    inverse_scaled_predictions)
+    #### Double exp #######
+    log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
+
+    eval_results({'lgbm_log_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions_log_y,
+                        'y_predict': log_log_inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'lgbm_log_y':log_inverse_scaled_predictions,
+        'lgbm_log_log_y': log_log_inverse_scaled_predictions
+        }, test_actuals)
+
 
     return gbms
 
@@ -720,36 +744,49 @@ def train_huber(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test
 
 
     # Make predictions
-    predictions = hubers['log_y'].predict(test_x)
+    log_predictions = hubers['log_y'].predict(test_x)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions)
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
 
-    eval_results('General model huber log_y results', test_y,
-                                  test_actuals,
-                                  predictions,
-                                  inverse_scaled_predictions)
+    eval_results({'huber_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': log_inverse_scaled_predictions
+                }
+    })
+
 
     # Log log y
     hubers['log_log_y'] = HuberRegressor(epsilon=20, max_iter=1000)
 
     gc.collect()
 
-    hubers['log_log_y'].fit(train_x, train_log_y)
+    hubers['log_log_y'].fit(train_x, safe_log(train_log_y))
     gc.collect()
 
 
     # Make predictions
-    predictions = hubers['log_log_y'].predict(test_x)
-    predictions_log_y = safe_exp(predictions)
+    log_log_predictions = hubers['log_log_y'].predict(test_x)
+    predictions_log_y = safe_exp(log_log_predictions)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions_log_y)
+    log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
-    eval_results('General model huber log_log_y results', test_y,
-                                    test_actuals,
-                                    predictions_log_y,
-                                    inverse_scaled_predictions)
+    eval_results({'huber_log_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions_log_y,
+                        'y_predict': log_log_inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'huber_log_y':log_inverse_scaled_predictions,
+        'huber_log_log_y': log_log_inverse_scaled_predictions
+        }, test_actuals)
 
     return hubers
 
@@ -764,25 +801,31 @@ def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_al
     test_x = df_all_test_x.as_matrix()
 
     # feature_name and categorical_feature
-    extra_trees['log_y'] = ExtraTreesRegressor(n_estimators=1000, criterion='mae')
+    extra_trees['log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', verbose=2)
+
+    print('Fitting extra trees regressor...')
 
     extra_trees['log_y'].fit(train_x, train_y)
     gc.collect()
 
 
     # Make predictions
-    predictions = extra_trees['log_y'].predict(test_x)
+    log_predictions = extra_trees['log_y'].predict(test_x)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions)
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
 
-    eval_results('General model extra trees log_y results', test_y,
-                                  test_actuals,
-                                  predictions,
-                                  inverse_scaled_predictions)
+
+    eval_results({'extra_trees_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': log_inverse_scaled_predictions
+                }
+    })
 
     # Log log y
-    extra_trees['log_log_y'] = ExtraTreesRegressor(n_estimators=1000, criterion='mae')
+    extra_trees['log_log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', verbose=2)
 
     gc.collect()
 
@@ -791,15 +834,25 @@ def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_al
 
 
     # Make predictions
-    predictions = extra_trees['log_log_y'].predict(test_x)
+    log_log_predictions = extra_trees['log_log_y'].predict(test_x)
+    predictions_log_y = safe_exp(log_log_predictions)
 
     #### Double exp #######
-    inverse_scaled_predictions = safe_exp(safe_exp(predictions))
+    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
 
-    eval_results('General model extra trees log_log_y results', test_y,
-                                  test_actuals,
-                                  predictions,
-                                  inverse_scaled_predictions)
+    eval_results({'extra_trees_log_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions_log_y,
+                        'y_predict': log_log_inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'extra_trees_log_y':log_inverse_scaled_predictions,
+        'extra_trees_log_log_y': log_log_inverse_scaled_predictions
+        }, test_actuals)
 
     return extra_trees
 
