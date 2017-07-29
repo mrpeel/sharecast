@@ -19,7 +19,7 @@ from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 from sklearn.linear_model import HuberRegressor
-from sklearn.ensemble import ExtraTreesRegressor
+from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, AdaBoostRegressor
 from categorical_encoder import *
 from eval_results import *
 
@@ -801,7 +801,7 @@ def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_al
     test_x = df_all_test_x.as_matrix()
 
     # feature_name and categorical_feature
-    extra_trees['log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', verbose=2)
+    extra_trees['log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
 
     print('Fitting extra trees regressor...')
 
@@ -825,7 +825,7 @@ def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_al
     })
 
     # Log log y
-    extra_trees['log_log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', verbose=2)
+    extra_trees['log_log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
 
     gc.collect()
 
@@ -856,6 +856,139 @@ def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_al
 
     return extra_trees
 
+
+def train_random_forest(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+    random_forest = {}
+
+    train_y = df_all_train_y[0].values
+    train_log_y = safe_log(train_y)
+    train_x = df_all_train_x.as_matrix()
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_y = df_all_test_y[0].values
+    test_x = df_all_test_x.as_matrix()
+
+    # feature_name and categorical_feature
+    random_forest['log_y'] = RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
+
+    print('Fitting random forest regressor...')
+
+    random_forest['log_y'].fit(train_x, train_y)
+    gc.collect()
+
+
+    # Make predictions
+    log_predictions = random_forest['log_y'].predict(test_x)
+
+    #### Double exp #######
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
+
+
+    eval_results({'random_forest_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': log_inverse_scaled_predictions
+                }
+    })
+
+    # Log log y
+    random_forest['log_log_y'] = RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
+
+    gc.collect()
+
+    random_forest['log_log_y'].fit(train_x, train_log_y)
+    gc.collect()
+
+
+    # Make predictions
+    log_log_predictions = random_forest['log_log_y'].predict(test_x)
+    predictions_log_y = safe_exp(log_log_predictions)
+
+    #### Double exp #######
+    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
+
+    eval_results({'random_forest_log_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions_log_y,
+                        'y_predict': log_log_inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'random_forest_log_y':log_inverse_scaled_predictions,
+        'random_forest_log_log_y': log_log_inverse_scaled_predictions
+        }, test_actuals)
+
+    return random_forest
+
+def train_adaboost(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+    adaboost = {}
+
+    train_y = df_all_train_y[0].values
+    train_log_y = safe_log(train_y)
+    train_x = df_all_train_x.as_matrix()
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_y = df_all_test_y[0].values
+    test_x = df_all_test_x.as_matrix()
+
+    # feature_name and categorical_feature
+    adaboost['log_y'] = AdaBoostRegressor(n_estimators=1000)
+
+    print('Fitting adaboost regressor...')
+
+    adaboost['log_y'].fit(train_x, train_y)
+    gc.collect()
+
+
+    # Make predictions
+    log_predictions = adaboost['log_y'].predict(test_x)
+
+    #### Double exp #######
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
+
+
+    eval_results({'adaboost_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': log_inverse_scaled_predictions
+                }
+    })
+
+    # Log log y
+    adaboost['log_log_y'] = RandomForestRegressor(n_estimators=1000)
+
+    gc.collect()
+
+    adaboost['log_log_y'].fit(train_x, train_log_y)
+    gc.collect()
+
+
+    # Make predictions
+    log_log_predictions = adaboost['log_log_y'].predict(test_x)
+    predictions_log_y = safe_exp(log_log_predictions)
+
+    #### Double exp #######
+    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
+
+    eval_results({'adaboost_log_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions_log_y,
+                        'y_predict': log_log_inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'adaboost_log_y':log_inverse_scaled_predictions,
+        'adaboost_log_log_y': log_log_inverse_scaled_predictions
+        }, test_actuals)
+
+    return adaboost
+
 if __name__ == "__main__":
     # Prepare run_str
     run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
@@ -872,6 +1005,10 @@ if __name__ == "__main__":
     gc.collect()
 
     huber_models = train_huber(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+
+    adaboost_models = train_adaboost(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+
+    random_forrest_models = train_random_forest(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
     extra_trees_models = train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 

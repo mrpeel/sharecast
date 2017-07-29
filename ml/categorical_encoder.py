@@ -150,7 +150,7 @@ class Categorical_encoder():
                 dropout2 = 0.1
 
                 #learning parameters
-                epochs = 10 #50  #20 : fewer iterations
+                epochs = 50  #20 : fewer iterations
                 batch_size = 256 # 128 : gradient less stable
 
 
