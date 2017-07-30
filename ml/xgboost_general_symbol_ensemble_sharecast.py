@@ -18,8 +18,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
-from sklearn.linear_model import HuberRegressor
-from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, AdaBoostRegressor
+# from sklearn.linear_model import HuberRegressor
+from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor, NearestNeighbors
 from categorical_encoder import *
 from eval_results import *
 
@@ -223,7 +223,7 @@ def mape_log_y_eval(actual_y, eval_y):
     return 'error', mape_log_y(actual_y, prediction_y)
 
 
-def huber_loss(y_true, y_pred, delta=2.2):
+def huber_loss(y_true, y_pred, delta=1.8):
     """
     Variation on the huber loss function, weighting the cost of lower errors over higher errors
     """
@@ -663,8 +663,6 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
     # Make predictions
     log_predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
-
-    #### Double exp #######
     log_inverse_scaled_predictions = safe_exp(log_predictions)
 
     eval_results({'lgbm_log_y': {
@@ -701,12 +699,8 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
     # Make predictions
     log_log_predictions = gbms['log_log_y'].predict(df_all_test_x, num_iteration=iteration_number)
     predictions_log_y = safe_exp(log_log_predictions)
-
-    #### Double exp #######
     log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
-    #### Double exp #######
-    log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
     eval_results({'lgbm_log_log_y': {
                         'log_y': test_y,
@@ -725,8 +719,18 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
     return gbms
 
-def train_huber(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
-    hubers = {}
+
+def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+    sklearn_models = {}
+
+    estimators = {
+        'knn': (NearestNeighbors()),
+        'gradient_boosted': (GradientBoostingRegressor(loss='huber', learning_rate=0.05, n_estimators=500,
+                                                                 max_depth=30, criterion='mae', verbose=1)),
+        'random_forest': (RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)),
+        'extra_trees': (ExtraTreesRegressor(n_estimators=15, criterion='mae', n_jobs=-1, verbose=2))
+    }
+
 
     train_y = df_all_train_y[0].values
     train_log_y = safe_log(train_y)
@@ -735,259 +739,58 @@ def train_huber(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test
     test_y = df_all_test_y[0].values
     test_x = df_all_test_x.as_matrix()
 
+    for estimator in estimators:
+        print('Fitting',  estimator,  'regressor...')
 
-    # feature_name and categorical_feature
-    hubers['log_y'] = HuberRegressor(epsilon=20, max_iter=1000)
+        model_ref = estimator + '_log_y'
+        log_model_ref = estimator + '_log_log_y'
 
-    hubers['log_y'].fit(train_x, train_y)
-    gc.collect()
+        sklearn_models[model_ref] = estimators[estimator].fit(train_x, train_y)
+        gc.collect()
 
+        print('Executing', estimator, 'regressor predictions...')
 
-    # Make predictions
-    log_predictions = hubers['log_y'].predict(test_x)
+        # Make predictions
+        log_predictions = sklearn_models[model_ref].predict(test_x)
+        log_inverse_scaled_predictions = safe_exp(log_predictions)
 
-    #### Double exp #######
-    log_inverse_scaled_predictions = safe_exp(log_predictions)
 
-    eval_results({'huber_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': log_predictions,
-                        'y_predict': log_inverse_scaled_predictions
-                }
-    })
+        eval_results({model_ref: {
+                            'log_y': test_y,
+                            'actual_y': test_actuals,
+                            'log_y_predict': log_predictions,
+                            'y_predict': log_inverse_scaled_predictions
+                    }
+        })
 
+        # Log log y
+        sklearn_models[log_model_ref] = estimators[estimator].fit(train_x, train_y)
 
-    # Log log y
-    hubers['log_log_y'] = HuberRegressor(epsilon=20, max_iter=1000)
+        gc.collect()
 
-    gc.collect()
+        sklearn_models[log_model_ref].fit(train_x, train_log_y)
+        gc.collect()
 
-    hubers['log_log_y'].fit(train_x, safe_log(train_log_y))
-    gc.collect()
+        # Make predictions
+        log_log_predictions = sklearn_models[log_model_ref].predict(test_x)
+        predictions_log_y = safe_exp(log_log_predictions)
+        log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
+        eval_results({sklearn_models: {
+                            'log_y': test_y,
+                            'actual_y': test_actuals,
+                            'log_y_predict': predictions_log_y,
+                            'y_predict': log_log_inverse_scaled_predictions
+                    }
+        })
 
-    # Make predictions
-    log_log_predictions = hubers['log_log_y'].predict(test_x)
-    predictions_log_y = safe_exp(log_log_predictions)
 
-    #### Double exp #######
-    log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
+        range_results({
+            model_ref:log_inverse_scaled_predictions,
+            log_model_ref: log_log_inverse_scaled_predictions
+            }, test_actuals)
 
-    eval_results({'huber_log_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': predictions_log_y,
-                        'y_predict': log_log_inverse_scaled_predictions
-                }
-    })
-
-
-    range_results({
-        'huber_log_y':log_inverse_scaled_predictions,
-        'huber_log_log_y': log_log_inverse_scaled_predictions
-        }, test_actuals)
-
-    return hubers
-
-def train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
-    extra_trees = {}
-
-    train_y = df_all_train_y[0].values
-    train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
-    test_y = df_all_test_y[0].values
-    test_x = df_all_test_x.as_matrix()
-
-    # feature_name and categorical_feature
-    extra_trees['log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
-
-    print('Fitting extra trees regressor...')
-
-    extra_trees['log_y'].fit(train_x, train_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_predictions = extra_trees['log_y'].predict(test_x)
-
-    #### Double exp #######
-    log_inverse_scaled_predictions = safe_exp(log_predictions)
-
-
-    eval_results({'extra_trees_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': log_predictions,
-                        'y_predict': log_inverse_scaled_predictions
-                }
-    })
-
-    # Log log y
-    extra_trees['log_log_y'] = ExtraTreesRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
-
-    gc.collect()
-
-    extra_trees['log_log_y'].fit(train_x, train_log_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_log_predictions = extra_trees['log_log_y'].predict(test_x)
-    predictions_log_y = safe_exp(log_log_predictions)
-
-    #### Double exp #######
-    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
-
-    eval_results({'extra_trees_log_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': predictions_log_y,
-                        'y_predict': log_log_inverse_scaled_predictions
-                }
-    })
-
-
-    range_results({
-        'extra_trees_log_y':log_inverse_scaled_predictions,
-        'extra_trees_log_log_y': log_log_inverse_scaled_predictions
-        }, test_actuals)
-
-    return extra_trees
-
-
-def train_random_forest(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
-    random_forest = {}
-
-    train_y = df_all_train_y[0].values
-    train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
-    test_y = df_all_test_y[0].values
-    test_x = df_all_test_x.as_matrix()
-
-    # feature_name and categorical_feature
-    random_forest['log_y'] = RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
-
-    print('Fitting random forest regressor...')
-
-    random_forest['log_y'].fit(train_x, train_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_predictions = random_forest['log_y'].predict(test_x)
-
-    #### Double exp #######
-    log_inverse_scaled_predictions = safe_exp(log_predictions)
-
-
-    eval_results({'random_forest_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': log_predictions,
-                        'y_predict': log_inverse_scaled_predictions
-                }
-    })
-
-    # Log log y
-    random_forest['log_log_y'] = RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)
-
-    gc.collect()
-
-    random_forest['log_log_y'].fit(train_x, train_log_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_log_predictions = random_forest['log_log_y'].predict(test_x)
-    predictions_log_y = safe_exp(log_log_predictions)
-
-    #### Double exp #######
-    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
-
-    eval_results({'random_forest_log_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': predictions_log_y,
-                        'y_predict': log_log_inverse_scaled_predictions
-                }
-    })
-
-
-    range_results({
-        'random_forest_log_y':log_inverse_scaled_predictions,
-        'random_forest_log_log_y': log_log_inverse_scaled_predictions
-        }, test_actuals)
-
-    return random_forest
-
-def train_adaboost(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
-    adaboost = {}
-
-    train_y = df_all_train_y[0].values
-    train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
-    test_y = df_all_test_y[0].values
-    test_x = df_all_test_x.as_matrix()
-
-    # feature_name and categorical_feature
-    adaboost['log_y'] = AdaBoostRegressor(n_estimators=1000)
-
-    print('Fitting adaboost regressor...')
-
-    adaboost['log_y'].fit(train_x, train_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_predictions = adaboost['log_y'].predict(test_x)
-
-    #### Double exp #######
-    log_inverse_scaled_predictions = safe_exp(log_predictions)
-
-
-    eval_results({'adaboost_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': log_predictions,
-                        'y_predict': log_inverse_scaled_predictions
-                }
-    })
-
-    # Log log y
-    adaboost['log_log_y'] = RandomForestRegressor(n_estimators=1000)
-
-    gc.collect()
-
-    adaboost['log_log_y'].fit(train_x, train_log_y)
-    gc.collect()
-
-
-    # Make predictions
-    log_log_predictions = adaboost['log_log_y'].predict(test_x)
-    predictions_log_y = safe_exp(log_log_predictions)
-
-    #### Double exp #######
-    log_log_inverse_scaled_predictions = safe_exp(safe_exp(predictions_log_y))
-
-    eval_results({'adaboost_log_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': predictions_log_y,
-                        'y_predict': log_log_inverse_scaled_predictions
-                }
-    })
-
-
-    range_results({
-        'adaboost_log_y':log_inverse_scaled_predictions,
-        'adaboost_log_log_y': log_log_inverse_scaled_predictions
-        }, test_actuals)
-
-    return adaboost
+    return sklearn_models
 
 if __name__ == "__main__":
     # Prepare run_str
@@ -1004,13 +807,8 @@ if __name__ == "__main__":
     del share_data
     gc.collect()
 
-    huber_models = train_huber(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+    sklearn_models = train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
-    adaboost_models = train_adaboost(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
-
-    random_forrest_models = train_random_forest(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
-
-    extra_trees_models = train_extra_trees(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
     lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
