@@ -42,7 +42,7 @@ def plot_embedding(X, y, title=None):
 
     plt.scatter(vis_x, vis_y, c=y, cmap=plt.cm.get_cmap("jet", 10))
     plt.colorbar(ticks=range(10))
-    plt.clim(-0.5, 50)
+    plt.clim(np.min(y), np.max(y))
 
     plt.xticks([]), plt.yticks([])
     if title is not None:
@@ -54,6 +54,17 @@ def execute_analysis(X, y):
     n_samples, n_features = X.shape
     n_neighbors = 30
 
+
+    #----------------------------------------------------------------------
+    # t-SNE embedding of the digits dataset
+    print("Computing t-SNE embedding")
+    tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
+    t0 = time()
+    X_tsne = tsne.fit_transform(X)
+
+    plot_embedding(X_tsne, y,
+                   "t-SNE embedding of sharecast data  (time %.2fs)" %
+                   (time() - t0))
 
     #----------------------------------------------------------------------
     # Projection on to the first 2 principal components
@@ -166,25 +177,14 @@ def execute_analysis(X, y):
                    "Spectral embedding of sharecast data  (time %.2fs)" %
                    (time() - t0))
 
-    #----------------------------------------------------------------------
-    # t-SNE embedding of the digits dataset
-    print("Computing t-SNE embedding")
-    tsne = manifold.TSNE(n_components=2, init='pca', random_state=0)
-    t0 = time()
-    X_tsne = tsne.fit_transform(X)
 
-    plot_embedding(X_tsne, y,
-                   "t-SNE embedding of sharecast data  (time %.2fs)" %
-                   (time() - t0))
-
-    plt.show()
 
 # digits = datasets.load_digits(n_class=6)
 # X = digits.data
 # y = digits.target
 
-boston = datasets.load_boston()
-X = boston.data
-y = boston.target
-
-execute_analysis(X, y)
+# boston = datasets.load_boston()
+# X = boston.data
+# y = boston.target
+#
+# execute_analysis(X, y)

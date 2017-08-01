@@ -19,9 +19,15 @@ from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 # from sklearn.linear_model import HuberRegressor
-from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor, NearestNeighbors
+from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor
+# from sklearn.neighbors import KNeighborsRegressor
 from categorical_encoder import *
 from eval_results import *
+
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Activation
+
+
 
 
 COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerPrediction',
@@ -724,9 +730,8 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
     sklearn_models = {}
 
     estimators = {
-        'knn': (NearestNeighbors()),
-        'gradient_boosted': (GradientBoostingRegressor(loss='huber', learning_rate=0.05, n_estimators=500,
-                                                                 max_depth=30, criterion='mae', verbose=1)),
+        # 'gradient_boosted': (GradientBoostingRegressor(loss='huber', learning_rate=0.1, n_estimators=100,
+        #                                                          max_depth=30, criterion='mae', verbose=2)),
         'random_forest': (RandomForestRegressor(n_estimators=10, criterion='mae', n_jobs=-1, verbose=2)),
         'extra_trees': (ExtraTreesRegressor(n_estimators=15, criterion='mae', n_jobs=-1, verbose=2))
     }
@@ -763,34 +768,92 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
                     }
         })
 
-        # Log log y
-        sklearn_models[log_model_ref] = estimators[estimator].fit(train_x, train_y)
-
-        gc.collect()
-
-        sklearn_models[log_model_ref].fit(train_x, train_log_y)
-        gc.collect()
-
-        # Make predictions
-        log_log_predictions = sklearn_models[log_model_ref].predict(test_x)
-        predictions_log_y = safe_exp(log_log_predictions)
-        log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
-
-        eval_results({sklearn_models: {
-                            'log_y': test_y,
-                            'actual_y': test_actuals,
-                            'log_y_predict': predictions_log_y,
-                            'y_predict': log_log_inverse_scaled_predictions
-                    }
-        })
+        # # Log log y
+        # sklearn_models[log_model_ref] = estimators[estimator].fit(train_x, train_y)
+        #
+        # gc.collect()
+        #
+        # sklearn_models[log_model_ref].fit(train_x, train_log_y)
+        # gc.collect()
+        #
+        # # Make predictions
+        # log_log_predictions = sklearn_models[log_model_ref].predict(test_x)
+        # predictions_log_y = safe_exp(log_log_predictions)
+        # log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
+        #
+        # eval_results({sklearn_models: {
+        #                     'log_y': test_y,
+        #                     'actual_y': test_actuals,
+        #                     'log_y_predict': predictions_log_y,
+        #                     'y_predict': log_log_inverse_scaled_predictions
+        #             }
+        # })
 
 
         range_results({
-            model_ref:log_inverse_scaled_predictions,
-            log_model_ref: log_log_inverse_scaled_predictions
+            model_ref:log_inverse_scaled_predictions #,
+            # log_model_ref: log_log_inverse_scaled_predictions
             }, test_actuals)
 
     return sklearn_models
+
+
+def train_keras_nn(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+    train_y = df_all_train_y[0].values
+    train_log_y = safe_log(train_y)
+    train_x = df_all_train_x.as_matrix()
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_y = df_all_test_y[0].values
+    test_x = df_all_test_x.as_matrix()
+
+    print('Building Keras model...')
+    model = Sequential()
+    model.add(Dense(175, input_shape=(train_x.shape[1],)))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(90))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(175))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(90))
+    model.add(Activation('relu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(1))
+    model.add(Activation('linear'))
+    model.compile(optimizer='adam', loss='mae')
+
+    print('Fitting Keras model...')
+
+    model.fit(train_x,
+              train_y,
+              epochs=20000,
+              batch_size=128,
+              verbose=1)
+
+    gc.collect()
+
+    print('Executing keras predictions...')
+
+    # Make predictions
+    log_predictions = model.predict(test_x)
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
+
+    eval_results({'Keras_nn': {
+        'log_y': test_y,
+        'actual_y': test_actuals,
+        'log_y_predict': log_predictions,
+        'y_predict': log_inverse_scaled_predictions
+    }
+    })
+
+
+    range_results({
+        'Keras_nn': log_inverse_scaled_predictions
+    }, test_actuals)
+
+    return model
 
 if __name__ == "__main__":
     # Prepare run_str
@@ -806,6 +869,8 @@ if __name__ == "__main__":
 
     del share_data
     gc.collect()
+
+    keras_model = train_keras_nn(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
     sklearn_models = train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
