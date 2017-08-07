@@ -106,22 +106,35 @@ def eval_results(predictions):
     results = {}
 
     for prediction_name in predictions:
-        err = mean_absolute_error(predictions[prediction_name]['log_y'], predictions[prediction_name]['log_y_predict'])
-        mae = mean_absolute_error(predictions[prediction_name]['actual_y'], predictions[prediction_name]['y_predict'])
-        mape = safe_mape(predictions[prediction_name]['actual_y'], predictions[prediction_name]['y_predict'])
-        r2 = r2_score(predictions[prediction_name]['actual_y'], predictions[prediction_name]['y_predict'])
-
         print(prediction_name)
-        print('Mean log of error: %s' % err)
+
+        prediction_vals = predictions[prediction_name]
+
+        if prediction_vals.__contains__('log_y'):
+            err = mean_absolute_error(prediction_vals['log_y'], prediction_vals['log_y_predict'])
+            print('Mean log of error: %s' % err)
+
+        mae = mean_absolute_error(prediction_vals['actual_y'], prediction_vals['y_predict'])
+        mape = safe_mape(prediction_vals['actual_y'], prediction_vals['y_predict'])
+        r2 = r2_score(prediction_vals['actual_y'], prediction_vals['y_predict'])
+
         print('Mean absolute error: %s' % mae)
         print('Mean absolute percentage error: %s' % mape)
         print('r2: %s' % r2)
 
-        results[prediction_name] = {
-            'err': err,
-            'mae': mae,
-            'mape': mape,
-            'r2': r2,
-        }
+        if prediction_vals.__contains__('log_y'):
+            results[prediction_name] = {
+                'err': err,
+                'mae': mae,
+                'mape': mape,
+                'r2': r2,
+            }
+        else:
+            results[prediction_name] = {
+                'mae': mae,
+                'mape': mape,
+                'r2': r2,
+            }
+
 
     return results

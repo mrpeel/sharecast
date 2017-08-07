@@ -24,8 +24,12 @@ from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, Gradien
 from categorical_encoder import *
 from eval_results import *
 
-from keras.models import Sequential
+from keras.models import Sequential, Model
+from keras import optimizers
+from keras import backend as K
 from keras.layers import Dense, Dropout, Activation
+from keras.callbacks import EarlyStopping
+from keras.callbacks import TensorBoard
 
 
 
@@ -139,7 +143,9 @@ def safe_log(input_array):
 def safe_exp(input_array):
     return_vals = input_array.copy()
     neg_mask = return_vals < 0
-    return_vals = np.exp(np.absolute(return_vals)) - 1
+    exceeds_1000_mask = ((return_vals > 7) | (return_vals < -7))
+    return_vals[exceeds_1000_mask] = 1000
+    return_vals[~exceeds_1000_mask] = np.exp(np.absolute(return_vals[~exceeds_1000_mask])) - 1
     return_vals[neg_mask] *= -1
     return return_vals
 
@@ -346,12 +352,14 @@ def divide_data(share_data):
 
     df_all_train_x = pd.DataFrame()
     df_all_train_y = pd.DataFrame()
+    df_all_train_actuals = pd.DataFrame()
     df_all_test_x = pd.DataFrame()
     df_all_test_y = pd.DataFrame()
     df_all_test_actuals = pd.DataFrame()
 
     symbols_train_x = {}
     symbols_train_y = {}
+    symbols_train_actuals = {}
     symbols_test_x = {}
     symbols_test_y = {}
     symbols_test_actuals = {}
@@ -383,6 +391,7 @@ def divide_data(share_data):
         # MAke sure a minimum number of rows are present in sample for symbol
         if (len(df_train) > 150 & len(df_test) > 50):
             symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
+            symbols_train_actuals[symbol] = df_train[LABEL_COLUMN].values
             symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
             symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
@@ -390,6 +399,7 @@ def divide_data(share_data):
             symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
             df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
+            df_all_train_actuals = pd.concat([df_all_train_actuals, df_train[LABEL_COLUMN]])
             df_all_train_x = df_all_train_x.append(df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
 
             df_all_test_actuals = pd.concat([df_all_test_actuals, df_test[LABEL_COLUMN]])
@@ -404,8 +414,9 @@ def divide_data(share_data):
     print(symbol_map)
 
     # Clean-up the initial data variable
-    return symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y, symbols_test_x, \
-           df_all_train_y, df_all_train_x, df_all_test_actuals, df_all_test_y, df_all_test_x
+    return symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
+           symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
+           df_all_test_actuals, df_all_test_y, df_all_test_x
 
 
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, lgbm_models):
@@ -542,6 +553,23 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
                                         + lgbm_inverse_scaled_predictions) / 3)
                                       )
 
+        result_eval = eval_results({
+            'sixty_results': {
+            'log_y': test_y,
+            'actual_y': test_actuals,
+            'log_y_predict': ((gen_predictions + predictions + lgbm_predictions) / 3),
+            'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions
+                           + lgbm_inverse_scaled_predictions) / 3)
+            },
+            'thirds_results': {
+                'log_y': test_y,
+                'actual_y': test_actuals,
+                'log_y_predict': ((gen_predictions + predictions + lgbm_predictions) / 3),
+                'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions
+                               + lgbm_inverse_scaled_predictions) / 3)
+            }
+        })
+
         # Make bagged predictions - for most weight the symbol prediction
         #    if actual for any of the values is >= 0 and <= 2
         #      - average: xgboost log of log of y & lgbm log of log of y
@@ -578,9 +606,17 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
 
         bagged_inverse_scaled_predictions = safe_exp(bagged_predictions)
 
-        bagged_results = eval_results('Bagged results', test_y, test_actuals,
-                                      bagged_predictions,
-                                      bagged_inverse_scaled_predictions)
+        bagged_results = eval_results({
+            'bagged_results': {
+                    'log_y': test_y,
+                    'actual_y': test_actuals,
+                    'log_y_predict': ((gen_predictions + predictions +
+                                   lgbm_predictions) / 3),
+                    'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions +
+                                   lgbm_inverse_scaled_predictions) / 3)
+                }
+        })
+
 
         all_results = all_results.append(pd.DataFrame.from_dict({'actuals': test_actuals,
                                                                 'gen_predictions': gen_inverse_scaled_predictions,
@@ -623,7 +659,7 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
 
     return symbol_models, all_results, results_output
 
-def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models):
     params = {
         # 'objective': 'regression',
         'objective': 'huber',
@@ -638,16 +674,28 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
     gbms = {}
 
+    train_x = df_all_train_x.as_matrix()
     train_y = df_all_train_y[0].values
     train_log_y = safe_log(train_y)
+    test_x = df_all_test_x.as_matrix()
     test_actuals = df_all_test_actuals.as_matrix()
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
 
+    mape_vals_train = keras_models['mape_intermediate_model'].predict(train_x)
+    mape_vals_test = keras_models['mape_intermediate_model'].predict(test_x)
+    mae_vals_train = keras_models['mae_intermediate_model'].predict(train_x)
+    mae_vals_test = keras_models['mae_intermediate_model'].predict(test_x)
+
+    # Use keras models to generate extra outputs
+    train_x = np.column_stack([train_x, mape_vals_train])
+    train_x = np.column_stack([train_x, mae_vals_train])
+    test_x = np.column_stack([test_x, mape_vals_test])
+    test_x = np.column_stack([test_x, mae_vals_test])
 
     # Set-up lightgbm
-    train_set = lgb.Dataset(df_all_train_x, label=train_y)
-    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=test_y)
+    train_set = lgb.Dataset(train_x, label=train_y)
+    eval_set = lgb.Dataset(test_x, reference=train_set, label=test_y)
 
 
     # feature_name and categorical_feature
@@ -668,7 +716,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Make predictions
-    log_predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
+    log_predictions = gbms['log_y'].predict(test_x, num_iteration=iteration_number)
     log_inverse_scaled_predictions = safe_exp(log_predictions)
 
     eval_results({'lgbm_log_y': {
@@ -681,8 +729,8 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Set-up lightgbm
-    train_set = lgb.Dataset(df_all_train_x, label=train_log_y)
-    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=test_log_y)
+    train_set = lgb.Dataset(test_x, label=train_log_y)
+    eval_set = lgb.Dataset(test_x, reference=train_set, label=test_log_y)
 
 
     # feature_name and categorical_feature
@@ -703,7 +751,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Make predictions
-    log_log_predictions = gbms['log_log_y'].predict(df_all_test_x, num_iteration=iteration_number)
+    log_log_predictions = gbms['log_log_y'].predict(test_x, num_iteration=iteration_number)
     predictions_log_y = safe_exp(log_log_predictions)
     log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
@@ -798,62 +846,143 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
     return sklearn_models
 
 
-def train_keras_nn(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
+def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y, df_all_test_x):
     train_y = df_all_train_y[0].values
+    train_actuals = df_all_train_actuals[0].values
     train_log_y = safe_log(train_y)
     train_x = df_all_train_x.as_matrix()
     test_actuals = df_all_test_actuals.as_matrix()
     test_y = df_all_test_y[0].values
     test_x = df_all_test_x.as_matrix()
 
-    print('Building Keras model...')
-    model = Sequential()
-    model.add(Dense(175, input_shape=(train_x.shape[1],)))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(90))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(175))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(90))
-    model.add(Activation('relu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(1))
-    model.add(Activation('linear'))
-    model.compile(optimizer='adam', loss='mae')
+    print('Building Keras mape model...')
 
-    print('Fitting Keras model...')
+    p_model = Sequential()
+    p_model.add(Dense(125, input_shape=(train_x.shape[1],)))
+    p_model.add(Activation('selu'))
+    # p_model.add(Dropout(0.05))
+    p_model.add(Dense(65))
+    p_model.add(Activation('selu'))
+    p_model.add(Dense(12, name="mape_twelve"))
+    p_model.add(Activation('selu'))
+    # p_model.add(Dropout(0.1))
+    p_model.add(Dense(1))
+    p_model.add(Activation('linear'))
 
-    model.fit(train_x,
-              train_y,
+    p_model.compile(optimizer='adam', loss='mean_absolute_percentage_error', metrics = ['mae'])
+
+    print('Fitting Keras mape model...')
+
+    early_stopping = EarlyStopping(monitor='val_loss', patience=250)
+
+    p_model.fit(train_x,
+              train_actuals,
+              validation_data=(test_x, test_actuals),
               epochs=20000,
-              batch_size=128,
+              batch_size=512,
+              callbacks=[early_stopping],
               verbose=1)
 
     gc.collect()
 
+    predictions = p_model.predict(test_x)
+
+    eval_results({'keras_mape_y': {
+                        'actual_y': test_actuals,
+                        'y_predict': predictions
+                }
+    })
+
+    range_results({
+        'Keras_mape_nn': predictions
+    }, test_actuals)
+
+
+    model = Sequential()
+    model.add(Dense(250, input_shape=(train_x.shape[1],)))
+    model.add(Activation('selu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(125))
+    model.add(Activation('selu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(250))
+    model.add(Activation('selu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(125))
+    model.add(Activation('selu'))
+    model.add(Dropout(0.05))
+    model.add(Dense(12, name="mae_twelve"))
+    model.add(Activation('selu'))
+    # model.add(Dropout(0.1))
+    model.add(Dense(1))
+    model.add(Activation('linear'))
+
+    # rmsprop = optimizers.RMSprop(lr=0.1, rho=0.9, epsilon=1e-08, decay=0.001)
+
+    # adamax = optimizers.Adamax(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.01)
+
+    # adam = optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.001)
+
+    model.compile(optimizer='adam', loss='mae') #, metrics = ['mae'])
+
+    print('Fitting Keras model...')
+
+    tbCallBack = TensorBoard(log_dir='./tf-results', histogram_freq=0, write_graph=True, write_images=True)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=250)
+
+    model.fit(train_x,
+              train_y,
+              validation_data=(test_x, test_y),
+              epochs=20000,
+              batch_size=512,
+              callbacks=[tbCallBack, early_stopping],
+              verbose=1)
+
+    gc.collect()
+
+
     print('Executing keras predictions...')
 
     # Make predictions
-    log_predictions = model.predict(test_x)
-    log_inverse_scaled_predictions = safe_exp(log_predictions)
+    # log_predictions = model.predict(test_x)
+    # log_inverse_scaled_predictions = safe_exp(log_predictions)
+    #
+    # eval_results({'Keras_nn': {
+    #     'log_y': test_y,
+    #     'actual_y': test_actuals,
+    #     'log_y_predict': log_predictions,
+    #     'y_predict': log_inverse_scaled_predictions
+    # }
+    # })
 
-    eval_results({'Keras_nn': {
-        'log_y': test_y,
-        'actual_y': test_actuals,
-        'log_y_predict': log_predictions,
-        'y_predict': log_inverse_scaled_predictions
-    }
+    log_predictions = model.predict(stacked_test_x)
+    predictions = safe_exp(log_predictions)
+
+    eval_results({'keras_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': predictions
+                }
     })
 
-
     range_results({
-        'Keras_nn': log_inverse_scaled_predictions
+        'Keras_mae_nn': predictions
     }, test_actuals)
 
-    return model
+    # Construct models which output final twelve weights as predictions
+    mape_intermediate_model = Model(inputs=p_model.input,
+                                     outputs=p_model.get_layer('mape_twelve').output)
+
+    mae_intermediate_model = Model(inputs=model.input,
+                                     outputs=model.get_layer('mae_twelve').output)
+
+    return {
+        'mape_model': p_model,
+        'mae_model': model,
+        'mape_intermediate_model': mape_intermediate_model,
+        'mae_intermediate_model': mae_intermediate_model
+        }
 
 if __name__ == "__main__":
     # Prepare run_str
@@ -863,19 +992,21 @@ if __name__ == "__main__":
     share_data  = prep_data()
     gc.collect()
 
-    # Divide data into symbol and general data for training an testing
-    symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y, symbols_test_x, df_all_train_y, \
-    df_all_train_x, df_all_test_actuals, df_all_test_y, df_all_test_x = divide_data(share_data)
+    # Divide data into symbol sand general data for training an testing
+    symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
+    symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x, \
+    df_all_test_actuals, df_all_test_y, df_all_test_x = divide_data(share_data)
 
     del share_data
     gc.collect()
 
-    keras_model = train_keras_nn(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
-
-    sklearn_models = train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+    keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
 
-    lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+    #sklearn_models = train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+
+
+    lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models)
 
     # Train the general model
     gen_model = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x,
