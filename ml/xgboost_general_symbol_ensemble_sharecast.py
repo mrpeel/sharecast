@@ -24,12 +24,15 @@ from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, Gradien
 from categorical_encoder import *
 from eval_results import *
 
-from keras.models import Sequential, Model
 from keras import optimizers
 from keras import backend as K
+from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
-from keras.callbacks import EarlyStopping
-from keras.callbacks import TensorBoard
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
+from keras.models import load_model
+
+
+import matplotlib.pyplot as plt
 
 
 
@@ -335,7 +338,7 @@ def divide_data(share_data):
     #                                                       '12WeekBollingerType'])
 
     # Use categorical entity embedding encoder
-    ce = Categorical_encoder(strategy="entity_embedding", verbose=False)
+    ce = Categorical_encoder(strategy="dummification", verbose=False)
     df_train_transform = ce.fit_transform(share_data.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1),
                      share_data[LABEL_COLUMN + '_scaled'])
 
@@ -419,11 +422,11 @@ def divide_data(share_data):
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
 
-def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, lgbm_models):
+def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
     model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35, colsample_bylevel=0.8,
-                             colsample_bytree=0.8, gamma=0, learning_rate=0.01, max_delta_step=0,
+                             colsample_bytree=0.8, gamma=0, learning_rate=0.075, max_delta_step=0,
                              min_child_weight=0)
 
     all_train_y = df_all_train_y.as_matrix()
@@ -433,14 +436,37 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     all_test_x = df_all_test_x.as_matrix()
 
 
-    lgbm_predictions_train = lgbm_models['log_y'].predict(all_train_x)
-    lgbm_predictions_test = lgbm_models['log_y'].predict(all_test_x)
+    # mape_vals_train = keras_models['mape_model'].predict(all_train_x)
+    # mape_vals_test = keras_models['mape_model'].predict(all_test_x)
+    # mae_vals_train = keras_models['mae_model'].predict(all_train_x)
+    # mae_vals_test = keras_models['mae_model'].predict(all_test_x)
+    #
+    # # Use keras models to generate extra outputs
+    # lgbm_train_x = np.column_stack([all_train_x, mape_vals_train])
+    # lgbm_train_x = np.column_stack([lgbm_train_x, mae_vals_train])
+    # lgbm_test_x = np.column_stack([all_test_x, mape_vals_test])
+    # lgbm_test_x = np.column_stack([lgbm_test_x, mae_vals_test])
 
-    stacked_train_x = np.column_stack([all_train_x, lgbm_predictions_train])
-    stacked_test_x = np.column_stack([all_test_x, lgbm_predictions_test])
+    # lgbm_train_x = all_train_x
+    # lgbm_test_x = all_test_x
 
-    eval_set = [(stacked_test_x, all_test_y)]
-    model.fit(stacked_train_x, all_train_y, early_stopping_rounds=250, eval_metric='mae', eval_set=eval_set,
+
+    # Add lgbm predictions
+    # lgbm_predictions_train = lgbm_models['log_y'].predict(lgbm_train_x)
+    # lgbm_predictions_test = lgbm_models['log_y'].predict(lgbm_test_x)
+    #
+    # all_train_x = np.column_stack([all_train_x, lgbm_predictions_train])
+    # all_test_x = np.column_stack([all_test_x, lgbm_predictions_test])
+
+
+    # Use keras models to generate extra outputs
+    # all_train_x = np.column_stack([all_train_x, mape_vals_train])
+    # all_train_x = np.column_stack([all_train_x, mae_vals_train])
+    # all_test_x = np.column_stack([all_test_x, mape_vals_test])
+    # all_test_x = np.column_stack([all_test_x, mae_vals_test])
+
+    eval_set = [(all_test_x, all_test_y)]
+    model.fit(all_train_x, all_train_y, early_stopping_rounds=250, eval_metric='mae', eval_set=eval_set,
     #model.fit(all_train_x, all_train_y, early_stopping_rounds=250, eval_metric=mape_log_y_eval, eval_set=eval_set,
     #model.fit(stacked_train_x, all_train_y, early_stopping_rounds=250, eval_metric=huber_loss_eval, eval_set=eval_set,
                 verbose=True)
@@ -448,16 +474,28 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
 
     gc.collect()
 
-    predictions = model.predict(stacked_test_x)
+    predictions = model.predict(all_test_x)
     #### Double exp #######
     inverse_scaled_predictions = safe_exp(predictions)
 
-    eval_results('General model xgboost results', all_test_y, all_test_actuals, predictions, inverse_scaled_predictions)
+    eval_results({'general_mae': {
+                        'log_y': all_test_y,
+                        'actual_y': all_test_actuals,
+                        'log_y_predict': predictions,
+                        'y_predict': inverse_scaled_predictions
+                }
+    })
+
+
+    range_results({
+        'general_mae': inverse_scaled_predictions
+        }, all_test_actuals)
+
 
     return model
 
 def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y,
-                        symbols_test_x, gen_model, lgbm_models):
+                        symbols_test_x, gen_model, lgbm_models, keras_models):
 
     # Create and execute models
     symbol_models = {}
@@ -475,11 +513,14 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         lgbm_predictions_train = lgbm_models['log_y'].predict(train_x)
         lgbm_predictions_test = lgbm_models['log_y'].predict(test_x)
 
-        gen_predictions_train = gen_model.predict(np.column_stack([train_x, lgbm_predictions_train]))
-        gen_predictions_test = gen_model.predict(np.column_stack([test_x, lgbm_predictions_test]))
+        # gen_predictions_train = gen_model.predict(np.column_stack([train_x, lgbm_predictions_train]))
+        # gen_predictions_test = gen_model.predict(np.column_stack([test_x, lgbm_predictions_test]))
+        #
+        # stacked_train_x = np.column_stack([np.column_stack([train_x, lgbm_predictions_train]),gen_predictions_train])
+        # stacked_test_x = np.column_stack([np.column_stack([test_x, lgbm_predictions_test]), gen_predictions_test])
 
-        stacked_train_x = np.column_stack([np.column_stack([train_x, lgbm_predictions_train]),gen_predictions_train])
-        stacked_test_x = np.column_stack([np.column_stack([test_x, lgbm_predictions_test]), gen_predictions_test])
+        stacked_train_x = train_x
+        stacked_test_x = test_x
 
         # Create model
         symbol_model = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=110, base_score=0.35,
@@ -516,7 +557,7 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         log_inverse_scaled_predictions = safe_exp(safe_exp(predictions))
 
 
-        gen_predictions = gen_model.predict(np.column_stack([test_x, lgbm_predictions_test]))
+        gen_predictions = gen_model.predict(test_x)
         #### Double exp #######
         gen_inverse_scaled_predictions = safe_exp(gen_predictions)
 
@@ -526,49 +567,36 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         log_lgbm_predictions = lgbm_models['log_log_y'].predict(test_x)
         log_lgbm_inverse_scaled_predictions = safe_exp(safe_exp(lgbm_predictions))
 
+        mape_keras_predictions = keras_models['mape_model'].predict(test_x)
+
+        mae_keras_predictions = keras_models['mae_model'].predict(test_x)
+        mae_keras_inverse_scaled_predictions = safe_exp(mae_keras_predictions)
+
+
+
         #Evaluate results
         print('Results for', symbol)
 
-        symbol_results = eval_results('Symbol model results', test_y, test_actuals, predictions,
-                                      inverse_scaled_predictions)
-
-        general_results = eval_results('General xgb model results', test_y, test_actuals, gen_predictions,
-                                       gen_inverse_scaled_predictions)
-
-        lgbm_results = eval_results('General lgbm model results', test_y, test_actuals, lgbm_predictions,
-                                    lgbm_inverse_scaled_predictions)
-
-        fifty_results = eval_results('50/50 symbol/gen results', test_y, test_actuals,
-                                     ((gen_predictions + predictions) / 2),
-                                     ((gen_inverse_scaled_predictions + inverse_scaled_predictions) / 2))
-
-
-        sixty_results = eval_results('66/33 symbol/gen results', test_y, test_actuals,
-                                     ((gen_predictions + (predictions * 2)) / 3),
-                                     ((gen_inverse_scaled_predictions + (inverse_scaled_predictions * 2)) / 3))
-
-        thirds_results = eval_results('Symbol/gen xgb/gen lgbm results', test_y, test_actuals,
-                                      ((gen_predictions + predictions + lgbm_predictions) / 3),
-                                      ((gen_inverse_scaled_predictions + inverse_scaled_predictions
-                                        + lgbm_inverse_scaled_predictions) / 3)
-                                      )
 
         result_eval = eval_results({
-            'sixty_results': {
+            'symbol_results': {
             'log_y': test_y,
             'actual_y': test_actuals,
-            'log_y_predict': ((gen_predictions + predictions + lgbm_predictions) / 3),
-            'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions
-                           + lgbm_inverse_scaled_predictions) / 3)
-            },
-            'thirds_results': {
-                'log_y': test_y,
-                'actual_y': test_actuals,
-                'log_y_predict': ((gen_predictions + predictions + lgbm_predictions) / 3),
-                'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions
-                               + lgbm_inverse_scaled_predictions) / 3)
+            'log_y_predict': predictions,
+            'y_predict': inverse_scaled_predictions
             }
         })
+
+
+        range_results({
+            'symbol_': inverse_scaled_predictions,
+            'symobl_log': log_inverse_scaled_predictions,
+            'general': gen_inverse_scaled_predictions,
+            'lgbm': lgbm_inverse_scaled_predictions,
+            'lgbm_log':log_lgbm_inverse_scaled_predictions,
+            'keras_mae': mae_keras_inverse_scaled_predictions,
+            'keras_mape': mape_keras_predictions
+         }, test_actuals)
 
         # Make bagged predictions - for most weight the symbol prediction
         #    if actual for any of the values is >= 0 and <= 2
@@ -578,94 +606,94 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
         #    Others
         #      - xgboost log of y
 
-        bagged_predictions = predictions
-
-        # values in the 0 to 2 range (allow for error to be -0.5 to 2.5
-        mask_lgbm = ((log_inverse_scaled_predictions >= -0.5) & (log_inverse_scaled_predictions <= 2.5))
-        mask_lgbm_log = ((log_lgbm_inverse_scaled_predictions >= -0.5) & (log_lgbm_inverse_scaled_predictions <= 2.5))
-        mask_gen = ((gen_inverse_scaled_predictions >= -0.5) & (gen_inverse_scaled_predictions <= 2.5))
-        mask_symbol = ((inverse_scaled_predictions >= -0.5) & (inverse_scaled_predictions <= 2.5))
-        mask_symbol_log = ((log_inverse_scaled_predictions >= -0.5) & (log_inverse_scaled_predictions <= 2.5))
-
-        combined_mask = ((mask_lgbm) | (mask_lgbm_log) | (mask_gen) | (mask_symbol) | (mask_symbol_log))
-
-        bagged_predictions[combined_mask] = (predictions[combined_mask] +
-                                             safe_exp(log_lgbm_predictions[combined_mask])) / 2
-
-        # values in the -5 to 5 range -- (allow for error to be -5.5 to 5.5
-        mask_lgbm = ((log_inverse_scaled_predictions >= -5.5) & (log_inverse_scaled_predictions <= 5.5))
-        mask_lgbm_log = ((log_lgbm_inverse_scaled_predictions >= -5.5) & (log_lgbm_inverse_scaled_predictions <= 5.5))
-        mask_gen = ((gen_inverse_scaled_predictions >= -5.5) & (gen_inverse_scaled_predictions <= 5.5))
-        mask_symbol = ((inverse_scaled_predictions >= -5.5) & (inverse_scaled_predictions <= 5.5))
-        mask_symbol_log = ((log_inverse_scaled_predictions >= -5.5) & (log_inverse_scaled_predictions <= 5.5))
-
-        combined_mask = ((mask_lgbm) | (mask_lgbm_log) | (mask_gen) | (mask_symbol) | (mask_symbol_log))
-
-        bagged_predictions[combined_mask] = (safe_exp(log_predictions[combined_mask]) +
-                                             safe_exp(log_lgbm_predictions[combined_mask])) / 2
-
-        bagged_inverse_scaled_predictions = safe_exp(bagged_predictions)
-
-        bagged_results = eval_results({
-            'bagged_results': {
-                    'log_y': test_y,
-                    'actual_y': test_actuals,
-                    'log_y_predict': ((gen_predictions + predictions +
-                                   lgbm_predictions) / 3),
-                    'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions +
-                                   lgbm_inverse_scaled_predictions) / 3)
-                }
-        })
-
-
-        all_results = all_results.append(pd.DataFrame.from_dict({'actuals': test_actuals,
-                                                                'gen_predictions': gen_inverse_scaled_predictions,
-                                                                'lgbm_predictions': lgbm_inverse_scaled_predictions,
-                                                                'symbol_predictions': inverse_scaled_predictions,
-                                                                'bagged_predictions': bagged_inverse_scaled_predictions,
-                                                                }))
-
-        results_output = results_output.append(pd.DataFrame.from_dict({'symbol': [symbol],
-                                                                       'general_mle': [general_results.err],
-                                                                       'lgbm_mle': [lgbm_results.err],
-                                                                       'symbol_mle': [symbol_results.err],
-                                                                       'fifty_fifty_mle': [fifty_results.err],
-                                                                       'sixty_thirty_mle': [sixty_results.err],
-                                                                       'thirds_mle': [thirds_results.err],
-                                                                       'bagged_mle': [bagged_results.err],
-                                                                       'general_mae': [general_results.mae],
-                                                                       'lgbm_mae': [lgbm_results.mae],
-                                                                       'symbol_mae': [symbol_results.mae],
-                                                                       'fifty_fifty_mae': [fifty_results.mae],
-                                                                       'sixty_thirty_mae': [sixty_results.mae],
-                                                                       'thirds_mae': [thirds_results.mae],
-                                                                       'bagged_mae': [bagged_results.mae],
-                                                                       'general_mape': [general_results.mape],
-                                                                       'lgbm_mape': [lgbm_results.mape],
-                                                                       'symbol_mape': [symbol_results.mape],
-                                                                       'fifty_fifty_mape': [fifty_results.mape],
-                                                                       'sixty_thirty_mape': [sixty_results.mape],
-                                                                       'thirds_mape': [thirds_results.mape],
-                                                                       'bagged_mape': [bagged_results.mape],
-                                                                       'general_r2': [general_results.r2],
-                                                                       'lgbm_r2': [lgbm_results.r2],
-                                                                       'symbol_r2': [symbol_results.r2],
-                                                                       'fifty_fifty_r2': [fifty_results.r2],
-                                                                       'sixty_thirty_r2': [sixty_results.r2],
-                                                                       'thirds_r2': [thirds_results.r2],
-                                                                       'bagged_r2': [bagged_results.r2]
-                                                                       }))
+        # bagged_predictions = predictions
+        #
+        # # values in the 0 to 2 range (allow for error to be -0.5 to 2.5
+        # mask_lgbm = ((log_inverse_scaled_predictions >= -0.5) & (log_inverse_scaled_predictions <= 2.5))
+        # mask_lgbm_log = ((log_lgbm_inverse_scaled_predictions >= -0.5) & (log_lgbm_inverse_scaled_predictions <= 2.5))
+        # mask_gen = ((gen_inverse_scaled_predictions >= -0.5) & (gen_inverse_scaled_predictions <= 2.5))
+        # mask_symbol = ((inverse_scaled_predictions >= -0.5) & (inverse_scaled_predictions <= 2.5))
+        # mask_symbol_log = ((log_inverse_scaled_predictions >= -0.5) & (log_inverse_scaled_predictions <= 2.5))
+        #
+        # combined_mask = ((mask_lgbm) | (mask_lgbm_log) | (mask_gen) | (mask_symbol) | (mask_symbol_log))
+        #
+        # bagged_predictions[combined_mask] = (predictions[combined_mask] +
+        #                                      safe_exp(log_lgbm_predictions[combined_mask])) / 2
+        #
+        # # values in the -5 to 5 range -- (allow for error to be -5.5 to 5.5
+        # mask_lgbm = ((log_inverse_scaled_predictions >= -5.5) & (log_inverse_scaled_predictions <= 5.5))
+        # mask_lgbm_log = ((log_lgbm_inverse_scaled_predictions >= -5.5) & (log_lgbm_inverse_scaled_predictions <= 5.5))
+        # mask_gen = ((gen_inverse_scaled_predictions >= -5.5) & (gen_inverse_scaled_predictions <= 5.5))
+        # mask_symbol = ((inverse_scaled_predictions >= -5.5) & (inverse_scaled_predictions <= 5.5))
+        # mask_symbol_log = ((log_inverse_scaled_predictions >= -5.5) & (log_inverse_scaled_predictions <= 5.5))
+        #
+        # combined_mask = ((mask_lgbm) | (mask_lgbm_log) | (mask_gen) | (mask_symbol) | (mask_symbol_log))
+        #
+        # bagged_predictions[combined_mask] = (safe_exp(log_predictions[combined_mask]) +
+        #                                      safe_exp(log_lgbm_predictions[combined_mask])) / 2
+        #
+        # bagged_inverse_scaled_predictions = safe_exp(bagged_predictions)
+        #
+        # bagged_results = eval_results({
+        #     'bagged_results': {
+        #             'log_y': test_y,
+        #             'actual_y': test_actuals,
+        #             'log_y_predict': ((gen_predictions + predictions +
+        #                            lgbm_predictions) / 3),
+        #             'y_predict': ((gen_inverse_scaled_predictions + inverse_scaled_predictions +
+        #                            lgbm_inverse_scaled_predictions) / 3)
+        #         }
+        # })
+        #
+        #
+        # all_results = all_results.append(pd.DataFrame.from_dict({'actuals': test_actuals,
+        #                                                         'gen_predictions': gen_inverse_scaled_predictions,
+        #                                                         'lgbm_predictions': lgbm_inverse_scaled_predictions,
+        #                                                         'symbol_predictions': inverse_scaled_predictions,
+        #                                                         'bagged_predictions': bagged_inverse_scaled_predictions,
+        #                                                         }))
+        #
+        # results_output = results_output.append(pd.DataFrame.from_dict({'symbol': [symbol],
+        #                                                                'general_mle': [general_results.err],
+        #                                                                'lgbm_mle': [lgbm_results.err],
+        #                                                                'symbol_mle': [symbol_results.err],
+        #                                                                'fifty_fifty_mle': [fifty_results.err],
+        #                                                                'sixty_thirty_mle': [sixty_results.err],
+        #                                                                'thirds_mle': [thirds_results.err],
+        #                                                                'bagged_mle': [bagged_results.err],
+        #                                                                'general_mae': [general_results.mae],
+        #                                                                'lgbm_mae': [lgbm_results.mae],
+        #                                                                'symbol_mae': [symbol_results.mae],
+        #                                                                'fifty_fifty_mae': [fifty_results.mae],
+        #                                                                'sixty_thirty_mae': [sixty_results.mae],
+        #                                                                'thirds_mae': [thirds_results.mae],
+        #                                                                'bagged_mae': [bagged_results.mae],
+        #                                                                'general_mape': [general_results.mape],
+        #                                                                'lgbm_mape': [lgbm_results.mape],
+        #                                                                'symbol_mape': [symbol_results.mape],
+        #                                                                'fifty_fifty_mape': [fifty_results.mape],
+        #                                                                'sixty_thirty_mape': [sixty_results.mape],
+        #                                                                'thirds_mape': [thirds_results.mape],
+        #                                                                'bagged_mape': [bagged_results.mape],
+        #                                                                'general_r2': [general_results.r2],
+        #                                                                'lgbm_r2': [lgbm_results.r2],
+        #                                                                'symbol_r2': [symbol_results.r2],
+        #                                                                'fifty_fifty_r2': [fifty_results.r2],
+        #                                                                'sixty_thirty_r2': [sixty_results.r2],
+        #                                                                'thirds_r2': [thirds_results.r2],
+        #                                                                'bagged_r2': [bagged_results.r2]
+        #                                                                }))
 
 
     return symbol_models, all_results, results_output
 
-def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models):
+def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     params = {
-        # 'objective': 'regression',
-        'objective': 'huber',
-        # 'objective': 'regression_l1',
-        'metric': 'huber',
-        # 'metric': 'mae',
+        'objective': 'regression',
+        #'objective': 'huber',
+        #'objective': 'regression_l1',
+        #'metric': 'huber',
+        'metric': 'mae',
         'num_leaves': 16384,
         'max_bin': 2500000,
         'boosting_type': 'dart',
@@ -682,16 +710,16 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
 
-    mape_vals_train = keras_models['mape_intermediate_model'].predict(train_x)
-    mape_vals_test = keras_models['mape_intermediate_model'].predict(test_x)
-    mae_vals_train = keras_models['mae_intermediate_model'].predict(train_x)
-    mae_vals_test = keras_models['mae_intermediate_model'].predict(test_x)
-
-    # Use keras models to generate extra outputs
-    train_x = np.column_stack([train_x, mape_vals_train])
-    train_x = np.column_stack([train_x, mae_vals_train])
-    test_x = np.column_stack([test_x, mape_vals_test])
-    test_x = np.column_stack([test_x, mae_vals_test])
+    # mape_vals_train = keras_models['mape_model'].predict(train_x)
+    # mape_vals_test = keras_models['mape_model'].predict(test_x)
+    # mae_vals_train = keras_models['mae_model'].predict(train_x)
+    # mae_vals_test = keras_models['mae_model'].predict(test_x)
+    #
+    # # Use keras models to generate extra outputs
+    # train_x = np.column_stack([train_x, mape_vals_train])
+    # train_x = np.column_stack([train_x, mae_vals_train])
+    # test_x = np.column_stack([test_x, mape_vals_test])
+    # test_x = np.column_stack([test_x, mae_vals_test])
 
     # Set-up lightgbm
     train_set = lgb.Dataset(train_x, label=train_y)
@@ -703,7 +731,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
                     train_set,
                     valid_sets=eval_set,
                     # feval=mae_eval,
-                    # learning_rates=lambda iter: 0.25 * (0.999 ** iter),
+                    #learning_rates=lambda iter: 0.25 * (0.999 ** iter),
                     num_boost_round=2000,
                     early_stopping_rounds=50)
 
@@ -729,7 +757,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
 
 
     # Set-up lightgbm
-    train_set = lgb.Dataset(test_x, label=train_log_y)
+    train_set = lgb.Dataset(train_x, label=train_log_y)
     eval_set = lgb.Dataset(test_x, reference=train_set, label=test_log_y)
 
 
@@ -846,7 +874,8 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
     return sklearn_models
 
 
-def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y, df_all_test_x):
+def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
+                   df_all_test_x):
     train_y = df_all_train_y[0].values
     train_actuals = df_all_train_actuals[0].values
     train_log_y = safe_log(train_y)
@@ -855,17 +884,49 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     test_y = df_all_test_y[0].values
     test_x = df_all_test_x.as_matrix()
 
+    # print('Running lgbm and xgboost general model predictions')
+    # gen_train_x = gen_model.predict(train_x)
+    # gen_test_x = gen_model.predict(test_x)
+    # lgbm_train_x = lgbm_models['log_y'].predict(train_x)
+    # lgbm_test_x = lgbm_models['log_y'].predict(test_x)
+    # log_lgbm_train_x = lgbm_models['log_log_y'].predict(train_x)
+    # log_lgbm_test_x = lgbm_models['log_log_y'].predict(test_x)
+    #
+    # stack_train_x = np.column_stack([gen_train_x, lgbm_train_x])
+    # stack_train_x = np.column_stack([log_lgbm_train_x, stack_train_x])
+    #
+    # stack_test_x = np.column_stack([gen_test_x, lgbm_test_x])
+    # stack_test_x = np.column_stack([log_lgbm_test_x, stack_test_x])
+    #
+    # print('Scaling predictions')
+    # scaler = StandardScaler()
+    # scaler.fit(np.row_stack([stack_train_x, stack_test_x]))
+    #
+    # stack_train_x = scaler.fit_transform(stack_train_x)
+    # stack_test_x = scaler.fit_transform(stack_test_x)
+    #
+    #
+    # print('Stacking predictions')
+    # train_x = np.column_stack([train_x, stack_train_x])
+    # test_x = np.column_stack([test_x, stack_test_x])
+
+
     print('Building Keras mape model...')
 
+    n_layer1 = int(train_x.shape[1])
+    n_layer2 = int(n_layer1 / 2 + 2)
+    # n_layer3 = int(n_layer2 / 2 + 2)
+    # n_layer4 = int(n_layer3 / 2 + 2)
+
     p_model = Sequential()
-    p_model.add(Dense(125, input_shape=(train_x.shape[1],)))
+    p_model.add(Dense(n_layer1, input_shape=(train_x.shape[1],)))
     p_model.add(Activation('selu'))
-    # p_model.add(Dropout(0.05))
-    p_model.add(Dense(65))
+    p_model.add(Dropout(0.1))
+    p_model.add(Dense(n_layer2))
     p_model.add(Activation('selu'))
+    p_model.add(Dropout(0.1))
     p_model.add(Dense(12, name="mape_twelve"))
     p_model.add(Activation('selu'))
-    # p_model.add(Dropout(0.1))
     p_model.add(Dense(1))
     p_model.add(Activation('linear'))
 
@@ -873,15 +934,27 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     print('Fitting Keras mape model...')
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=250)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=25)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=150)
 
-    p_model.fit(train_x,
-              train_actuals,
-              validation_data=(test_x, test_actuals),
-              epochs=20000,
-              batch_size=512,
-              callbacks=[early_stopping],
-              verbose=1)
+    history = p_model.fit(train_x,
+                          train_actuals,
+                          validation_data=(test_x, test_actuals),
+                          epochs=20000,
+                          batch_size=512,
+                          callbacks=[reduce_lr, early_stopping],
+                          verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras mape model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
 
     gc.collect()
 
@@ -899,18 +972,18 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
 
     model = Sequential()
-    model.add(Dense(250, input_shape=(train_x.shape[1],)))
+    model.add(Dense(n_layer1, input_shape=(train_x.shape[1],)))
     model.add(Activation('selu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(125))
+    model.add(Dropout(0.4))
+    model.add(Dense(n_layer2))
     model.add(Activation('selu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(250))
+    model.add(Dropout(0.4))
+    model.add(Dense(n_layer1))
     model.add(Activation('selu'))
-    model.add(Dropout(0.05))
-    model.add(Dense(125))
+    model.add(Dropout(0.4))
+    model.add(Dense(n_layer2))
     model.add(Activation('selu'))
-    model.add(Dropout(0.05))
+    model.add(Dropout(0.4))
     model.add(Dense(12, name="mae_twelve"))
     model.add(Activation('selu'))
     # model.add(Dropout(0.1))
@@ -927,16 +1000,28 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     print('Fitting Keras model...')
 
-    tbCallBack = TensorBoard(log_dir='./tf-results', histogram_freq=0, write_graph=True, write_images=True)
+    #tbCallBack = TensorBoard(log_dir='./tf-results', histogram_freq=0, write_graph=True, write_images=True)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=25)
     early_stopping = EarlyStopping(monitor='val_loss', patience=250)
 
-    model.fit(train_x,
-              train_y,
-              validation_data=(test_x, test_y),
-              epochs=20000,
-              batch_size=512,
-              callbacks=[tbCallBack, early_stopping],
-              verbose=1)
+    history = model.fit(train_x,
+                        train_y,
+                        validation_data=(test_x, test_y),
+                        epochs=20000,
+                        batch_size=512,
+                        callbacks=[reduce_lr, early_stopping],
+                        verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras mae model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
 
     gc.collect()
 
@@ -955,20 +1040,33 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     # }
     # })
 
-    log_predictions = model.predict(stacked_test_x)
-    predictions = safe_exp(log_predictions)
+    log_predictions = model.predict(test_x)
+    exp_predictions = safe_exp(log_predictions)
 
     eval_results({'keras_log_y': {
                         'log_y': test_y,
                         'actual_y': test_actuals,
                         'log_y_predict': log_predictions,
-                        'y_predict': predictions
+                        'y_predict': exp_predictions
                 }
     })
 
+    # Test a simple bagging strategy
+    bagged_predictions = np.copy(exp_predictions)
+    mape_mask = ((predictions >= -5) & (predictions <= 2))
+    bagged_predictions[mape_mask] = predictions[mape_mask]
+
+    eval_results({'keras_bagged': {
+        'actual_y': test_actuals,
+        'y_predict': bagged_predictions
+    }
+    })
+
     range_results({
-        'Keras_mae_nn': predictions
+        'keras_mae_nn': exp_predictions,
+        'keras_bagged_nn':bagged_predictions
     }, test_actuals)
+
 
     # Construct models which output final twelve weights as predictions
     mape_intermediate_model = Model(inputs=p_model.input,
@@ -983,6 +1081,87 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'mape_intermediate_model': mape_intermediate_model,
         'mae_intermediate_model': mae_intermediate_model
         }
+
+def keras_bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_models):
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_x = df_all_test_x.as_matrix()
+
+    print('Running model predictions')
+    gen_test_x = gen_model.predict(test_x)
+    gen_test_x = safe_exp(gen_test_x)
+    lgbm_test_x = lgbm_models['log_y'].predict(test_x)
+    lgbm_test_x = safe_exp(lgbm_test_x)
+    log_lgbm_test_x = lgbm_models['log_log_y'].predict(test_x)
+    log_lgbm_test_x = safe_exp(safe_exp(log_lgbm_test_x))
+    keras_mae = keras_models['mae_model'].predict(test_x)
+    keras_mae = safe_exp(keras_mae)
+    keras_mape = keras_models['mape_model'].predict(test_x)
+
+
+    range_results({
+        'gen': gen_test_x,
+        'lgbm': lgbm_test_x,
+        'log_lgbm': log_lgbm_test_x,
+        'keras_mae': keras_mae,
+        'keras_mape': keras_mape,
+    }, test_actuals)
+
+
+    print('Stacking predictions')
+
+    stack_x = np.column_stack([gen_test_x, lgbm_test_x])
+    stack_x = np.column_stack([stack_x, log_lgbm_test_x])
+    stack_x = np.column_stack([stack_x, keras_mae])
+    stack_x = np.column_stack([stack_x, keras_mape])
+
+
+    print('Building Keras mape bagging model...')
+
+    n_layer1 = int(stack_x.shape[1])
+    n_layer2 = int(n_layer1 / 2 + 2)
+
+    p_model = Sequential()
+    p_model.add(Dense(n_layer1, input_shape=(stack_x.shape[1],)))
+    p_model.add(Activation('selu'))
+    p_model.add(Dropout(0.1))
+    p_model.add(Dense(n_layer2))
+    p_model.add(Activation('selu'))
+    p_model.add(Dropout(0.1))
+    p_model.add(Dense(1))
+    p_model.add(Activation('linear'))
+
+    p_model.compile(optimizer='adam', loss='mean_absolute_percentage_error', metrics = ['mae'])
+
+    print('Fitting Keras mape model...')
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=10)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=50)
+
+    history = p_model.fit(stack_x,
+                          test_actuals,
+                          validation_data=(test_x, test_actuals),
+                          epochs=2000,
+                          batch_size=128,
+                          callbacks=[reduce_lr, early_stopping],
+                          verbose=1)
+
+    print('Executing bagged predictions...')
+
+
+    bagged_predictions = p_model.predict(stack_x)
+
+    eval_results({'bagged_predictions': {
+                        'actual_y': test_actuals,
+                        'y_predict': bagged_predictions
+                }
+    })
+
+    range_results({
+        'bagged_predictions': bagged_predictions
+    }, test_actuals)
+
+    p_model.save('./xgboost-models/keras-bagger.h5')
+
 
 if __name__ == "__main__":
     # Prepare run_str
@@ -1000,17 +1179,18 @@ if __name__ == "__main__":
     del share_data
     gc.collect()
 
-    keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y, df_all_test_x)
-
 
     #sklearn_models = train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
 
-    lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models)
+    lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
     # Train the general model
-    gen_model = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x,
-                                    lgbm_models)
+    gen_model = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
+
+    keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
+                                  df_all_test_y, df_all_test_x)
+
 
     # Remove combined data, only required for general model
     del df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x
@@ -1018,7 +1198,8 @@ if __name__ == "__main__":
 
     symbol_models, all_results, results_output = train_symbol_models(symbol_map, symbols_train_y, symbols_train_x,
                                                                      symbols_test_actuals, symbols_test_y,
-                                                                     symbols_test_x, gen_model, lgbm_models)
+                                                                     symbols_test_x, gen_model, lgbm_models,
+                                                                     keras_models)
 
     gc.collect()
 

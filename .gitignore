@@ -66,6 +66,10 @@ dynamo-backup/node_modules
 # =========================
 .publish
 
+# tf tensorboard results
+# =========================
+ml/tf-results
+
 # pycharm files
 # =========================
 **/.idea

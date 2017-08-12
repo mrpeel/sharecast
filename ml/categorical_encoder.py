@@ -147,12 +147,12 @@ class Categorical_encoder():
                 n_layer3 = np.int64((n_layer2 / B + 2))
 
                 #dropouts
-                dropout1 = 0.1
-                dropout2 = 0.1
-                dropout3 = 0.1
+                dropout1 = 0.05
+                dropout2 = 0.05
+                dropout3 = 0.05
 
                 #learning parameters
-                epochs = 50  #20 : fewer iterations
+                epochs = 100  #20 : fewer iterations
                 batch_size = 512 # 128 : gradient less stable
 
 
