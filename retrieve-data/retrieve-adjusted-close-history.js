@@ -30,7 +30,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
     }
 
     if ((!params.endDate || !utils.isDate(params.endDate)) && !params.results) {
-      console.error(`Invalid params - valid endDate or results required: `,
+      console.error(`Invalid params - valid endDate required: `,
         `${params.endDate}, ${params.results}`);
       return;
     }
@@ -45,8 +45,19 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
       results = params.results;
     } else {
       let endDate = params.endDate;
-      results = awaitify(retrieveHistory(companySymbol,
+      let fullResults = awaitify(retrieveHistory(companySymbol,
         '2007-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
+
+      results = [];
+
+      // Strip unnecessary information from results
+      fullResults.forEach((resultVal) => {
+        // Push the stripped down value to results
+        results.push({
+          'date': utils.returnDateAsString(resultVal['date']),
+          'adjClose': resultVal['adjClose'],
+        });
+      });
     }
 
     while (results.length) {
@@ -57,7 +68,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 250) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 280) {
         break;
       }
     }
@@ -215,21 +226,13 @@ module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };
 
-/* let oneOffLoad = asyncify(function() {
+/* let testLoad = asyncify(function() {
   dynamodb.setLocalAccessConfig();
-  let symbolResult = awaitify(retrieveData.setupSymbols());
 
-  let companies = [];
-  Object.keys(symbolResult.companyLookup).forEach((company) => {
-    companies.push(symbolResult.companyLookup[company]);
-  });
-
-  companies.forEach((company) => {
-    awaitify(retrieveAdjustedHistoryData({
-      endDate: '2017-07-08',
-      symbol: company,
-    }));
-  });
+  awaitify(retrieveAdjustedHistoryData({
+    endDate: '2017-08-19',
+    symbol: 'WFD',
+  }));
 });
 
-oneOffLoad(); */
+testLoad(); */
