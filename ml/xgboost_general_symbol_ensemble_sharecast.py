@@ -274,30 +274,35 @@ def convert_date(df, column_name):
     df[column_name + "_DAYOFWEEK"] = pd.DatetimeIndex(df[column_name]).dayofweek.astype('str')
 
 
-def load_data():
-    """Load pickled data and run combined prep """
-    # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-sample-data.pkl.gz', compression='gzip')
-    gc.collect()
-
+def setup_data_columns(df):
     # Remove columns not referenced in either algorithm
     columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
     columns_to_keep.extend(CONTINUOUS_COLUMNS)
     columns_to_keep.extend(CATEGORICAL_COLUMNS)
-    df = drop_unused_columns(df, columns_to_keep)
+    return_df = drop_unused_columns(df, columns_to_keep)
+    return return_df
+
+
+def load_data():
+    """Load pickled data and run combined prep """
+    # Return dataframe and mask to split data
+    df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
+    gc.collect()
+
+    df = setup_data_columns(df)
 
     # Convert quote dates data to year and month
     df['quoteDate'] = pd.to_datetime(df['quoteDate'])
-    df['exDividendDate'] = pd.to_datetime(df['exDividendDate'])
+    df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], errors='coerce')
 
-    # Reset divident date as a number
+    # Reset dividend date as a number
     df['exDividendRelative'] = \
         df['exDividendDate'] - \
         df['quoteDate']
 
     # convert string difference value to integer
     df['exDividendRelative'] = df['exDividendRelative'].apply(
-        lambda x: np.nan if pd.isnull(x) else x.days)
+        lambda x: -999 if pd.isnull(x) else x.days)
 
     convert_date(df, 'quoteDate')
 
@@ -318,7 +323,7 @@ def load_data():
     df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
 
     # Fill N/A vals with dummy number
-    df.fillna(-99999, inplace=True)
+    #df.fillna(-99999, inplace=True)
 
     return df
 
@@ -339,7 +344,7 @@ def divide_data(share_data):
     #                                                       '12WeekBollingerType'])
 
     # Use categorical entity embedding encoder
-    ce = Categorical_encoder(strategy="random_projection", verbose=False)
+    ce = Categorical_encoder(strategy="dummification", verbose=False)
     df_train_transform = ce.fit_transform(share_data.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1),
                      share_data[LABEL_COLUMN + '_scaled'])
 
@@ -1087,6 +1092,171 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'mae_intermediate_model': mae_intermediate_model
         }
 
+def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
+                   df_all_test_x):
+    train_y = df_all_train_y[0].values
+    train_actuals = df_all_train_actuals[0].values
+    train_log_y = safe_log(train_y)
+    train_x = df_all_train_x.as_matrix()
+    test_actuals = df_all_test_actuals.as_matrix()
+    test_y = df_all_test_y[0].values
+    test_x = df_all_test_x.as_matrix()
+
+    print('Scaling y values')
+    actuals_scaler = StandardScaler()
+    actuals_scaler.fit(np.row_stack([train_actuals, test_actuals]))
+    scaled_train_actuals = actuals_scaler.transform(train_actuals)
+    scaled_test_actuals = actuals_scaler.transform(test_actuals)
+
+    log_scaler = StandardScaler()
+    log_scaler.fit(np.row_stack([train_y, test_y]))
+    scaled_train_y = log_scaler.transform(train_y)
+    scaled_test_y = log_scaler.transform(test_y)
+
+
+
+    print('Building Keras linear model...')
+
+
+    linear_model = Sequential()
+    linear_model.add(Dense(train_x.shape[1], input_shape=(train_x.shape[1],)))
+    linear_model.add(Dense(1))
+    linear_model.add(Activation('linear'))
+
+    linear_model.compile(optimizer='adam', loss='mae', metrics = ['mae'])
+
+    print('Fitting Keras linear model to y...')
+
+    history = linear_model.fit(train_x,
+                               train_actuals,
+                               validation_data=(test_x, test_actuals),
+                               epochs=50,
+                               batch_size=512,
+                               verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras linear model loss y')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+    actuals_predictions = linear_model.predict(test_x)
+
+    eval_results({'keras_linear_actuals': {
+                        'actual_y': test_actuals,
+                        'predict_y': actuals_predictions
+                }
+    })
+
+    print('Fitting Keras linear model to log of y...')
+
+    history = linear_model.fit(train_x,
+                               train_y,
+                               validation_data=(test_x, test_y),
+                               epochs=50,
+                               batch_size=512,
+                               verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras linear model loss log of y')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+    log_predictions = linear_model.predict(test_x)
+    scaled_log_predictions = safe_exp(log_predictions)
+
+    eval_results({'keras_linear_log_y': {
+        'actual_y': test_actuals,
+        'predict_y': scaled_log_predictions
+    }
+    })
+
+    print('Fitting Keras linear model to scaled y...')
+
+    history = linear_model.fit(train_x,
+                               scaled_train_actuals,
+                               validation_data=(test_x, scaled_test_actuals),
+                               epochs=50,
+                               batch_size=512,
+                               verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras linear model loss scaled y')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+    scaled_predictions = linear_model.predict(test_x)
+    transformed_scaled_predictions = actuals_scaler.inverse_transform(scaled_predictions)
+
+    eval_results({'keras_linear_scaled_y': {
+        'actual_y': test_actuals,
+        'predict_y': transformed_scaled_predictions
+    }
+    })
+
+    print('Fitting Keras linear model to scaled log y...')
+
+    history = linear_model.fit(train_x,
+                               scaled_train_y,
+                               validation_data=(test_x, scaled_test_y),
+                               epochs=50,
+                               batch_size=512,
+                               verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras linear model loss scaled log of y')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+    scaled_log_predictions = linear_model.predict(test_x)
+    transformed_scaled_log_predictions = safe_exp(log_scaler.inverse_transform(scaled_log_predictions))
+
+    eval_results({'keras_linear_scaled_log_y': {
+        'actual_y': test_actuals,
+        'predict_y': transformed_scaled_log_predictions
+    }
+    })
+
+    range_results({
+        'keras_linear_y': actuals_predictions,
+        'keras_linear_log_y': scaled_log_predictions,
+        'keras_linear_scaled_y': transformed_scaled_predictions,
+        'keras_linear_scaled_log_y': transformed_scaled_log_predictions
+    }, test_actuals)
+
+
+
 def bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_models):
     test_actuals = df_all_test_actuals.as_matrix()
     test_x = df_all_test_x.as_matrix()
@@ -1184,6 +1354,8 @@ if __name__ == "__main__":
     del share_data
     gc.collect()
 
+    train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
+                       df_all_test_y, df_all_test_x)
 
     lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
