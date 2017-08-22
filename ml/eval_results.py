@@ -3,7 +3,10 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
+from memory_profiler import profile
 
+
+@profile
 def safe_mape(actual_y, prediction_y):
     """
     Calculate mean absolute percentage error
@@ -12,14 +15,11 @@ def safe_mape(actual_y, prediction_y):
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
-    denominators = actual_y.copy()
-    set_pos = (denominators >= 0) & (denominators <= 1)
-    set_neg = (denominators >= -1) & (denominators < 0)
-    denominators[set_pos] = 1
-    denominators[set_neg] = -1
+    print('Executing mape...')
+    diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 0.25, None))
+    return 100. * np.mean(diff)
 
-    return np.mean(np.absolute((prediction_y - actual_y) / denominators * 100))
-
+@profile
 def range_results(predictions, actuals):
     """
     
@@ -83,6 +83,7 @@ def range_results(predictions, actuals):
 
     return overall_results_output
 
+@profile
 def eval_results(predictions):
     """
     :param predictions: a dictionary with values {
@@ -109,17 +110,28 @@ def eval_results(predictions):
         print(prediction_name)
 
         prediction_vals = predictions[prediction_name]
+        actual_y = prediction_vals['actual_y']
+        y_predict = prediction_vals['y_predict']
+
+        # Ensure shape is correct
+        actual_y = actual_y.reshape(actual_y.shape[0], 1)
+        y_predict = y_predict.reshape(y_predict.shape[0], 1)
 
         if prediction_vals.__contains__('log_y'):
-            err = mean_absolute_error(prediction_vals['log_y'], prediction_vals['log_y_predict'])
+            log_y = prediction_vals['log_y']
+            log_y_predict = prediction_vals['log_y_predict']
+            # Ensure shape is correct
+            log_y = log_y.reshape(log_y.shape[0], 1)
+            log_y_predict = log_y_predict.reshape(log_y_predict.shape[0], 1)
+
+            err = mean_absolute_error(log_y, log_y_predict)
             print('Mean log of error: %s' % err)
 
-        mae = mean_absolute_error(prediction_vals['actual_y'], prediction_vals['y_predict'])
-        mape = safe_mape(prediction_vals['actual_y'], prediction_vals['y_predict'])
-        r2 = r2_score(prediction_vals['actual_y'], prediction_vals['y_predict'])
-
+        mae = mean_absolute_error(actual_y, y_predict)
         print('Mean absolute error: %s' % mae)
+        mape = safe_mape(actual_y, y_predict)
         print('Mean absolute percentage error: %s' % mape)
+        r2 = r2_score(actual_y, y_predict)
         print('r2: %s' % r2)
 
         if prediction_vals.__contains__('log_y'):

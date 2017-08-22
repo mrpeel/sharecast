@@ -15,6 +15,7 @@ import xgboost as xgb
 import lightgbm as lgb
 import gc
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
@@ -34,6 +35,8 @@ from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
 
 import matplotlib.pyplot as plt
+
+from memory_profiler import profile
 
 
 
@@ -121,7 +124,7 @@ def save(object, filename):
         #     for idx in range(0, sys.getsizeof(object), max_bytes):
         #         f_out.write(bytes_out[idx:idx + max_bytes])
 
-
+@profile
 def load(filename):
         """Loads a compressed object from disk
         """
@@ -137,20 +140,20 @@ def load(filename):
         object = pickle.dump(object, open(filename, "rb"))
         return object
 
+@profile
 def safe_log(input_array):
     return_vals = input_array.copy()
     neg_mask = return_vals < 0
     return_vals = np.log(np.absolute(return_vals) + 1)
-    return_vals[neg_mask] *= -1
+    return_vals[neg_mask] *= -1.
     return return_vals
 
+@profile
 def safe_exp(input_array):
     return_vals = input_array.copy()
     neg_mask = return_vals < 0
-    exceeds_1000_mask = ((return_vals > 7) | (return_vals < -7))
-    return_vals[exceeds_1000_mask] = 1000
-    return_vals[~exceeds_1000_mask] = np.exp(np.absolute(return_vals[~exceeds_1000_mask])) - 1
-    return_vals[neg_mask] *= -1
+    return_vals = np.exp(np.clip(np.absolute(return_vals), -7, 7)) - 1
+    return_vals[neg_mask] *= -1.
     return return_vals
 
 def y_scaler(input_array):
@@ -164,7 +167,7 @@ def y_inverse_scaler(prediction_array):
     transformed_array = safe_exp(transformed_array)
     return transformed_array
 
-
+@profile
 def mle(actual_y, prediction_y):
     """
     Compute the Root Mean  Log Error
@@ -176,6 +179,7 @@ def mle(actual_y, prediction_y):
 
     return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
 
+@profile
 def mle_eval(actual_y, eval_y):
     """
     Used during xgboost training
@@ -188,13 +192,14 @@ def mle_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
 
-
+@profile
 def mae_eval(y, y0):
     y0 = y0.get_label()
     assert len(y) == len(y0)
     # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
     return 'error', np.mean(np.absolute(y - y0)), False
 
+@profile
 def safe_mape(actual_y, prediction_y):
     """
     Calculate mean absolute percentage error
@@ -203,14 +208,11 @@ def safe_mape(actual_y, prediction_y):
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
-    denominators = actual_y.copy()
-    set_pos = (denominators >= 0) & (denominators <= 1)
-    set_neg = (denominators >= -1) & (denominators < 0)
-    denominators[set_pos] = 1
-    denominators[set_neg] = -1
+    diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 0.25, None))
+    return 100. * np.mean(diff)
 
-    return np.mean(np.absolute((prediction_y - actual_y) / denominators * 100))
 
+@profile
 def mape_eval(actual_y, eval_y):
     """
     Used during xgboost training
@@ -223,6 +225,7 @@ def mape_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', safe_mape(actual_y, prediction_y)
 
+@profile
 def mape_log_y(actual_y, prediction_y):
     inverse_actual = actual_y.copy()
     inverse_actual = y_inverse_scaler(inverse_actual)
@@ -232,26 +235,35 @@ def mape_log_y(actual_y, prediction_y):
 
     return safe_mape(inverse_actual, inverse_prediction)
 
-
+@profile
 def mape_log_y_eval(actual_y, eval_y):
     prediction_y = eval_y.get_label()
     assert len(actual_y) == len(prediction_y)
     return 'error', mape_log_y(actual_y, prediction_y)
 
-
+@profile
 def huber_loss(y_true, y_pred, delta=1.8):
     """
     Variation on the huber loss function, weighting the cost of lower errors over higher errors
     """
     abs_diff = np.absolute(y_true-y_pred) + 1
     flag = abs_diff < delta
-    return (flag) * delta * (abs_diff ** 2) + (~flag) * 0.5 * (abs_diff - 0.5 * delta)
+    return (flag) * delta * (abs_diff ** 2.) + (~flag) * 0.5 * (abs_diff - 0.5 * delta)
 
+@profile
 def huber_loss_eval(actual_y, eval_y):
     prediction_y = eval_y.get_label()
     assert len(actual_y) == len(prediction_y)
     return 'error', huber_loss(actual_y, prediction_y)
 
+@profile
+def sc_mean_absolute_percentage_error(y_true, y_pred):
+    diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
+                                            0.25,
+                                            None))
+    return 100. * K.mean(diff, axis=-1)
+
+@profile
 def drop_unused_columns(df, data_cols):
     # Check for columns to drop
     print('Keeping columns:', list(data_cols))
@@ -265,6 +277,7 @@ def drop_unused_columns(df, data_cols):
 
     return df
 
+@profile
 def convert_date(df, column_name):
     df[column_name + "_TIMESTAMP"] = (pd.DatetimeIndex(df[column_name]) - pd.datetime(2007, 1, 1)).total_seconds()
 
@@ -273,7 +286,7 @@ def convert_date(df, column_name):
     df[column_name + "_DAY"] = pd.DatetimeIndex(df[column_name]).day.astype('str')
     df[column_name + "_DAYOFWEEK"] = pd.DatetimeIndex(df[column_name]).dayofweek.astype('str')
 
-
+@profile
 def setup_data_columns(df):
     # Remove columns not referenced in either algorithm
     columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
@@ -282,11 +295,12 @@ def setup_data_columns(df):
     return_df = drop_unused_columns(df, columns_to_keep)
     return return_df
 
-
+@profile
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
+    df = pd.read_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
+    #df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
     gc.collect()
 
     df = setup_data_columns(df)
@@ -323,19 +337,20 @@ def load_data():
     df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
 
     # Fill N/A vals with dummy number
-    #df.fillna(-99999, inplace=True)
+    df.fillna(-999, inplace=True)
 
     return df
 
+@profile
 def prep_data():
     df = load_data()
 
-    scaler = StandardScaler()
+    scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
     df[CONTINUOUS_COLUMNS] = scaler.fit_transform(df[CONTINUOUS_COLUMNS].as_matrix())
     return df
 
 
-
+@profile
 def divide_data(share_data):
     # Use pandas dummy columns for categorical columns
     # share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
@@ -427,7 +442,7 @@ def divide_data(share_data):
            symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
-
+@profile
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
@@ -500,6 +515,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
 
     return model
 
+@profile
 def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y,
                         symbols_test_x, gen_model, lgbm_models, keras_models):
 
@@ -693,6 +709,7 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
 
     return symbol_models, all_results, results_output
 
+@profile
 def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     params = {
         'objective': 'regression',
@@ -761,6 +778,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
                 }
     })
 
+    gc.collect()
 
     # Set-up lightgbm
     train_set = lgb.Dataset(train_x, label=train_log_y)
@@ -879,7 +897,7 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
 
     return sklearn_models
 
-
+@profile
 def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
                    df_all_test_x):
     train_y = df_all_train_y[0].values
@@ -890,39 +908,23 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     test_y = df_all_test_y[0].values
     test_x = df_all_test_x.as_matrix()
 
-    # print('Running lgbm and xgboost general model predictions')
-    # gen_train_x = gen_model.predict(train_x)
-    # gen_test_x = gen_model.predict(test_x)
-    # lgbm_train_x = lgbm_models['log_y'].predict(train_x)
-    # lgbm_test_x = lgbm_models['log_y'].predict(test_x)
-    # log_lgbm_train_x = lgbm_models['log_log_y'].predict(train_x)
-    # log_lgbm_test_x = lgbm_models['log_log_y'].predict(test_x)
-    #
-    # stack_train_x = np.column_stack([gen_train_x, lgbm_train_x])
-    # stack_train_x = np.column_stack([log_lgbm_train_x, stack_train_x])
-    #
-    # stack_test_x = np.column_stack([gen_test_x, lgbm_test_x])
-    # stack_test_x = np.column_stack([log_lgbm_test_x, stack_test_x])
-    #
-    # print('Scaling predictions')
-    # scaler = StandardScaler()
-    # scaler.fit(np.row_stack([stack_train_x, stack_test_x]))
-    #
-    # stack_train_x = scaler.fit_transform(stack_train_x)
-    # stack_test_x = scaler.fit_transform(stack_test_x)
-    #
-    #
-    # print('Stacking predictions')
-    # train_x = np.column_stack([train_x, stack_train_x])
-    # test_x = np.column_stack([test_x, stack_test_x])
+    print('Scaling y values')
+    actuals_scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
+    actuals_scaler.fit(train_actuals)
+    scaled_train_actuals = actuals_scaler.transform(train_actuals)
+    scaled_test_actuals = actuals_scaler.transform(test_actuals)
+
+    log_scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
+    log_scaler.fit(train_y)
+    scaled_train_y = log_scaler.transform(train_y)
+    scaled_test_y = log_scaler.transform(test_y)
+
 
 
     print('Building Keras mape model...')
 
     n_layer1 = int(train_x.shape[1])
     n_layer2 = int(n_layer1 / 2 + 2)
-    # n_layer3 = int(n_layer2 / 2 + 2)
-    # n_layer4 = int(n_layer3 / 2 + 2)
 
     p_model = Sequential()
     p_model.add(Dense(n_layer1, input_shape=(train_x.shape[1],)))
@@ -937,12 +939,48 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     p_model.add(Dense(1))
     p_model.add(Activation('linear'))
 
-    p_model.compile(optimizer='adam', loss='mean_absolute_percentage_error', metrics = ['mae'])
-
-    print('Fitting Keras mape model...')
+    p_model.compile(optimizer='adam', loss=sc_mean_absolute_percentage_error, metrics = ['mae'])
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=15)
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+
+    print('Fitting Keras mape scaled actuals model...')
+
+    history = p_model.fit(train_x,
+                          scaled_train_actuals,
+                          validation_data=(test_x, scaled_test_actuals),
+                          epochs=20000,
+                          batch_size=512,
+                          callbacks=[reduce_lr, early_stopping],
+                          verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras mape scaled model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+    predictions = actuals_scaler.inverse_transform(p_model.predict(test_x))
+
+    eval_results({'keras_mape_y': {
+                        'actual_y': test_actuals,
+                        'y_predict': predictions
+                }
+    })
+
+    range_results({
+        'Keras_mape_scaled_nn': predictions
+    }, test_actuals)
+
+    print('Fitting Keras mape model...')
+
 
     history = p_model.fit(train_x,
                           train_actuals,
@@ -1001,18 +1039,53 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     model.add(Dense(1))
     model.add(Activation('linear'))
 
-    # rmsprop = optimizers.RMSprop(lr=0.1, rho=0.9, epsilon=1e-08, decay=0.001)
-
-    # adamax = optimizers.Adamax(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.01)
-
-    # adam = optimizers.Adam(lr=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.001)
 
     model.compile(optimizer='adam', loss='mae') #, metrics = ['mae'])
 
-    print('Fitting Keras model...')
-
-    #tbCallBack = TensorBoard(log_dir='./tf-results', histogram_freq=0, write_graph=True, write_images=True)
     early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+
+
+    print('Fitting Keras scaled log y model...')
+
+
+    history = model.fit(train_x,
+                        scaled_train_y,
+                        validation_data=(test_x, scaled_test_y),
+                        epochs=20000,
+                        batch_size=512,
+                        callbacks=[reduce_lr, early_stopping],
+                        verbose=1)
+
+    gc.collect()
+
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('Keras mae scaled y model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.ion()
+    plt.show()
+
+    gc.collect()
+
+
+    print('Executing keras predictions...')
+
+
+    log_predictions = log_scaler.inverse_transform(model.predict(test_x))
+    exp_predictions = safe_exp(log_predictions)
+
+    eval_results({'keras_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': log_predictions,
+                        'y_predict': exp_predictions
+                }
+    })
+
+    print('Fitting Keras log y model...')
+
 
     history = model.fit(train_x,
                         train_y,
@@ -1038,18 +1111,6 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     print('Executing keras predictions...')
 
-    # Make predictions
-    # log_predictions = model.predict(test_x)
-    # log_inverse_scaled_predictions = safe_exp(log_predictions)
-    #
-    # eval_results({'Keras_nn': {
-    #     'log_y': test_y,
-    #     'actual_y': test_actuals,
-    #     'log_y_predict': log_predictions,
-    #     'y_predict': log_inverse_scaled_predictions
-    # }
-    # })
-
     log_predictions = model.predict(test_x)
     exp_predictions = safe_exp(log_predictions)
 
@@ -1061,35 +1122,19 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                 }
     })
 
-    # Test a simple bagging strategy
-    bagged_predictions = np.copy(exp_predictions)
-    mape_mask = ((predictions >= -5) & (predictions <= 2))
-    bagged_predictions[mape_mask] = predictions[mape_mask]
-
-    eval_results({'keras_bagged': {
-        'actual_y': test_actuals,
-        'y_predict': bagged_predictions
-    }
-    })
-
-    range_results({
-        'keras_mae_nn': exp_predictions,
-        'keras_bagged_nn':bagged_predictions
-    }, test_actuals)
-
 
     # Construct models which output final twelve weights as predictions
-    mape_intermediate_model = Model(inputs=p_model.input,
-                                     outputs=p_model.get_layer('mape_twelve').output)
-
-    mae_intermediate_model = Model(inputs=model.input,
-                                     outputs=model.get_layer('mae_twelve').output)
+    # mape_intermediate_model = Model(inputs=p_model.input,
+    #                                  outputs=p_model.get_layer('mape_twelve').output)
+    #
+    # mae_intermediate_model = Model(inputs=model.input,
+    #                                  outputs=model.get_layer('mae_twelve').output)
 
     return {
         'mape_model': p_model,
-        'mae_model': model,
-        'mape_intermediate_model': mape_intermediate_model,
-        'mae_intermediate_model': mae_intermediate_model
+        'mae_model': model
+        # 'mape_intermediate_model': mape_intermediate_model,
+        # 'mae_intermediate_model': mae_intermediate_model
         }
 
 def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
@@ -1102,13 +1147,19 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
     test_y = df_all_test_y[0].values
     test_x = df_all_test_x.as_matrix()
 
+    # reshape arrays
+    train_y = train_y.reshape(train_y.shape[0], 1)
+    test_y = test_y.reshape(test_y.shape[0], 1)
+    train_actuals = train_actuals.reshape(train_actuals.shape[0], 1)
+    test_actuals = test_actuals.reshape(test_actuals.shape[0], 1)
+
     print('Scaling y values')
-    actuals_scaler = StandardScaler()
+    actuals_scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
     actuals_scaler.fit(np.row_stack([train_actuals, test_actuals]))
     scaled_train_actuals = actuals_scaler.transform(train_actuals)
     scaled_test_actuals = actuals_scaler.transform(test_actuals)
 
-    log_scaler = StandardScaler()
+    log_scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
     log_scaler.fit(np.row_stack([train_y, test_y]))
     scaled_train_y = log_scaler.transform(train_y)
     scaled_test_y = log_scaler.transform(test_y)
@@ -1151,7 +1202,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     eval_results({'keras_linear_actuals': {
                         'actual_y': test_actuals,
-                        'predict_y': actuals_predictions
+                        'y_predict': actuals_predictions
                 }
     })
 
@@ -1182,7 +1233,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     eval_results({'keras_linear_log_y': {
         'actual_y': test_actuals,
-        'predict_y': scaled_log_predictions
+        'y_predict': scaled_log_predictions
     }
     })
 
@@ -1213,7 +1264,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     eval_results({'keras_linear_scaled_y': {
         'actual_y': test_actuals,
-        'predict_y': transformed_scaled_predictions
+        'y_predict': transformed_scaled_predictions
     }
     })
 
@@ -1244,7 +1295,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     eval_results({'keras_linear_scaled_log_y': {
         'actual_y': test_actuals,
-        'predict_y': transformed_scaled_log_predictions
+        'y_predict': transformed_scaled_log_predictions
     }
     })
 
@@ -1256,7 +1307,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
     }, test_actuals)
 
 
-
+@profile
 def bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_models):
     test_actuals = df_all_test_actuals.as_matrix()
     test_x = df_all_test_x.as_matrix()
@@ -1337,7 +1388,6 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_mo
     }, test_actuals)
 
 
-
 if __name__ == "__main__":
     # Prepare run_str
     run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
@@ -1354,8 +1404,8 @@ if __name__ == "__main__":
     del share_data
     gc.collect()
 
-    train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
-                       df_all_test_y, df_all_test_x)
+    # train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
+    #                    df_all_test_y, df_all_test_x)
 
     lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
