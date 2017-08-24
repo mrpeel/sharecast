@@ -30,7 +30,7 @@ from keras import optimizers
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, CSVLogger
 from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
 
@@ -942,7 +942,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     p_model.compile(optimizer='adam', loss=sc_mean_absolute_percentage_error, metrics = ['mae'])
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=15)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=50)
+    csv_logger = CSVLogger('./logs/scaled-mape-training.log')
 
     print('Fitting Keras mape scaled actuals model...')
 
@@ -951,8 +952,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                           validation_data=(test_x, scaled_test_actuals),
                           epochs=20000,
                           batch_size=512,
-                          callbacks=[reduce_lr, early_stopping],
-                          verbose=1)
+                          callbacks=[reduce_lr, early_stopping, csv_logger],
+                          verbose=0)
 
     gc.collect()
 
@@ -981,14 +982,15 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     print('Fitting Keras mape model...')
 
+    csv_logger = CSVLogger('./logs/actual-mape-training.log')
 
     history = p_model.fit(train_x,
                           train_actuals,
                           validation_data=(test_x, test_actuals),
                           epochs=20000,
                           batch_size=512,
-                          callbacks=[reduce_lr, early_stopping],
-                          verbose=1)
+                          callbacks=[reduce_lr, early_stopping, csv_logger],
+                          verbose=0)
 
     gc.collect()
 
@@ -1042,7 +1044,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     model.compile(optimizer='adam', loss='mae') #, metrics = ['mae'])
 
-    early_stopping = EarlyStopping(monitor='val_loss', patience=100)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=50)
+    csv_logger = CSVLogger('./logs/scaled-log-training.log')
 
 
     print('Fitting Keras scaled log y model...')
@@ -1053,8 +1056,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                         validation_data=(test_x, scaled_test_y),
                         epochs=20000,
                         batch_size=512,
-                        callbacks=[reduce_lr, early_stopping],
-                        verbose=1)
+                        callbacks=[reduce_lr, early_stopping, csv_logger],
+                        verbose=0)
 
     gc.collect()
 
@@ -1086,14 +1089,15 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     print('Fitting Keras log y model...')
 
+    csv_logger = CSVLogger('./logs/log-training.log')
 
     history = model.fit(train_x,
                         train_y,
                         validation_data=(test_x, test_y),
                         epochs=20000,
                         batch_size=512,
-                        callbacks=[reduce_lr, early_stopping],
-                        verbose=1)
+                        callbacks=[reduce_lr, early_stopping, csv_logger],
+                        verbose=0)
 
     gc.collect()
 
