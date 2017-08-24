@@ -24,7 +24,7 @@ from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, Gradien
 # from sklearn.neighbors import KNeighborsRegressor
 from categorical_encoder import *
 from eval_results import *
-from autoencoder import *
+#from autoencoder import *
 
 from keras import optimizers
 from keras import backend as K
