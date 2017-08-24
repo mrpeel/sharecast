@@ -34,7 +34,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, CSVLo
 from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
 
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 from memory_profiler import profile
 
@@ -957,16 +957,16 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras mape scaled model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras mape scaled model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     predictions = actuals_scaler.inverse_transform(p_model.predict(test_x))
 
@@ -994,16 +994,16 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras mape model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras mape model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     predictions = p_model.predict(test_x)
 
@@ -1061,16 +1061,16 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras mae scaled y model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras mae scaled y model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
 
     print('Executing keras predictions...')
@@ -1101,16 +1101,16 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras mae model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras mae model loss')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
 
     print('Executing keras predictions...')
@@ -1191,16 +1191,16 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras linear model loss y')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras linear model loss y')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     actuals_predictions = linear_model.predict(test_x)
 
@@ -1221,16 +1221,16 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras linear model loss log of y')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras linear model loss log of y')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     log_predictions = linear_model.predict(test_x)
     scaled_log_predictions = safe_exp(log_predictions)
@@ -1252,16 +1252,16 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras linear model loss scaled y')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras linear model loss scaled y')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     scaled_predictions = linear_model.predict(test_x)
     transformed_scaled_predictions = actuals_scaler.inverse_transform(scaled_predictions)
@@ -1283,16 +1283,16 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
 
     gc.collect()
 
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Keras linear model loss scaled log of y')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.ion()
-    plt.show()
-
-    gc.collect()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Keras linear model loss scaled log of y')
+    # plt.ylabel('loss')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.ion()
+    # plt.show()
+    #
+    # gc.collect()
 
     scaled_log_predictions = linear_model.predict(test_x)
     transformed_scaled_log_predictions = safe_exp(log_scaler.inverse_transform(scaled_log_predictions))
