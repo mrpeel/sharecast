@@ -6,7 +6,7 @@ from sklearn.metrics import r2_score
 from memory_profiler import profile
 
 
-@profile
+# @profile
 def safe_mape(actual_y, prediction_y):
     """
     Calculate mean absolute percentage error
@@ -19,7 +19,7 @@ def safe_mape(actual_y, prediction_y):
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 0.25, None))
     return 100. * np.mean(diff)
 
-@profile
+# @profile
 def range_results(predictions, actuals):
     """
     
@@ -83,7 +83,7 @@ def range_results(predictions, actuals):
 
     return overall_results_output
 
-@profile
+# @profile
 def eval_results(predictions):
     """
     :param predictions: a dictionary with values {

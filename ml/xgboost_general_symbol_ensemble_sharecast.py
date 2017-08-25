@@ -36,7 +36,7 @@ from keras.models import load_model
 
 #import matplotlib.pyplot as plt
 
-from memory_profiler import profile
+# from memory_profiler import profile
 
 
 
@@ -124,7 +124,7 @@ def save(object, filename):
         #     for idx in range(0, sys.getsizeof(object), max_bytes):
         #         f_out.write(bytes_out[idx:idx + max_bytes])
 
-@profile
+# @profile
 def load(filename):
         """Loads a compressed object from disk
         """
@@ -140,7 +140,7 @@ def load(filename):
         object = pickle.dump(object, open(filename, "rb"))
         return object
 
-@profile
+# @profile
 def safe_log(input_array):
     return_vals = input_array.copy()
     neg_mask = return_vals < 0
@@ -148,7 +148,7 @@ def safe_log(input_array):
     return_vals[neg_mask] *= -1.
     return return_vals
 
-@profile
+# @profile
 def safe_exp(input_array):
     return_vals = input_array.copy()
     neg_mask = return_vals < 0
@@ -167,7 +167,7 @@ def y_inverse_scaler(prediction_array):
     transformed_array = safe_exp(transformed_array)
     return transformed_array
 
-@profile
+# @profile
 def mle(actual_y, prediction_y):
     """
     Compute the Root Mean  Log Error
@@ -179,7 +179,7 @@ def mle(actual_y, prediction_y):
 
     return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
 
-@profile
+# @profile
 def mle_eval(actual_y, eval_y):
     """
     Used during xgboost training
@@ -192,14 +192,14 @@ def mle_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
 
-@profile
+# @profile
 def mae_eval(y, y0):
     y0 = y0.get_label()
     assert len(y) == len(y0)
     # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
     return 'error', np.mean(np.absolute(y - y0)), False
 
-@profile
+# @profile
 def safe_mape(actual_y, prediction_y):
     """
     Calculate mean absolute percentage error
@@ -212,7 +212,7 @@ def safe_mape(actual_y, prediction_y):
     return 100. * np.mean(diff)
 
 
-@profile
+# @profile
 def mape_eval(actual_y, eval_y):
     """
     Used during xgboost training
@@ -225,7 +225,7 @@ def mape_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', safe_mape(actual_y, prediction_y)
 
-@profile
+# @profile
 def mape_log_y(actual_y, prediction_y):
     inverse_actual = actual_y.copy()
     inverse_actual = y_inverse_scaler(inverse_actual)
@@ -235,13 +235,13 @@ def mape_log_y(actual_y, prediction_y):
 
     return safe_mape(inverse_actual, inverse_prediction)
 
-@profile
+# @profile
 def mape_log_y_eval(actual_y, eval_y):
     prediction_y = eval_y.get_label()
     assert len(actual_y) == len(prediction_y)
     return 'error', mape_log_y(actual_y, prediction_y)
 
-@profile
+# @profile
 def huber_loss(y_true, y_pred, delta=1.8):
     """
     Variation on the huber loss function, weighting the cost of lower errors over higher errors
@@ -250,20 +250,20 @@ def huber_loss(y_true, y_pred, delta=1.8):
     flag = abs_diff < delta
     return (flag) * delta * (abs_diff ** 2.) + (~flag) * 0.5 * (abs_diff - 0.5 * delta)
 
-@profile
+# @profile
 def huber_loss_eval(actual_y, eval_y):
     prediction_y = eval_y.get_label()
     assert len(actual_y) == len(prediction_y)
     return 'error', huber_loss(actual_y, prediction_y)
 
-@profile
+# @profile
 def sc_mean_absolute_percentage_error(y_true, y_pred):
     diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
                                             0.25,
                                             None))
     return 100. * K.mean(diff, axis=-1)
 
-@profile
+# @profile
 def drop_unused_columns(df, data_cols):
     # Check for columns to drop
     print('Keeping columns:', list(data_cols))
@@ -277,7 +277,7 @@ def drop_unused_columns(df, data_cols):
 
     return df
 
-@profile
+# @profile
 def convert_date(df, column_name):
     df[column_name + "_TIMESTAMP"] = (pd.DatetimeIndex(df[column_name]) - pd.datetime(2007, 1, 1)).total_seconds()
 
@@ -286,7 +286,7 @@ def convert_date(df, column_name):
     df[column_name + "_DAY"] = pd.DatetimeIndex(df[column_name]).day.astype('str')
     df[column_name + "_DAYOFWEEK"] = pd.DatetimeIndex(df[column_name]).dayofweek.astype('str')
 
-@profile
+# @profile
 def setup_data_columns(df):
     # Remove columns not referenced in either algorithm
     columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
@@ -295,7 +295,7 @@ def setup_data_columns(df):
     return_df = drop_unused_columns(df, columns_to_keep)
     return return_df
 
-@profile
+# @profile
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
@@ -341,7 +341,7 @@ def load_data():
 
     return df
 
-@profile
+# @profile
 def prep_data():
     df = load_data()
 
@@ -350,7 +350,7 @@ def prep_data():
     return df
 
 
-@profile
+# @profile
 def divide_data(share_data):
     # Use pandas dummy columns for categorical columns
     # share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
@@ -442,7 +442,7 @@ def divide_data(share_data):
            symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
-@profile
+# @profile
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     #Train general model
     # Create model
@@ -515,7 +515,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
 
     return model
 
-@profile
+# @profile
 def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_test_actuals, symbols_test_y,
                         symbols_test_x, gen_model, lgbm_models, keras_models):
 
@@ -709,7 +709,7 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
 
     return symbol_models, all_results, results_output
 
-@profile
+# @profile
 def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     params = {
         'objective': 'regression',
@@ -897,7 +897,7 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
 
     return sklearn_models
 
-@profile
+# @profile
 def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
                    df_all_test_x):
     train_y = df_all_train_y[0].values
@@ -1311,7 +1311,7 @@ def train_keras_linear(df_all_train_x, df_all_train_y, df_all_train_actuals, df_
     }, test_actuals)
 
 
-@profile
+# @profile
 def bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_models):
     test_actuals = df_all_test_actuals.as_matrix()
     test_x = df_all_test_x.as_matrix()
