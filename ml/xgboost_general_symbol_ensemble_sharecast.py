@@ -414,13 +414,13 @@ def divide_data(share_data):
 
         # MAke sure a minimum number of rows are present in sample for symbol
         if (len(df_train) > 150 & len(df_test) > 50):
-            symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
-            symbols_train_actuals[symbol] = df_train[LABEL_COLUMN].values
-            symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
-
-            symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
-            symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
-            symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+            # symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
+            # symbols_train_actuals[symbol] = df_train[LABEL_COLUMN].values
+            # symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
+            #
+            # symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
+            # symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
+            # symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
 
             df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
             df_all_train_actuals = pd.concat([df_all_train_actuals, df_train[LABEL_COLUMN]])
