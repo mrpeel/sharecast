@@ -299,7 +299,7 @@ def setup_data_columns(df):
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-aug-data.pkl.gz', compression='gzip')
+    df = pd.read_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
     #df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
     gc.collect()
 
@@ -335,6 +335,10 @@ def load_data():
     # Add scaled value for y - using log of y
     ############ - Double log ############################
     df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
+
+    # Fill categrical vals with phrase 'NA'
+    for col in CATEGORICAL_COLUMNS:
+        df[col].fillna('NA', inplace=True)
 
     # Fill N/A vals with dummy number
     df.fillna(-999, inplace=True)

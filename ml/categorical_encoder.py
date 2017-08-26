@@ -144,15 +144,13 @@ class Categorical_encoder():
                 # number of neurons for layer 1 et 2
                 n_layer1 = np.int64(min(1000,int(A*(len(self.__K)**0.5)*sum([1.*np.log(k) for k in self.__K.values()])+1)))    # tuning
                 n_layer2 = np.int64((n_layer1/B + 2))
-                n_layer3 = np.int64((n_layer2 / B + 2))
 
                 #dropouts
-                dropout1 = 0.05
-                dropout2 = 0.05
-                dropout3 = 0.05
+                dropout1 = 0.1
+                dropout2 = 0.1
 
                 #learning parameters
-                epochs = 100  #20 : fewer iterations
+                epochs = 50  #20 : fewer iterations
                 batch_size = 256 # 128 : gradient less stable
 
 
@@ -192,9 +190,6 @@ class Categorical_encoder():
                 lay2 = Dense(n_layer2, kernel_initializer='uniform', activation='relu')(lay1)
                 lay2 = Dropout(dropout2)(lay2)
 
-                lay3 = Dense(n_layer3, kernel_initializer='uniform', activation='relu')(lay2)
-                lay3 = Dropout(dropout3)(lay3)
-
 
                 ### fitting the weights ###
 
@@ -203,14 +198,14 @@ class Categorical_encoder():
                     # classification
                     if(y_train.nunique()==2):
 
-                        outputs = Dense(y_train.nunique()-1, kernel_initializer='normal', activation='sigmoid')(lay3)
+                        outputs = Dense(y_train.nunique()-1, kernel_initializer='normal', activation='sigmoid')(lay2)
                         model = Model(inputs=inputs, outputs = outputs)
                         model.compile(loss='binary_crossentropy', optimizer='adam')
                         model.fit([df_train[col].apply(lambda x: self.__Enc[col][x]).values for col in self.__Lcat], pd.get_dummies(y_train,drop_first=True).astype(int).values, epochs=epochs, batch_size=batch_size, verbose=int(self.verbose))
 
                     else:
 
-                        outputs = Dense(y_train.nunique(), kernel_initializer='normal', activation='sigmoid')(lay3)
+                        outputs = Dense(y_train.nunique(), kernel_initializer='normal', activation='sigmoid')(lay2)
                         model = Model(inputs=inputs, outputs = outputs)
                         model.compile(loss='binary_crossentropy', optimizer='adam')
                         model.fit([df_train[col].apply(lambda x: self.__Enc[col][x]).values for col in self.__Lcat], pd.get_dummies(y_train,drop_first=False).astype(int).values, epochs=epochs, batch_size=batch_size, verbose=int(self.verbose))
@@ -219,7 +214,7 @@ class Categorical_encoder():
                 else:
 
                     # regression
-                    outputs = Dense(1, kernel_initializer='normal')(lay3)
+                    outputs = Dense(1, kernel_initializer='normal')(lay2)
                     model = Model(inputs=inputs, outputs = outputs)
                     model.compile(loss='mean_absolute_error', optimizer='adam')
                     model.fit([df_train[col].apply(lambda x: self.__Enc[col][x]).values for col in self.__Lcat], y_train.values, epochs=epochs, batch_size=batch_size, verbose=int(self.verbose))
@@ -449,4 +444,3 @@ class Categorical_encoder():
         else:
 
             raise ValueError("call fit or fit_transform function before")
-
