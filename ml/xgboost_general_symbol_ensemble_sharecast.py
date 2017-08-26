@@ -299,7 +299,7 @@ def setup_data_columns(df):
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
+    df = pd.read_pickle('data/ml-aug-data.pkl.gz', compression='gzip')
     #df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
     gc.collect()
 
