@@ -153,7 +153,7 @@ class Categorical_encoder():
 
                 #learning parameters
                 epochs = 100  #20 : fewer iterations
-                batch_size = 512 # 128 : gradient less stable
+                batch_size = 256 # 128 : gradient less stable
 
 
                 ### creating the neural network ###

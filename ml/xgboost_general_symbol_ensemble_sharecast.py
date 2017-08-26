@@ -359,7 +359,7 @@ def divide_data(share_data):
     #                                                       '12WeekBollingerType'])
 
     # Use categorical entity embedding encoder
-    ce = Categorical_encoder(strategy="dummification", verbose=False)
+    ce = Categorical_encoder(strategy="entity_embedding", verbose=False)
     df_train_transform = ce.fit_transform(share_data.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1),
                      share_data[LABEL_COLUMN + '_scaled'])
 
