@@ -70,6 +70,11 @@ dynamo-backup/node_modules
 # =========================
 ml/tf-results
 
+# execution run logs
+# =========================
+ml/logs
+
+
 # pycharm files
 # =========================
 **/.idea

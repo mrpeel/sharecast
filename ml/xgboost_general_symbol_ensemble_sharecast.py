@@ -1393,8 +1393,12 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_mo
 
 
 if __name__ == "__main__":
+
     # Prepare run_str
     run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
+
+    log = open("logs/execution-" + run_str + ".log", "a")
+    sys.stdout = log
 
     # Retrieve and run combined prep on data
     share_data  = prep_data()
