@@ -299,7 +299,7 @@ def setup_data_columns(df):
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
+    df = pd.read_pickle('data/ml-aug-data.pkl.gz', compression='gzip')
     #df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
     gc.collect()
 
@@ -1424,6 +1424,8 @@ if __name__ == "__main__":
                                   df_all_test_y, df_all_test_x)
 
     bagging(df_all_test_x, df_all_test_actuals, gen_model, lgbm_models, keras_models)
+
+    quit()
 
     # Remove combined data, only required for general model
     del df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x

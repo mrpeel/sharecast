@@ -15,7 +15,6 @@ def safe_mape(actual_y, prediction_y):
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
-    print('Executing mape...')
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 0.25, None))
     return 100. * np.mean(diff)
 
