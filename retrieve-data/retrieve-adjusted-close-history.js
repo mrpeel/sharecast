@@ -226,13 +226,13 @@ module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
 };
 
-/* let testLoad = asyncify(function() {
-  dynamodb.setLocalAccessConfig();
-
-  awaitify(retrieveAdjustedHistoryData({
-    endDate: '2017-08-19',
-    symbol: 'WFD',
-  }));
-});
-
-testLoad(); */
+// let testLoad = asyncify(function() {
+//   dynamodb.setLocalAccessConfig();
+//
+//   awaitify(retrieveAdjustedHistoryData({
+//     endDate: '2017-09-10',
+//     symbol: 'WTC',
+//   }));
+// });
+//
+// testLoad();

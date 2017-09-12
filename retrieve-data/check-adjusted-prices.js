@@ -8,6 +8,8 @@ const awaitify = require('asyncawait/await');
 const sns = require('./publish-sns');
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 const aws = require('aws-sdk');
+// const dynamodb = require('./dynamodb');
+
 
 const lambda = new aws.Lambda({
   region: 'ap-southeast-2',
@@ -184,7 +186,7 @@ module.exports = {
   checkForAdjustments: checkForAdjustments,
 };
 
-/* dynamodb.setLocalAccessConfig();
-checkForAdjustments({
-  compDate: '2017-07-15',
-}); */
+// dynamodb.setLocalAccessConfig();
+// checkForAdjustments({
+//   compDate: '2017-09-08',
+// });

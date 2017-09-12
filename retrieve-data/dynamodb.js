@@ -100,7 +100,7 @@ let listTables = function(db) {
 *   message: error message (optional)
 * }
 */
-let insertRecord = function(insertDetails) {
+let insertRecord = asyncify(function(insertDetails) {
   return new Promise(function(resolve, reject) {
     // Set-up item details for insert
     let item = {};
@@ -173,7 +173,7 @@ let insertRecord = function(insertDetails) {
 
     client.put(params, onPut);
   });
-};
+});
 
 /** Query a table and return any matching records
 * @param {Object} queryDetails - an object with all the details for insert
@@ -196,7 +196,7 @@ let insertRecord = function(insertDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let queryTable = function(queryDetails) {
+let queryTable = asyncify(function(queryDetails) {
   return new Promise(function(resolve, reject) {
     let queryDataItems = [];
     let params = {
@@ -286,7 +286,7 @@ let queryTable = function(queryDetails) {
 
     client.query(params, onQuery);
   });
-};
+});
 
 /** Scan a table and return any matching records
 * @param {Object} scanDetails - an object with all the details for insert
@@ -303,7 +303,7 @@ let queryTable = function(queryDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let scanTable = function(scanDetails) {
+let scanTable = asyncify(function(scanDetails) {
   return new Promise(function(resolve, reject) {
     let scanDataItems = [];
     let params = {
@@ -374,7 +374,7 @@ let scanTable = function(scanDetails) {
 
     client.scan(params, onScan);
   });
-};
+});
 
 /** Scan a table and return all records
 * @param {Object} tableDetails - an object with all the details
@@ -476,7 +476,7 @@ let getTable = asyncify(function(tableDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let updateRecord = function(updateDetails) {
+let updateRecord = asyncify(function(updateDetails) {
   return new Promise(function(resolve, reject) {
     let params = {
       TableName: updateDetails.tableName,
@@ -545,7 +545,7 @@ let updateRecord = function(updateDetails) {
 
     client.update(params, onUpdate);
   });
-};
+});
 
 
 /** Delets a record from dynamodb
@@ -570,7 +570,7 @@ let updateRecord = function(updateDetails) {
 *   message: error message (optional)
 * }
 */
-let deleteRecord = function(deleteDetails) {
+let deleteRecord = asyncify(function(deleteDetails) {
   return new Promise(function(resolve, reject) {
     // Set-up item details for insert
     let params = {
@@ -610,7 +610,7 @@ let deleteRecord = function(deleteDetails) {
       }
     });
   });
-};
+});
 
 let sleep = function(ms) {
   if (!ms) {
