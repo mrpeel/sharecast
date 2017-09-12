@@ -144,9 +144,9 @@ let insertRecord = asyncify(function(insertDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * 1000));
+        awaitify(sleep(backoff * getRandomInt(500, 1000)));
         // Increment backoff
-        backoff *= 2;
+        backoff++;
         client.put(params, onPut);
       } else if (err && err.code === 'ConditionalCheckFailedException') {
         console.log(`Skipping add to ${insertDetails.tableName} : `,
@@ -256,9 +256,9 @@ let queryTable = asyncify(function(queryDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * 1000));
+        awaitify(sleep(backoff * getRandomInt(500, 1000)));
         // Increment backoff
-        backoff *= 2;
+        backoff++;
         client.query(params, onQuery);
       } else if (err) {
         console.error(`Unable to query ${queryDetails.tableName}. Error: `,
@@ -344,9 +344,9 @@ let scanTable = asyncify(function(scanDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * 1000));
+        awaitify(sleep(backoff * getRandomInt(500, 1000)));
         // Increment backoff
-        backoff *= 2;
+        backoff++;
         client.scan(params, onScan);
       } else if (err) {
         console.error(`Unable to scan ${scanDetails.tableName}. Error: `,
@@ -423,9 +423,9 @@ let getTable = asyncify(function(tableDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * 1000));
+        awaitify(sleep(backoff * getRandomInt(500, 1000)));
         // Increment backoff
-        backoff *= 2;
+        backoff++;
         client.scan(params, onScan);
       } else if (err) {
         console.error(`Unable to get table  ${tableDetails.tableName}. Error: `,
@@ -518,9 +518,9 @@ let updateRecord = asyncify(function(updateDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * 1000));
+        awaitify(sleep(backoff * getRandomInt(500, 1000)));
         // Increment backoff
-        backoff *= 2;
+        backoff++;
         client.update(params, onUpdate);
       } else if (err && err.code === 'ConditionalCheckFailedException') {
         console.log(`Skipping update to table  ${updateDetails.tableName}.`,
@@ -621,6 +621,12 @@ let sleep = function(ms) {
   });
 };
 
+let getRandomInt = function(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  // The maximum is exclusive and the minimum is inclusive
+  return Math.floor(Math.random() * (max - min)) + min;
+};
 
 module.exports = {
   insertRecord: insertRecord,
