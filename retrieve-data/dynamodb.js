@@ -139,7 +139,7 @@ let insertRecord = asyncify(function(insertDetails) {
     console.log('Put table request: ', insertDetails.tableName,
       ' ', JSON.stringify(keyVals));
 
-    let onPut = function(err, data) {
+    let onPut = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
@@ -169,7 +169,7 @@ let insertRecord = asyncify(function(insertDetails) {
           result: 'inserted',
         });
       }
-    };
+    });
 
     client.put(params, onPut);
   });
@@ -251,7 +251,7 @@ let queryTable = asyncify(function(queryDetails) {
 
     console.log('Query table request: ', JSON.stringify(params));
 
-    let onQuery = function(err, data) {
+    let onQuery = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
@@ -282,7 +282,7 @@ let queryTable = asyncify(function(queryDetails) {
           resolve(queryDataItems || []);
         }
       }
-    };
+    });
 
     client.query(params, onQuery);
   });
@@ -339,7 +339,7 @@ let scanTable = asyncify(function(scanDetails) {
 
     console.log('Scan table request: ', JSON.stringify(params));
 
-    let onScan = function(err, data) {
+    let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
@@ -370,7 +370,7 @@ let scanTable = asyncify(function(scanDetails) {
           resolve(scanDataItems || []);
         }
       }
-    };
+    });
 
     client.scan(params, onScan);
   });
@@ -418,7 +418,7 @@ let getTable = asyncify(function(tableDetails) {
 
     console.log('Get table request: ', JSON.stringify(params));
 
-    let onScan = function(err, data) {
+    let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
@@ -447,7 +447,7 @@ let getTable = asyncify(function(tableDetails) {
           resolve(scanDataItems || []);
         }
       }
-    };
+    });
 
     client.scan(params, onScan);
   });
@@ -512,7 +512,7 @@ let updateRecord = asyncify(function(updateDetails) {
     console.log('Update table request: ', updateDetails.tableName,
       ' ', JSON.stringify(params.Key));
 
-    let onUpdate = function(err, data) {
+    let onUpdate = asyncify(function(err, data) {
       // Check for throughput exceeded
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
@@ -541,7 +541,7 @@ let updateRecord = asyncify(function(updateDetails) {
         console.log(`Update table ${updateDetails.tableName} succeeded.`);
         resolve(data || null);
       }
-    };
+    });
 
     client.update(params, onUpdate);
   });
