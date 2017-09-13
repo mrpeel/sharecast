@@ -52,6 +52,21 @@ const lambdaParamsRetrieveAdjustedPrices = {
   },
 };
 
+const lambdaParamsReloadAdjustedPrices = {
+  FunctionName: 'reloadAdjustedPrices',
+  Handler: 'index.reloadAdjustedPricesHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs4.3',
+  Description: 'Retrieve share data and store in dynamodb',
+  MemorySize: 1024,
+  Timeout: 300,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
+
 const lambdaParamsProcessReturns = {
   FunctionName: 'processReturns',
   Handler: 'index.processReturnsHandler',
@@ -108,7 +123,8 @@ gulp.task('deploy', ['install_dependencies'], function() {
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
     .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices))
-    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
+    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns))
+    .pipe(awsLambda(awsCredentials, lambdaParamsReloadAdjustedPrices));
 
     // gulp.src(['dist/**/*'])
     //  .pipe(zip('check-adjusted-data.zip'))

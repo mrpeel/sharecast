@@ -122,7 +122,7 @@ let checkForAdjustments = asyncify(function(event) {
     }
     let t1 = new Date();
 
-    if (utils.dateDiff(t0, t1, 'seconds') > 250) {
+    if (utils.dateDiff(t0, t1, 'seconds') > 220) {
       break;
     }
   }

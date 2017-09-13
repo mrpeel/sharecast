@@ -10,6 +10,7 @@ const moment = require('moment-timezone');
 const sns = require('./publish-sns');
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 const aws = require('aws-sdk');
+const lzwCompress = require('lzwcompress');
 
 const lambda = new aws.Lambda({
   region: 'ap-southeast-2',
@@ -19,8 +20,10 @@ const lambda = new aws.Lambda({
 *    Retrieves the complete history of a symbol and updates the adjustedPrice -
 *     triggered by a stock / split or other adjustment which causes historical
 *     adjusted prices to be updated
-* @param {String} symbol - the company to reload
-* @param {String} endDate - the the date to retrieve up to
+* @param {Object} params - {
+  endDate - date to end lookup
+  symbol - symbol to retrieve
+}
 */
 let retrieveAdjustedHistoryData = asyncify(function(params) {
   try {
@@ -29,9 +32,9 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
       return;
     }
 
-    if ((!params.endDate || !utils.isDate(params.endDate)) && !params.results) {
+    if (!params.endDate || !utils.isDate(params.endDate)) {
       console.error(`Invalid params - valid endDate required: `,
-        `${params.endDate}, ${params.results}`);
+        `${params.endDate}`);
       return;
     }
 
@@ -40,25 +43,69 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
     let symbol = params.symbol;
     let companySymbol = awaitify(getCompanySymbol(symbol));
     let results;
+    let maxLength = 100;
+    let endDate = params.endDate;
+    let fullResults = awaitify(retrieveHistory(companySymbol,
+      '2007-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
+
+    results = [];
+
+    // Strip unnecessary information from results
+    fullResults.forEach((resultVal) => {
+      // Push the stripped down value to results
+      results.push({
+        'date': utils.returnDateAsString(resultVal['date']),
+        'adjClose': resultVal['adjClose'],
+      });
+
+      // Check if number of results has been reached to execute lambda
+      if (results.length >= maxLength) {
+        let invokeEvent = {
+          'symbol': symbol,
+          'results': results,
+        };
+
+        let description = `Invoking reloadAdjustedPrices:  ${symbol} - ` +
+          `${results.length} records`;
+
+        awaitify(invokeLambda('reloadAdjustedPrices', invokeEvent, description));
+
+        // Reset results to empty array
+        results = [];
+      }
+    });
+    return true;
+  } catch (err) {
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          'retrieveAdjustedHistoryData failed.  Error: ' + JSON.stringify(err),
+          'retrieveAdjustedHistoryData failed'));
+    } catch (err) {}
+
+    console.log('retrieveAdjustedHistoryData failed while processing: ', params.symbol);
+    console.log(err);
+  }
+});
+
+/**  Execute updates for an array of symbol, date, adjclose combinations
+*/
+let reloadAdjustedPrices = asyncify(function(params) {
+  try {
+    if (!params.symbol) {
+      console.error(`Symbol parameter not provided`);
+      return;
+    }
 
     if (params.results) {
-      results = params.results;
-    } else {
-      let endDate = params.endDate;
-      let fullResults = awaitify(retrieveHistory(companySymbol,
-        '2007-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
-
-      results = [];
-
-      // Strip unnecessary information from results
-      fullResults.forEach((resultVal) => {
-        // Push the stripped down value to results
-        results.push({
-          'date': utils.returnDateAsString(resultVal['date']),
-          'adjClose': resultVal['adjClose'],
-        });
-      });
+      console.error(`Invalid params - results not provided `);
+      return;
     }
+
+    let t0 = new Date();
+
+    let symbol = params.symbol;
+    let results = params.results;
 
     while (results.length) {
       let result = results.shift(1);
@@ -68,7 +115,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 280) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 250) {
         break;
       }
     }
@@ -81,10 +128,10 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
         'results': results,
       };
 
-      let description = `Continuing retrieveAdjustedHistoryData. ` +
+      let description = `Continuing reloadAdjustedPrices for ${symbol}. ` +
         `${results.length} still to complete`;
 
-      awaitify(invokeLambda('retrieveAdjustedHistoryData', reinvokeEvent, description));
+      awaitify(invokeLambda('reloadAdjustedPrices', reinvokeEvent, description));
     } else {
       awaitify(
         sns.publishMsg(snsArn, 'reloadAdjustedPrices completed.',
@@ -97,7 +144,7 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
       awaitify(
         sns.publishMsg(snsArn,
           'reloadAdjustedPrices failed.  Error: ' + JSON.stringify(err),
-          'reloadAdjustedPrices failed'));
+          `reloadAdjustedPrices failed for ${params.symbol}`));
     } catch (err) {}
 
     console.error('reloadAdjustedPrices failed while processing: ', params.symbol);
@@ -224,6 +271,7 @@ let invokeLambda = function(lambdaName, event, description) {
 
 module.exports = {
   retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
+  reloadAdjustedPrices: reloadAdjustedPrices,
 };
 
 // let testLoad = asyncify(function() {

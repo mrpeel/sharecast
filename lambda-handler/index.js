@@ -296,11 +296,27 @@ let retrieveAdjustedHistoryDataHandler = asyncify(function(event, context) {
   }
 });
 
+let reloadAdjustedPricesHandler = asyncify(function(event, context) {
+  try {
+    awaitify(retrieveAdjustedPrices.reloadAdjustedPrices(event));
+    context.succeed();
+  } catch (err) {
+    console.error('reloadAdjustedPrices function failed: ', err);
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          'Lambda reloadAdjustedPrices failed'));
+    } catch (err) {}
+    context.fail('reloadAdjustedPrices function failed');
+  }
+});
+
 
 module.exports = {
   dailyHandler: dailyHandler,
   checkForAdjustmentsHandler: checkForAdjustmentsHandler,
   processReturnsHandler: processReturnsHandler,
-  retrieveAdjustedHistoryDataHandler,
-  retrieveAdjustedHistoryDataHandler,
+  retrieveAdjustedHistoryDataHandler: retrieveAdjustedHistoryDataHandler,
+  reloadAdjustedPricesHandler: reloadAdjustedPricesHandler,
 };

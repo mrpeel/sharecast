@@ -144,7 +144,7 @@ let insertRecord = asyncify(function(insertDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(500, 1000)));
+        awaitify(sleep(backoff * getRandomInt(250, 750)));
         // Increment backoff
         backoff++;
         client.put(params, onPut);
@@ -256,7 +256,7 @@ let queryTable = asyncify(function(queryDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(500, 1000)));
+        awaitify(sleep(backoff * getRandomInt(250, 750)));
         // Increment backoff
         backoff++;
         client.query(params, onQuery);
@@ -344,7 +344,7 @@ let scanTable = asyncify(function(scanDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(500, 1000)));
+        awaitify(sleep(backoff * getRandomInt(250, 750)));
         // Increment backoff
         backoff++;
         client.scan(params, onScan);
@@ -423,7 +423,7 @@ let getTable = asyncify(function(tableDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(500, 1000)));
+        awaitify(sleep(backoff * getRandomInt(250, 750)));
         // Increment backoff
         backoff++;
         client.scan(params, onScan);
@@ -518,7 +518,7 @@ let updateRecord = asyncify(function(updateDetails) {
         && backoff < 20) {
         console.log('ProvisionedThroughputExceededException, backing off');
         // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(500, 1000)));
+        awaitify(sleep(backoff * getRandomInt(250, 750)));
         // Increment backoff
         backoff++;
         client.update(params, onUpdate);
