@@ -10,7 +10,6 @@ const moment = require('moment-timezone');
 const sns = require('./publish-sns');
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 const aws = require('aws-sdk');
-const lzwCompress = require('lzwcompress');
 
 const lambda = new aws.Lambda({
   region: 'ap-southeast-2',
@@ -37,8 +36,6 @@ let retrieveAdjustedHistoryData = asyncify(function(params) {
         `${params.endDate}`);
       return;
     }
-
-    let t0 = new Date();
 
     let symbol = params.symbol;
     let companySymbol = awaitify(getCompanySymbol(symbol));
@@ -97,7 +94,7 @@ let reloadAdjustedPrices = asyncify(function(params) {
       return;
     }
 
-    if (params.results) {
+    if (!params.results) {
       console.error(`Invalid params - results not provided `);
       return;
     }

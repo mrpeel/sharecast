@@ -142,9 +142,9 @@ let insertRecord = asyncify(function(insertDetails) {
     let onPut = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        console.log('ProvisionedThroughputExceededException, backing off');
-        // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(250, 750)));
+        let backoffTime = (backoff * getRandomInt(250, 750))
+        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
+        awaitify(sleep(backoffTime));
         // Increment backoff
         backoff++;
         client.put(params, onPut);
@@ -254,10 +254,9 @@ let queryTable = asyncify(function(queryDetails) {
     let onQuery = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        console.log('ProvisionedThroughputExceededException, backing off');
-        // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(250, 750)));
-        // Increment backoff
+        let backoffTime = (backoff * getRandomInt(250, 750))
+        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
+        awaitify(sleep(backoffTime));
         backoff++;
         client.query(params, onQuery);
       } else if (err) {
@@ -342,9 +341,9 @@ let scanTable = asyncify(function(scanDetails) {
     let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        console.log('ProvisionedThroughputExceededException, backing off');
-        // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(250, 750)));
+        let backoffTime = (backoff * getRandomInt(250, 750))
+        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
+        awaitify(sleep(backoffTime));
         // Increment backoff
         backoff++;
         client.scan(params, onScan);
@@ -421,9 +420,9 @@ let getTable = asyncify(function(tableDetails) {
     let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        console.log('ProvisionedThroughputExceededException, backing off');
-        // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(250, 750)));
+        let backoffTime = (backoff * getRandomInt(250, 750))
+        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
+        awaitify(sleep(backoffTime));
         // Increment backoff
         backoff++;
         client.scan(params, onScan);
@@ -516,9 +515,9 @@ let updateRecord = asyncify(function(updateDetails) {
       // Check for throughput exceeded
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        console.log('ProvisionedThroughputExceededException, backing off');
-        // Wait at least one second before the next query
-        awaitify(sleep(backoff * getRandomInt(250, 750)));
+        let backoffTime = (backoff * getRandomInt(250, 750))
+        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
+        awaitify(sleep(backoffTime));
         // Increment backoff
         backoff++;
         client.update(params, onUpdate);

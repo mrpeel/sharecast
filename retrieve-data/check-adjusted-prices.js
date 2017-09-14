@@ -3,6 +3,7 @@
 const utils = require('./utils');
 const retrieveData = require('./dynamo-retrieve-share-data');
 const yahooFinance = require('yahoo-finance');
+const dynamodb = require('./dynamodb');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 const sns = require('./publish-sns');
@@ -71,6 +72,7 @@ let checkForAdjustments = asyncify(function(event) {
   let companies = symbolResult.companies;
   let symbolLookup = symbolResult.symbolLookup;
   let symbolGroups = [];
+  let startYear = 2007;
 
   let t0 = new Date();
 
@@ -86,6 +88,14 @@ let checkForAdjustments = asyncify(function(event) {
       symbolGroups.push(companies.slice(companyCounter, companyCounter + 20));
     }
   }
+
+  let insertDetails = {
+    tableName: 'quoteReload',
+    values: {},
+    primaryKey: [
+      'symbolYear',
+    ],
+  };
 
 
   while (symbolGroups.length) {
@@ -110,11 +120,33 @@ let checkForAdjustments = asyncify(function(event) {
           })) {
           // Retrieve original symbol from yahoo symbol
           let retrieveSymbol = symbolLookup[resultSymbol];
+          let reloadYear = startYear;
 
-          invokeLambda('retrieveAdjustedHistoryData', {
-            symbol: retrieveSymbol,
-            endDate: endDate,
-          });
+          while (String(reloadYear) < endDate) {
+            let symbolYear = retrieveSymbol + reloadYear;
+            let reloadStartDate = String(reloadYear) + '-01-01';
+            let reloadEndDate = String(reloadYear + 1) + '-12-31';
+
+            if (reloadEndDate > endDate) {
+              reloadEndDate = endDate;
+            }
+
+            insertDetails.values = {
+              'symbolYear': symbolYear,
+              'symbol': retrieveSymbol,
+              'yahooSymbol': resultSymbol,
+              'startDate': reloadStartDate,
+              'endDate': reloadEndDate,
+            };
+            awaitify(dynamodb.insertRecord(insertDetails));
+
+            reloadYear += 2;
+          }
+
+        // invokeLambda('retrieveAdjustedHistoryData', {
+        //   symbol: retrieveSymbol,
+        //   endDate: endDate,
+        // });
         }
       });
     } catch (err) {
