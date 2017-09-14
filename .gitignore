@@ -78,6 +78,7 @@ ml/logs
 # pycharm files
 # =========================
 **/.idea
+ml/.idea/workspace.xml
 
 # Jupyter checkpoint files
 # =========================
@@ -87,3 +88,4 @@ ml/logs
 ssl
 
 ml/companyQuotes-20170417-001.csv
+

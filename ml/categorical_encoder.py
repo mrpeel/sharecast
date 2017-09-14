@@ -13,7 +13,7 @@ from keras.layers.core import Dense, Reshape, Dropout
 from keras.layers.embeddings import Embedding
 from keras.layers import concatenate, Input
 from keras.models import Model
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger
 
 
 class Categorical_encoder():
@@ -149,7 +149,7 @@ class Categorical_encoder():
 
                 # Number of neurons for layer 1 and 2
                 n_layer1 = min(1000,
-                               int(A * (len(self.__K) ** 0.5) * sum_ + 1))
+                               int(A * (len(self.__K) ** 0.5) * sum_ + 1)) * 2
                 n_layer2 = int(n_layer1 / B) + 2
 
                 # Dropouts
@@ -158,7 +158,7 @@ class Categorical_encoder():
 
                 # Learning parameters
                 epochs = 500  # 25 : more iterations
-                batch_size = 512  # 256 : gradient more stable
+                batch_size = 256
 
                 # Creating the neural network
 
@@ -267,6 +267,7 @@ class Categorical_encoder():
                     model.compile(loss='mean_absolute_error', optimizer='adam')
                     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2, verbose=1, patience=4)
                     early_stopping = EarlyStopping(monitor='loss', patience=17)
+                    csv_logger = CSVLogger('./logs/categorical-encoder.log')
 
                     model.fit(
                         [df_train[col].apply(lambda x: self.__Enc[col][x]).values
@@ -274,7 +275,7 @@ class Categorical_encoder():
                         y_train.values,
                         epochs=epochs,
                         batch_size=batch_size,
-                        callbacks=[reduce_lr, early_stopping],
+                        callbacks=[reduce_lr, early_stopping, csv_logger],
                         verbose=int(self.verbose)
                     )
 

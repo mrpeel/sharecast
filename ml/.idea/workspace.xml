@@ -2,9 +2,15 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1c8586de-e2cf-4042-af00-d7be3a85f6e8" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../.gitignore" afterPath="$PROJECT_DIR$/../.gitignore" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/categorical_encoder.py" afterPath="$PROJECT_DIR$/categorical_encoder.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost-classification.ipynb" afterPath="$PROJECT_DIR$/xgboost-classification.ipynb" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost.ipynb" afterPath="$PROJECT_DIR$/xgboost.ipynb" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" afterPath="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" afterPath="$PROJECT_DIR$/../retrieve-data/check-adjusted-prices.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/dynamodb.js" afterPath="$PROJECT_DIR$/../retrieve-data/dynamodb.js" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" afterPath="$PROJECT_DIR$/../retrieve-data/retrieve-adjusted-close-history.js" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -18,8 +24,8 @@
       <file leaf-file-name="xgboost_general_symbol_ensemble_sharecast.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-408">
-              <caret line="732" column="4" lean-forward="false" selection-start-line="732" selection-start-column="4" selection-end-line="732" selection-end-column="4" />
+            <state relative-caret-position="136">
+              <caret line="1192" column="39" lean-forward="false" selection-start-line="1192" selection-start-column="39" selection-end-line="1192" selection-end-column="39" />
               <folding>
                 <element signature="e#1#39#0" expanded="true" />
               </folding>
@@ -42,8 +48,8 @@
       <file leaf-file-name="categorical_encoder.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/categorical_encoder.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="141">
-              <caret line="38" column="0" lean-forward="false" selection-start-line="38" selection-start-column="0" selection-end-line="38" selection-end-column="0" />
+            <state relative-caret-position="469">
+              <caret line="157" column="0" lean-forward="true" selection-start-line="157" selection-start-column="0" selection-end-line="157" selection-end-column="0" />
               <folding>
                 <element signature="e#100#118#0" expanded="true" />
               </folding>
@@ -54,7 +60,7 @@
       <file leaf-file-name="prep-data-regression.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2940">
+            <state relative-caret-position="421">
               <caret line="199" column="63" lean-forward="false" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
               <folding>
                 <element signature="e#0#18#0" expanded="true" />
@@ -79,8 +85,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>categori</find>
-      <find>cat</find>
       <find>cate</find>
       <find>verbose</find>
       <find>y_inverse_scaler</find>
@@ -109,6 +113,8 @@
       <find>categ</find>
       <find>self.__K</find>
       <find>fit_tra</find>
+      <find>categrical</find>
+      <find>categoric</find>
     </findStrings>
     <replaceStrings>
       <replace>= tf.contrib.layers.real_valued_column(&quot;</replace>
@@ -143,7 +149,6 @@
         <option value="$PROJECT_DIR$/xgboost-classification-from-pickle.py" />
         <option value="$PROJECT_DIR$/wide_n_deep_xgboost_ensemble_sharecast.py" />
         <option value="$PROJECT_DIR$/wide_n_deep_categories_sharecast.py" />
-        <option value="$PROJECT_DIR$/xgboost.ipynb" />
         <option value="$PROJECT_DIR$/eval-results.py" />
         <option value="$USER_HOME$/anaconda/lib/python3.6/site-packages/sklearn/metrics/regression.py" />
         <option value="$PROJECT_DIR$/t-sne.py" />
@@ -155,6 +160,7 @@
         <option value="$PROJECT_DIR$/prep-base-data.py" />
         <option value="$PROJECT_DIR$/eval_results.py" />
         <option value="$PROJECT_DIR$/categorical_encoder.py" />
+        <option value="$PROJECT_DIR$/xgboost.ipynb" />
         <option value="$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py" />
       </list>
     </option>
@@ -198,7 +204,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scratches" />
       <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
@@ -215,6 +220,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scratches" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -435,13 +441,13 @@
     <layout>
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.2732475" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
-      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39782345" sideWeight="0.32761088" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39782345" sideWeight="0.33476394" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4171705" sideWeight="0.72746783" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32942554" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.42079806" sideWeight="0.6015737" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.2532189" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25679544" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32889965" sideWeight="0.49713877" order="9" side_tool="false" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.39782345" sideWeight="0.67238915" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.4873035" sideWeight="0.66523606" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Data View" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3297568" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
@@ -468,21 +474,12 @@
           </properties>
         </breakpoint>
       </default-breakpoints>
-      <option name="time" value="181" />
+      <option name="time" value="185" />
     </breakpoint-manager>
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///private/var/folders/zd/t25tpwqn1_q9q8cbzgwdqtrh0000gn/T/tmp0elx44ef" />
-    <entry file="file:///private/var/folders/zd/t25tpwqn1_q9q8cbzgwdqtrh0000gn/T/tmp_f8xp19o" />
     <entry file="file://$PROJECT_DIR$/check-lgbm.py" />
-    <entry file="file://$PROJECT_DIR$/keras-test.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="16" column="0" lean-forward="false" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/utils_scaling.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-1112">
@@ -532,13 +529,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/auto-ml.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1635">
-          <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="26" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/tpot.py" />
     <entry file="file://$PROJECT_DIR$/consolidate-data.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -551,13 +541,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/tpot-xgboost.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="324">
-          <caret line="94" column="0" lean-forward="false" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="0" />
         </state>
       </provider>
     </entry>
@@ -596,13 +579,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/xgboost.ipynb">
-      <provider selected="true" editor-type-id="ipnb-editor">
-        <state>
-          <selected id="27" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/xgboost-classification-from-pickle.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="403">
@@ -621,13 +597,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="90">
           <caret line="6" column="36" lean-forward="true" selection-start-line="6" selection-start-column="0" selection-end-line="6" selection-end-column="36" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pipeline_grid_search_results.csv">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
         </state>
       </provider>
     </entry>
@@ -731,16 +700,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2940">
-          <caret line="199" column="63" lean-forward="false" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
-          <folding>
-            <element signature="e#0#18#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/lightgbm-0.2-py3.6.egg/lightgbm/basic.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="127">
@@ -762,6 +721,52 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/numpy/core/fromnumeric.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="157">
+          <caret line="821" column="0" lean-forward="false" selection-start-line="821" selection-start-column="0" selection-end-line="821" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/keras-test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-734">
+          <caret line="16" column="0" lean-forward="false" selection-start-line="16" selection-start-column="0" selection-end-line="16" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/auto-ml-test.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pipeline_grid_search_results.csv">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/auto-ml.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-89">
+          <caret line="111" column="0" lean-forward="false" selection-start-line="111" selection-start-column="0" selection-end-line="111" selection-end-column="26" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/tpot-xgboost.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-44">
+          <caret line="94" column="0" lean-forward="false" selection-start-line="93" selection-start-column="0" selection-end-line="94" selection-end-column="0" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/eval_results.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="180">
@@ -772,10 +777,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/numpy/core/fromnumeric.py">
+    <entry file="file://$PROJECT_DIR$/prep-data-regression.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="157">
-          <caret line="821" column="0" lean-forward="false" selection-start-line="821" selection-start-column="0" selection-end-line="821" selection-end-column="0" />
+        <state relative-caret-position="421">
+          <caret line="199" column="63" lean-forward="false" selection-start-line="199" selection-start-column="0" selection-end-line="199" selection-end-column="63" />
+          <folding>
+            <element signature="e#0#18#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
@@ -791,18 +799,32 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/categorical_encoder.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="141">
-          <caret line="38" column="0" lean-forward="false" selection-start-line="38" selection-start-column="0" selection-end-line="38" selection-end-column="0" />
+        <state relative-caret-position="469">
+          <caret line="157" column="0" lean-forward="true" selection-start-line="157" selection-start-column="0" selection-end-line="157" selection-end-column="0" />
           <folding>
             <element signature="e#100#118#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/xgboost-classification.ipynb">
+      <provider selected="true" editor-type-id="ipnb-editor">
+        <state>
+          <selected id="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/xgboost.ipynb">
+      <provider selected="true" editor-type-id="ipnb-editor">
+        <state>
+          <selected id="34" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/xgboost_general_symbol_ensemble_sharecast.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-408">
-          <caret line="732" column="4" lean-forward="false" selection-start-line="732" selection-start-column="4" selection-end-line="732" selection-end-column="4" />
+        <state relative-caret-position="136">
+          <caret line="1192" column="39" lean-forward="false" selection-start-line="1192" selection-start-column="39" selection-end-line="1192" selection-end-column="39" />
           <folding>
             <element signature="e#1#39#0" expanded="true" />
           </folding>
