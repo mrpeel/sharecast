@@ -19,90 +19,65 @@ const lambda = new aws.Lambda({
 *    Retrieves the complete history of a symbol and updates the adjustedPrice -
 *     triggered by a stock / split or other adjustment which causes historical
 *     adjusted prices to be updated
-* @param {Object} params - {
-  endDate - date to end lookup
-  symbol - symbol to retrieve
+* @param {Object} params only populated for continuing a previous lookup {
+  symbol - symbol retrieved
+  results - results
 }
 */
-let retrieveAdjustedHistoryData = asyncify(function(params) {
+let reloadQuote = asyncify(function(params) {
+  let symbol;
+  let symbolYear;
   try {
-    if (!params.symbol) {
-      console.error(`Symbol parameter not provided`);
-      return;
-    }
-
-    if (!params.endDate || !utils.isDate(params.endDate)) {
-      console.error(`Invalid params - valid endDate required: `,
-        `${params.endDate}`);
-      return;
-    }
-
-    let symbol = params.symbol;
-    let companySymbol = awaitify(getCompanySymbol(symbol));
-    let results;
-    let maxLength = 100;
-    let endDate = params.endDate;
-    let fullResults = awaitify(retrieveHistory(companySymbol,
-      '2007-07-01', utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
-
-    results = [];
-
-    // Strip unnecessary information from results
-    fullResults.forEach((resultVal) => {
-      // Push the stripped down value to results
-      results.push({
-        'date': utils.returnDateAsString(resultVal['date']),
-        'adjClose': resultVal['adjClose'],
-      });
-
-      // Check if number of results has been reached to execute lambda
-      if (results.length >= maxLength) {
-        let invokeEvent = {
-          'symbol': symbol,
-          'results': results,
-        };
-
-        let description = `Invoking reloadAdjustedPrices:  ${symbol} - ` +
-          `${results.length} records`;
-
-        awaitify(invokeLambda('reloadAdjustedPrices', invokeEvent, description));
-
-        // Reset results to empty array
-        results = [];
-      }
-    });
-    return true;
-  } catch (err) {
-    try {
-      awaitify(
-        sns.publishMsg(snsArn,
-          'retrieveAdjustedHistoryData failed.  Error: ' + JSON.stringify(err),
-          'retrieveAdjustedHistoryData failed'));
-    } catch (err) {}
-
-    console.log('retrieveAdjustedHistoryData failed while processing: ', params.symbol);
-    console.log(err);
-  }
-});
-
-/**  Execute updates for an array of symbol, date, adjclose combinations
-*/
-let reloadAdjustedPrices = asyncify(function(params) {
-  try {
-    if (!params.symbol) {
-      console.error(`Symbol parameter not provided`);
-      return;
-    }
-
-    if (!params.results) {
-      console.error(`Invalid params - results not provided `);
-      return;
-    }
+    let results = [];
+    let yahooSymbol;
+    let startDate;
+    let endDate;
+    let nextReload = false;
 
     let t0 = new Date();
 
-    let symbol = params.symbol;
-    let results = params.results;
+    if (params.results && params.symbol) {
+      results = params.results;
+      symbol = params.symbol;
+    } else if (!params.results && !params.symbol) {
+      // Retrieve next value from quoteReload table
+      let scanDetails = {
+        tableName: 'quoteReload',
+        limit: 2,
+      };
+
+      let reloadResults = awaitify(dynamodb.scanTable(scanDetails));
+
+      if (reloadResults.length) {
+        symbolYear = reloadResults[0]['symbolYear'];
+        symbol = reloadResults[0]['symbol'];
+        yahooSymbol = reloadResults[0]['yahooSymbol'];
+        startDate = reloadResults[0]['startDate'];
+        endDate = reloadResults[0]['endDate'];
+      }
+
+      if (reloadResults.length > 1) {
+        nextReload = true;
+      }
+
+      // Load results from yahoo
+      let fullResults = awaitify(retrieveHistory(yahooSymbol,
+        utils.returnDateAsString(startDate, 'YYYY-MM-DD'),
+        utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
+
+      // Strip results to core values
+      fullResults.forEach((resultVal) => {
+        // Push the stripped down value to results
+        results.push({
+          'date': utils.returnDateAsString(resultVal['date']),
+          'adjClose': resultVal['adjClose'],
+        });
+      });
+    } else {
+      console.error(`Inconsistent params, symbol: ${symbol}, results ${JSON.stringify(results)}`);
+      return;
+    }
+
 
     while (results.length) {
       let result = results.shift(1);
@@ -121,33 +96,58 @@ let reloadAdjustedPrices = asyncify(function(params) {
          re-invoke lambda with remaining results */
     if (results.length) {
       let reinvokeEvent = {
+        'symbolYear': symbolYear,
         'symbol': symbol,
+        'yahooSymbol': yahooSymbol,
         'results': results,
+        'nextReload': nextReload,
       };
 
-      let description = `Continuing reloadAdjustedPrices for ${symbol}. ` +
-        `${results.length} still to complete`;
 
-      awaitify(invokeLambda('reloadAdjustedPrices', reinvokeEvent, description));
+      let description = `Re-invoking reloadQuote:  ${symbol} - ` +
+        `${results.length} records`;
+
+      awaitify(invokeLambda('reloadQuote', reinvokeEvent, description));
     } else {
-      awaitify(
-        sns.publishMsg(snsArn, 'reloadAdjustedPrices completed.',
-          `reloadAdjustedPrices for ${symbol} completed.`));
+      // Delete reload record
+      let deleteDetails = {
+        tableName: 'quoteReload',
+        key: {
+          'symbolYear': symbolYear,
+        },
+      };
+
+      awaitify(dynamodb.deleteRecord(deleteDetails));
+
+      // If nextReload, then invoke lambda again
+      if (nextReload) {
+        let description = `Invoking next reloadQuote`;
+
+        awaitify(invokeLambda('reloadQuote', {}, description));
+      }
     }
+
+    // Send completion message
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          `reloadQuote for ${symbolYear} finished`));
+    } catch (err) {}
 
     return true;
   } catch (err) {
     try {
       awaitify(
         sns.publishMsg(snsArn,
-          'reloadAdjustedPrices failed.  Error: ' + JSON.stringify(err),
-          `reloadAdjustedPrices failed for ${params.symbol}`));
+          'reloadQuote failed.  Error: ' + JSON.stringify(err),
+          'reloadQuote failed'));
     } catch (err) {}
 
-    console.error('reloadAdjustedPrices failed while processing: ', params.symbol);
-    console.error(err);
+    console.log('reloadQuote failed while processing: ', symbolYear);
+    console.log(err);
   }
 });
+
 
 let retrieveHistory = function(symbol, startDate, endDate) {
   return new Promise(function(resolve, reject) {
@@ -165,32 +165,6 @@ let retrieveHistory = function(symbol, startDate, endDate) {
   });
 };
 
-let getCompanySymbol = function(symbol) {
-  return new Promise(function(resolve, reject) {
-    try {
-      let queryDetails = {
-        tableName: 'companies',
-        keyConditionExpression: 'symbol = :symbol',
-        expressionAttributeValues: {
-          ':symbol': symbol,
-        },
-        reverseOrder: true,
-        limit: 1,
-      };
-
-      let symbolResults = awaitify(dynamodb.queryTable(queryDetails));
-
-      if (symbolResults.length) {
-        resolve(symbolResults[0]['symbolYahoo']);
-      } else {
-        reject(`Symbol ${symbol} not found`);
-      }
-    } catch (err) {
-      console.log(err);
-      reject(err);
-    }
-  });
-};
 
 /**  Write a conpany quote adjusted price update to dynamodb
 * @param {Object} quoteData - the company quote to write
@@ -267,17 +241,8 @@ let invokeLambda = function(lambdaName, event, description) {
 
 
 module.exports = {
-  retrieveAdjustedHistoryData: retrieveAdjustedHistoryData,
-  reloadAdjustedPrices: reloadAdjustedPrices,
+  reloadQuote: reloadQuote,
 };
 
-// let testLoad = asyncify(function() {
-//   dynamodb.setLocalAccessConfig();
-//
-//   awaitify(retrieveAdjustedHistoryData({
-//     endDate: '2017-09-10',
-//     symbol: 'WTC',
-//   }));
-// });
-//
-// testLoad();
+dynamodb.setLocalAccessConfig();
+reloadQuote({});

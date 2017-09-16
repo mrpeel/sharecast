@@ -184,7 +184,7 @@ let dailyHandler = asyncify(function(event, context) {
         console.log('Executing update company quotes with metrics - phase 3');
         awaitify(retrieval.executeMetricsUpdate({
           startRec: 1200,
-          startRec: 1799,
+          endRec: 1799,
         }));
         break;
 
@@ -280,35 +280,19 @@ let processReturnsHandler = asyncify(function(event, context) {
   }
 });
 
-let retrieveAdjustedHistoryDataHandler = asyncify(function(event, context) {
+let reloadQuoteHandler = asyncify(function(event, context) {
   try {
-    awaitify(retrieveAdjustedPrices.retrieveAdjustedHistoryData(event));
+    awaitify(retrieveAdjustedPrices.reloadQuote(event));
     context.succeed();
   } catch (err) {
-    console.error('retrieveAdjustedHistoryData function failed: ', err);
+    console.error('reloadQuote function failed: ', err);
     try {
       awaitify(
         sns.publishMsg(snsArn,
           err,
-          'Lambda retrieveAdjustedHistoryData failed'));
+          'Lambda reloadQuote failed'));
     } catch (err) {}
-    context.fail('retrieveAdjustedHistoryData function failed');
-  }
-});
-
-let reloadAdjustedPricesHandler = asyncify(function(event, context) {
-  try {
-    awaitify(retrieveAdjustedPrices.reloadAdjustedPrices(event));
-    context.succeed();
-  } catch (err) {
-    console.error('reloadAdjustedPrices function failed: ', err);
-    try {
-      awaitify(
-        sns.publishMsg(snsArn,
-          err,
-          'Lambda reloadAdjustedPrices failed'));
-    } catch (err) {}
-    context.fail('reloadAdjustedPrices function failed');
+    context.fail('reloadQuote function failed');
   }
 });
 
@@ -317,6 +301,5 @@ module.exports = {
   dailyHandler: dailyHandler,
   checkForAdjustmentsHandler: checkForAdjustmentsHandler,
   processReturnsHandler: processReturnsHandler,
-  retrieveAdjustedHistoryDataHandler: retrieveAdjustedHistoryDataHandler,
-  reloadAdjustedPricesHandler: reloadAdjustedPricesHandler,
+  reloadQuote: reloadQuoteHandler,
 };

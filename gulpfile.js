@@ -27,7 +27,7 @@ const lambdaParamsCheckAdjustedPrices = {
   Handler: 'index.checkForAdjustmentsHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
-  Description: 'Retrieve share data and store in dynamodb',
+  Description: 'Check for prices which have been adjusted in the last 8 days',
   MemorySize: 1024,
   Timeout: 300,
   Publish: true,
@@ -37,27 +37,12 @@ const lambdaParamsCheckAdjustedPrices = {
   },
 };
 
-const lambdaParamsRetrieveAdjustedPrices = {
-  FunctionName: 'retrieveAdjustedHistoryData',
-  Handler: 'index.retrieveAdjustedHistoryDataHandler',
+const lambdaParamsReloadQuote = {
+  FunctionName: 'reloadQuote',
+  Handler: 'index.reloadQuote',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
-  Description: 'Retrieve share data and store in dynamodb',
-  MemorySize: 1024,
-  Timeout: 300,
-  Publish: true,
-  Code: {
-    S3Bucket: 'cake-lambda-zips',
-    S3Key: 'retrieve-share-data.zip',
-  },
-};
-
-const lambdaParamsReloadAdjustedPrices = {
-  FunctionName: 'reloadAdjustedPrices',
-  Handler: 'index.reloadAdjustedPricesHandler',
-  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs4.3',
-  Description: 'Retrieve share data and store in dynamodb',
+  Description: 'Reload quotes for identified symbols and date periods',
   MemorySize: 1024,
   Timeout: 300,
   Publish: true,
@@ -122,9 +107,8 @@ gulp.task('deploy', ['install_dependencies'], function() {
     .pipe(zip('retrieve-share-data.zip'))
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
     .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
-    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices))
-    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns))
-    .pipe(awsLambda(awsCredentials, lambdaParamsReloadAdjustedPrices));
+    .pipe(awsLambda(awsCredentials, lambdaParamsReloadQuote))
+    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
 
     // gulp.src(['dist/**/*'])
     //  .pipe(zip('check-adjusted-data.zip'))

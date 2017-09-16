@@ -142,7 +142,7 @@ let insertRecord = asyncify(function(insertDetails) {
     let onPut = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750))
+        let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
         // Increment backoff
@@ -254,7 +254,7 @@ let queryTable = asyncify(function(queryDetails) {
     let onQuery = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750))
+        let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
         backoff++;
@@ -341,7 +341,7 @@ let scanTable = asyncify(function(scanDetails) {
     let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750))
+        let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
         // Increment backoff
@@ -420,7 +420,7 @@ let getTable = asyncify(function(tableDetails) {
     let onScan = asyncify(function(err, data) {
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750))
+        let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
         // Increment backoff
@@ -515,7 +515,7 @@ let updateRecord = asyncify(function(updateDetails) {
       // Check for throughput exceeded
       if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
         && backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750))
+        let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
         // Increment backoff
@@ -549,7 +549,7 @@ let updateRecord = asyncify(function(updateDetails) {
 
 /** Delets a record from dynamodb
 * @param {Object} deleteDetails - an object with all the details for insert
-* insertDetails = {
+* deleteDetails = {
 *  tableName: 'companies',
 *  key: [
 *    'companySymbol',

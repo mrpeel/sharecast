@@ -172,6 +172,9 @@ let checkForAdjustments = asyncify(function(event) {
 
     awaitify(invokeLambda('checkForAdjustments', reinvokeEvent, description));
   } else {
+    let description = `Completed checkForAdjustments. Executing reloadQuote`;
+    awaitify(invokeLambda('reloadQuote', {}, description));
+
     awaitify(
       sns.publishMsg(snsArn, 'checkForAdjustments completed.',
         'checkForAdjustments completed.'));
