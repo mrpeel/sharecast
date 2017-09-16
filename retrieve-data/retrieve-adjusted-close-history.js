@@ -39,6 +39,7 @@ let reloadQuote = asyncify(function(params) {
     if (params.results && params.symbol) {
       results = params.results;
       symbol = params.symbol;
+      symbolYear = params.symbol;
     } else if (!params.results && !params.symbol) {
       // Retrieve next value from quoteReload table
       let scanDetails = {
@@ -210,7 +211,7 @@ let updateAdjustedPrice = asyncify(function(quoteData) {
 
 let invokeLambda = function(lambdaName, event, description) {
   return new Promise(function(resolve, reject) {
-    console.log(`Invoking lambda ${lambdaName} with event: ${event}`);
+    console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
     if (description) {
       console.log(description);
     }
@@ -243,5 +244,5 @@ module.exports = {
   reloadQuote: reloadQuote,
 };
 
-dynamodb.setLocalAccessConfig();
-reloadQuote({});
+// dynamodb.setLocalAccessConfig();
+// reloadQuote({});
