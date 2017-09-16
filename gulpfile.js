@@ -57,7 +57,7 @@ const lambdaParamsProcessReturns = {
   Handler: 'index.processReturnsHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
-  Description: 'Retrieve share data and store in dynamodb',
+  Description: 'Calculate returns using the previous week\'s data',
   MemorySize: 1024,
   Timeout: 300,
   Publish: true,

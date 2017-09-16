@@ -32,7 +32,6 @@ let reloadQuote = asyncify(function(params) {
     let yahooSymbol;
     let startDate;
     let endDate;
-    let nextReload = false;
 
     let t0 = new Date();
 
@@ -44,7 +43,7 @@ let reloadQuote = asyncify(function(params) {
       // Retrieve next value from quoteReload table
       let scanDetails = {
         tableName: 'quoteReload',
-        limit: 2,
+        limit: 1,
       };
 
       let reloadResults = awaitify(dynamodb.scanTable(scanDetails));
@@ -55,10 +54,13 @@ let reloadQuote = asyncify(function(params) {
         yahooSymbol = reloadResults[0]['yahooSymbol'];
         startDate = reloadResults[0]['startDate'];
         endDate = reloadResults[0]['endDate'];
-      }
-
-      if (reloadResults.length > 1) {
-        nextReload = true;
+      } else {
+        try {
+          awaitify(
+            sns.publishMsg(snsArn,
+              `All reloadQuote value processing finished`, 'reloadQuote finished'));
+        } catch (err) {}
+        return true;
       }
 
       // Load results from yahoo
@@ -101,9 +103,7 @@ let reloadQuote = asyncify(function(params) {
         'symbol': symbol,
         'yahooSymbol': yahooSymbol,
         'results': results,
-        'nextReload': nextReload,
       };
-
 
       let description = `Re-invoking reloadQuote:  ${symbol} - ` +
         `${results.length} records`;
@@ -120,19 +120,10 @@ let reloadQuote = asyncify(function(params) {
 
       awaitify(dynamodb.deleteRecord(deleteDetails));
 
-      // If nextReload, then invoke lambda again
-      if (nextReload) {
-        let description = `Invoking next reloadQuote`;
+      // Invoke lambda again
+      let description = `Invoking next reloadQuote`;
 
-        awaitify(invokeLambda('reloadQuote', {}, description));
-      } else {
-        // Send completion message
-        try {
-          awaitify(
-            sns.publishMsg(snsArn,
-              `All reloadQuote value processing finished`));
-        } catch (err) {}
-      }
+      awaitify(invokeLambda('reloadQuote', {}, description));
     }
     return true;
   } catch (err) {
