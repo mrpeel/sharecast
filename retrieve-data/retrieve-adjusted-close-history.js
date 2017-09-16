@@ -124,16 +124,15 @@ let reloadQuote = asyncify(function(params) {
         let description = `Invoking next reloadQuote`;
 
         awaitify(invokeLambda('reloadQuote', {}, description));
+      } else {
+        // Send completion message
+        try {
+          awaitify(
+            sns.publishMsg(snsArn,
+              `All reloadQuote value processing finished`));
+        } catch (err) {}
       }
     }
-
-    // Send completion message
-    try {
-      awaitify(
-        sns.publishMsg(snsArn,
-          `reloadQuote for ${symbolYear} finished`));
-    } catch (err) {}
-
     return true;
   } catch (err) {
     try {
