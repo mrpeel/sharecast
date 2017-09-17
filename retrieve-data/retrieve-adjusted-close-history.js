@@ -35,11 +35,11 @@ let reloadQuote = asyncify(function(params) {
 
     let t0 = new Date();
 
-    if (params.results && params.symbol) {
+    if (params.results && params.symbol && params.symbolYear) {
       results = params.results;
       symbol = params.symbol;
-      symbolYear = params.symbol;
-    } else if (!params.results && !params.symbol) {
+      symbolYear = params.symbolYear;
+    } else if (!params.results && !params.symbol && !params.symbolYear) {
       // Retrieve next value from quoteReload table
       let scanDetails = {
         tableName: 'quoteReload',
@@ -77,7 +77,7 @@ let reloadQuote = asyncify(function(params) {
         });
       });
     } else {
-      console.error(`Inconsistent params, symbol: ${symbol}, results ${JSON.stringify(results)}`);
+      console.error(`Inconsistent params: ${JSON.stringify(params)}`);
       return;
     }
 
