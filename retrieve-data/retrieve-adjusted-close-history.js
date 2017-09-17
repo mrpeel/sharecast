@@ -63,6 +63,16 @@ let reloadQuote = asyncify(function(params) {
         return true;
       }
 
+      // Delete reload record, so it isn't run multiple times
+      let deleteDetails = {
+        tableName: 'quoteReload',
+        key: {
+          'symbolYear': symbolYear,
+        },
+      };
+
+      awaitify(dynamodb.deleteRecord(deleteDetails));
+
       // Load results from yahoo
       let fullResults = awaitify(retrieveHistory(yahooSymbol,
         utils.returnDateAsString(startDate, 'YYYY-MM-DD'),
@@ -90,7 +100,7 @@ let reloadQuote = asyncify(function(params) {
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 250) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 270) {
         break;
       }
     }
@@ -105,21 +115,11 @@ let reloadQuote = asyncify(function(params) {
         'results': results,
       };
 
-      let description = `Re-invoking reloadQuote:  ${symbol} - ` +
+      let description = `Re-invoking reloadQuote:  ${symbolYear} - ` +
         `${results.length} records`;
 
       awaitify(invokeLambda('reloadQuote', reinvokeEvent, description));
     } else {
-      // Delete reload record
-      let deleteDetails = {
-        tableName: 'quoteReload',
-        key: {
-          'symbolYear': symbolYear,
-        },
-      };
-
-      awaitify(dynamodb.deleteRecord(deleteDetails));
-
       // Invoke lambda again
       let description = `Invoking next reloadQuote`;
 

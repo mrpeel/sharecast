@@ -125,7 +125,7 @@ let checkForAdjustments = asyncify(function(event) {
           while (String(reloadYear) < endDate) {
             let symbolYear = retrieveSymbol + reloadYear;
             let reloadStartDate = String(reloadYear) + '-01-01';
-            let reloadEndDate = String(reloadYear + 1) + '-12-31';
+            let reloadEndDate = String(reloadYear) + '-12-31';
 
             if (reloadEndDate > endDate) {
               reloadEndDate = endDate;
@@ -140,7 +140,7 @@ let checkForAdjustments = asyncify(function(event) {
             };
             awaitify(dynamodb.insertRecord(insertDetails));
 
-            reloadYear += 2;
+            reloadYear += 1;
           }
 
         // invokeLambda('retrieveAdjustedHistoryData', {
