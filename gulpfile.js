@@ -13,7 +13,7 @@ const lambdaParamsRetrieveDaily = {
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
   Description: 'Retrieve share data and store in dynamodb',
-  MemorySize: 1024,
+  MemorySize: 256,
   Timeout: 300,
   Publish: true,
   Code: {
@@ -28,7 +28,7 @@ const lambdaParamsCheckAdjustedPrices = {
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
   Description: 'Check for prices which have been adjusted in the last 8 days',
-  MemorySize: 1024,
+  MemorySize: 256,
   Timeout: 300,
   Publish: true,
   Code: {
@@ -43,7 +43,7 @@ const lambdaParamsReloadQuote = {
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
   Description: 'Reload quotes for identified symbols and date periods',
-  MemorySize: 1024,
+  MemorySize: 256,
   Timeout: 300,
   Publish: true,
   Code: {
@@ -58,7 +58,7 @@ const lambdaParamsProcessReturns = {
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
   Runtime: 'nodejs4.3',
   Description: 'Calculate returns using the previous week\'s data',
-  MemorySize: 1024,
+  MemorySize: 256,
   Timeout: 300,
   Publish: true,
   Code: {
