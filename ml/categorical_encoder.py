@@ -148,17 +148,17 @@ class Categorical_encoder():
                 # TODO: Add reference for this formula?
 
                 # Number of neurons for layer 1 and 2
-                n_layer1 = min(1000,
-                               int(A * (len(self.__K) ** 0.5) * sum_ + 1)) * 2
-                n_layer2 = int(n_layer1 / B) + 2
-
-                # Dropouts
-                dropout1 = 0.10
-                dropout2 = 0.10
-
-                # Learning parameters
-                epochs = 500  # 25 : more iterations
-                batch_size = 256
+                # n_layer1 = min(1000,
+                #                int(A * (len(self.__K) ** 0.5) * sum_ + 1)) * 2
+                # n_layer2 = int(n_layer1 / B) + 2
+                #
+                # # Dropouts
+                # dropout1 = 0.10
+                # dropout2 = 0.10
+                #
+                # # Learning parameters
+                # epochs = 500  # 25 : more iterations
+                # batch_size = 256
 
                 # Creating the neural network
 
@@ -195,25 +195,46 @@ class Categorical_encoder():
                 else:
                     emb_layer = embeddings[0]
 
-                lay1 = Dense(n_layer1,
-                             kernel_initializer='uniform',
-                             activation='relu')(emb_layer)
-                lay1 = Dropout(dropout1)(lay1)
 
-                lay2 = Dense(n_layer2,
-                             kernel_initializer='uniform',
-                             activation='relu')(lay1)
-                lay2 = Dropout(dropout2)(lay2)
+                # lay1 = Dense(n_layer1,
+                #              kernel_initializer='uniform',
+                #              activation='relu')(emb_layer)
+                # lay1 = Dropout(dropout1)(lay1)
+                #
+                # lay2 = Dense(n_layer2,
+                #              kernel_initializer='uniform',
+                #              activation='relu')(lay1)
+                # lay2 = Dropout(dropout2)(lay2)
+                #
+                # lay3 = Dense(n_layer1,
+                #              kernel_initializer='uniform',
+                #              activation='relu')(lay2)
+                # lay3 = Dropout(dropout1)(lay3)
+                #
+                # lay4 = Dense(n_layer2,
+                #              kernel_initializer='uniform',
+                #              activation='relu')(lay3)
+                # lay4 = Dropout(dropout2)(lay4)
 
-                lay3 = Dense(n_layer1,
-                             kernel_initializer='uniform',
-                             activation='relu')(lay2)
-                lay3 = Dropout(dropout1)(lay3)
+                epochs = 125
+                nb_layers = 5
+                nb_neurons = 1024
+                dropout = 0.15
+                batch_size = 1024
+                activation = 'relu'
+                optimizer =  'adamax'
 
-                lay4 = Dense(n_layer2,
-                             kernel_initializer='uniform',
-                             activation='relu')(lay3)
-                lay4 = Dropout(dropout2)(lay4)
+                # Add embedding layer as input layer
+                outputs = emb_layer
+
+                # Add each dense layer
+                for i in range(nb_layers):
+
+                    outputs = Dense(nb_neurons, kernel_initializer='uniform', activation=activation)(outputs)
+
+                    # Add dropout for all layers after the embedding layer
+                    if i > 0:
+                        outputs = Dropout(dropout)(outputs)
 
 
                 # Learning the weights
@@ -262,9 +283,11 @@ class Categorical_encoder():
                 else:
 
                     # Regression
-                    outputs = Dense(1, kernel_initializer='normal')(lay4)
+                    # Add final linear output layer.
+                    outputs = Dense(1, kernel_initializer='normal', activation='linear')(outputs)
+
                     model = Model(inputs=inputs, outputs=outputs)
-                    model.compile(loss='mean_absolute_error', optimizer='adam')
+                    model.compile(loss='mean_absolute_error', optimizer=optimizer)
                     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2, verbose=1, patience=4)
                     early_stopping = EarlyStopping(monitor='loss', patience=17)
                     csv_logger = CSVLogger('./logs/categorical-encoder.log')
@@ -514,7 +537,7 @@ class Categorical_encoder():
                     for col in self.__Lcat:
 
                         unknown_levels = list(set(df[col].values) -
-                                              set(self.__Enc[col].keys())
+                                              set(self.__[col].keys())
                                               )
 
                         if (len(unknown_levels) != 0):
