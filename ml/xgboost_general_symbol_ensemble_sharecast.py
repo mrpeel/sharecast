@@ -31,7 +31,7 @@ from keras import optimizers
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, CSVLogger
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, CSVLogger, ModelCheckpoint
 from keras.layers.normalization import BatchNormalization
 from keras.models import load_model
 
@@ -204,7 +204,11 @@ def safe_mape(actual_y, prediction_y):
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
-    diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 0.25, None))
+    # Ensure data shape is correct
+    actual_y = actual_y.reshape(actual_y.shape[0], )
+    prediction_y = prediction_y.reshape(prediction_y.shape[0], )
+    # Calculate MAPE
+    diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
 
@@ -242,7 +246,7 @@ def mape_log_y_eval(actual_y, eval_y):
 # @profile
 def sc_mean_absolute_percentage_error(y_true, y_pred):
     diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            0.15,
+                                            1.,
                                             None))
     return 100. * K.mean(diff, axis=-1)
 
@@ -360,7 +364,9 @@ def divide_data(share_data):
 
 
     symbol_models = {}
-    symbols = share_data['symbol'].unique().tolist()
+    symbols = share_data['symbol'].unique()
+    # For testing only take the first 10 elements
+    # symbols = symbols[:10]
     symbol_map = {}
     symbol_num = 0
 
@@ -588,7 +594,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                                                learning_rate=0.025)
 
     eval_set = [(mae_vals_test, all_test_log_y)]
-    models['keras_mae'].fit(mae_vals_train, all_train_log_y, early_stopping_rounds=50, eval_metric='mae',
+    models['keras_log_mae'].fit(mae_vals_train, all_train_log_y, early_stopping_rounds=50, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
     gc.collect()
 
@@ -1001,6 +1007,51 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
 
     return sklearn_models
 
+def compile_keras_model(network, input_shape):
+    """Compile a sequential model.
+    Args:
+        network (dict): the parameters of the network
+
+    Returns:
+        a compiled network.
+    """
+    # Get our network parameters.
+    nb_layers = network['nb_layers']
+    nb_neurons = network['nb_neurons']
+    activation = network['activation']
+    optimizer = network['optimizer']
+    dropout = network['dropout']
+    model_type = network['model_type']
+    if 'int_layer' in network:
+            int_layer = network['int_layer']
+
+    model = Sequential()
+
+    # Add each layer.
+    for i in range(nb_layers):
+
+        # Need input shape for first layer.
+        if i == 0:
+            model.add(Dense(nb_neurons, activation=activation, input_shape=input_shape))
+        else:
+            model.add(Dense(nb_neurons, activation=activation))
+
+        model.add(Dropout(dropout))
+
+    if 'int_layer' in network:
+        model.add(Dense(int_layer, activation=activation, name="int_layer"))
+        model.add(Dropout(dropout))
+
+    # Output layer.
+    model.add(Dense(1, activation='linear'))
+
+    if model_type == "mape":
+        model.compile(loss=sc_mean_absolute_percentage_error, optimizer=optimizer, metrics=['mae'])
+    else:
+        model.compile(loss='mae', optimizer=optimizer, metrics=[sc_mean_absolute_percentage_error])
+
+    return model
+
 # @profile
 def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
                    df_all_test_x):
@@ -1014,46 +1065,36 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     test_x = df_all_test_x.as_matrix()
 
 
-
     print('Fitting Keras mape model...')
 
-    p_model = Sequential()
+    network = {
+        'nb_neurons': 512,
+        'nb_layers': 3,
+        'activation': "relu",
+        'optimizer': "adagrad",
+        'batch_size': 256,
+        'dropout': 0.05,
+        'model_type': "mape"
+    }
 
-    p_model.add(Dense(512, activation='relu', input_shape=(train_x.shape[1],)))
-    p_model.add(Dropout(0.05))
-    p_model.add(Dense(512, activation='relu'))
-    p_model.add(Dropout(0.05))
-    p_model.add(Dense(512, activation='relu'))
-    p_model.add(Dropout(0.05))
-    p_model.add(Dense(1))
-    p_model.add(Activation('linear'))
+    input_shape = (train_x.shape[1],)
 
-    p_model.compile(optimizer='adagrad', loss=sc_mean_absolute_percentage_error, metrics = ['mae'])
+    p_model = compile_keras_model(network, input_shape)
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=26)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
     history = p_model.fit(train_x,
                           train_actuals,
                           validation_data=(test_x, test_actuals),
                           epochs=20000,
-                          batch_size=256,
-                          callbacks=[reduce_lr, early_stopping, csv_logger],
+                          batch_size=network['batch_size'],
+                          callbacks=[reduce_lr, early_stopping, csv_logger, checkpointer],
                           verbose=0)
 
-    gc.collect()
-
-    # plt.plot(history.history['loss'])
-    # plt.plot(history.history['val_loss'])
-    # plt.title('Keras mape model loss')
-    # plt.ylabel('loss')
-    # plt.xlabel('epoch')
-    # plt.legend(['train', 'test'], loc='upper left')
-    # plt.ion()
-    # plt.show()
-    #
-    # gc.collect()
+    p_model.load_weights('weights.hdf5')
 
     predictions = p_model.predict(test_x)
 
@@ -1063,41 +1104,29 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                 }
     })
 
+    gc.collect()
+
     print('Building Keras mae model...')
 
-    nb_layers = 4
-    nb_neurons = 768
-    activation = 'relu'
-    optimizer = 'adamax'
-    dropout = 0.05
-    batch_size = 256
+    network = {
+        'nb_layers': 4,
+        'nb_neurons': 768,
+        'activation': "relu",
+        'optimizer': "adamax",
+        'dropout': 0.05,
+        'batch_size': 256,
+        'model_type': "mae",
+        'int_layer': 30
+    }
 
     input_shape = (train_x.shape[1],)
 
-    model = Sequential()
-
-    # Add each layer.
-    for i in range(nb_layers):
-        # Need input shape for first layer.
-        if i == 0:
-            model.add(Dense(nb_neurons, activation=activation, input_shape=input_shape))
-        else:
-            model.add(Dense(nb_neurons, activation=activation))
-
-        model.add(Dropout(dropout))
-
-    # Add intermediate layer
-    model.add(Dense(30, activation=activation, name="int_layer"))
-    model.add(Dropout(dropout))
-
-    # Output layer.
-    model.add(Dense(1, activation='linear'))
-
-    model.compile(loss='mae', optimizer=optimizer)
+    model = compile_keras_model(network, input_shape)
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
     early_stopping = EarlyStopping(monitor='val_loss', patience=26)
     csv_logger = CSVLogger('./logs/log-training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
     print('Fitting Keras mae model...')
 
@@ -1105,22 +1134,11 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                         train_y,
                         validation_data=(test_x, test_y),
                         epochs=20000,
-                        batch_size=batch_size,
-                        callbacks=[reduce_lr, early_stopping, csv_logger],
+                        batch_size=network['batch_size'],
+                        callbacks=[reduce_lr, early_stopping, checkpointer, csv_logger],
                         verbose=0)
 
-    gc.collect()
-
-    # plt.plot(history.history['loss'])
-    # plt.plot(history.history['val_loss'])
-    # plt.title('Keras mae model loss')
-    # plt.ylabel('loss')
-    # plt.xlabel('epoch')
-    # plt.legend(['train', 'test'], loc='upper left')
-    # plt.ion()
-    # plt.show()
-    #
-    # gc.collect()
+    model.load_weights('weights.hdf5')
 
 
     print('Executing keras predictions...')
@@ -1141,6 +1159,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'keras_log_y': exp_predictions,
     }, test_actuals)
 
+    gc.collect()
+
 
     # Construct models which output final twelve weights as predictions
     # mape_intermediate_model = Model(inputs=p_model.input,
@@ -1157,13 +1177,75 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     return {
         'mape_model': p_model,
         'mae_model': model,
-        # 'mape_intermediate_model': mape_intermediate_model,
          'mae_intermediate_model': mae_intermediate_model
         }
 
+def deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
+
+    train_x = train_predictions.as_matrix()
+    train_y = train_actuals[0].values
+    train_log_y = safe_log(train_y)
+    test_x = test_predictions.as_matrix()
+    test_y = test_actuals[0].values
+    test_log_y = safe_log(test_y)
+
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=15)
+    csv_logger = CSVLogger('./logs/training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    input_shape = (train_x.shape[1],)
+
+    network = {
+        'nb_neurons': 64,
+        'nb_layers': 2,
+        'activation': "selu",
+        'optimizer': "adagrad",
+        'batch_size': 32,
+        'dropout': 0.5,
+        'model_type': "mape"
+    }
+
+    model = compile_keras_model(network, input_shape)
+
+    print('\rNetwork')
+
+    for property in network:
+        print(property, ':', network[property])
+
+    history = model.fit(train_x, train_log_y,
+                        batch_size=network['batch_size'],
+                        epochs=20000,
+                        verbose=0,
+                        validation_data=(test_x, test_log_y),
+                        callbacks=[csv_logger, reduce_lr, early_stopping, checkpointer])
+
+    print('\rResults')
+
+    # hist_epochs = len(history.history['val_loss'])
+
+    model.load_weights('weights.hdf5')
+    predictions = model.predict(test_x)
+    prediction_results = predictions.reshape(predictions.shape[0], )
+    prediction_results = safe_exp(prediction_results)
+
+
+    eval_results({'deep_bagged_predictions': {
+                        'actual_y': test_y,
+                        'y_predict': prediction_results
+                }
+    })
+
+    range_results({
+        'deep_bagged_predictions': prediction_results
+    }, test_y)
+
+    return model, prediction_results
 
 # @profile
-def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models):
+def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models, deep_bagged_predictions):
+
     test_actuals = df_all_test_actuals.as_matrix()
     test_x = df_all_test_x.as_matrix()
 
@@ -1178,7 +1260,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
 
     keras_mape = keras_models['mape_model'].predict(test_x)
 
-    keras_mae = keras_models['keras_log_y'].predict(test_x)
+    keras_mae = keras_models['mae_model'].predict(test_x)
     keras_mae = safe_exp(keras_mae)
 
     # Generate values required for keras -> xgboost model
@@ -1190,6 +1272,18 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
     keras_log_gen = safe_exp(safe_exp(keras_log_gen))
 
 
+    # Call deep bagging
+    # train_predictions = pd.DataFrame.from_dict({
+    #     'xgboost_log': gen,
+    #     'xgboost_log_log': log_gen,
+    #     'lgbm_log_log': log_lgbm,
+    #     'keras_mape': keras_mape,
+    #     'keras_log': keras_mae,
+    #     'xgboost_keras_log': keras_gen,
+    #     'xgboost_keras_log_log': keras_log_gen,
+    # })
+
+
     # Reshape arrays
     gen = gen.reshape(gen.shape[0], 1)
     log_lgbm = log_lgbm.reshape(log_lgbm.shape[0], 1)
@@ -1198,6 +1292,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
     keras_mae = keras_mae.reshape(keras_mape.shape[0], 1)
     keras_gen = keras_gen.reshape(keras_gen.shape[0], 1)
     keras_log_gen = keras_log_gen.reshape(keras_gen.shape[0], 1)
+    deep_bagged_predictions = deep_bagged_predictions.reshape(deep_bagged_predictions.shape[0], 1)
 
     small_pred_average = (keras_log_gen + log_gen) / 2.
 
@@ -1209,6 +1304,8 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
     print('keras_gen shape', keras_gen.shape)
     print('keras_log_gen shape', keras_log_gen.shape)
     print('small_pred_average shape', small_pred_average.shape)
+
+
 
     print('Bagging predictions')
 
@@ -1251,21 +1348,20 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
         'xgboost_log_keras': keras_log_gen,
         'keras_mape': keras_mape,
         'keras_mae': keras_mae,
-        'bagged_predictions': bagged_predictions
+        'bagged_predictions': bagged_predictions,
+        'deep_bagged_predictions': deep_bagged_predictions
     }, test_actuals)
 
 def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_all_test_actuals,
                 gen_models, lgbm_models, keras_models):
-    test_actuals = df_all_test_actuals.as_matrix()
-    train_actuals = df_all_train_actuals.as_matrix()
 
     # export results
-    test_actuals.to_pickle('data/test_actuals.pkl.gz', compression='gzip')
-    train_actuals.to_pickle('data/train_actuals.pkl.gz', compression='gzip')
+    df_all_test_actuals.to_pickle('data/test_actuals.pkl.gz', compression='gzip')
+    df_all_train_actuals.to_pickle('data/train_actuals.pkl.gz', compression='gzip')
 
 
     test_x = df_all_test_x.as_matrix()
-    train_x = df_all_test_x.as_matrix()
+    train_x = df_all_train_x.as_matrix()
 
     print('Exporting individual predictions')
     gen_train = gen_models['log_y'].predict(train_x)
@@ -1290,27 +1386,32 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
 
     keras_mape_test = keras_models['mape_model'].predict(test_x)
 
-    keras_log_train = keras_models['keras_log_y'].predict(train_x)
+    keras_log_train = keras_models['mae_model'].predict(train_x)
     keras_log_train = safe_exp(keras_log_train)
 
-    keras_log_test = keras_models['keras_log_y'].predict(test_x)
+    keras_log_test = keras_models['mae_model'].predict(test_x)
     keras_log_test = safe_exp(keras_log_test)
 
     # Generate values required for keras -> xgboost model
     keras_mae_intermediate_train = keras_models['mae_intermediate_model'].predict(train_x)
     keras_mae_intermediate_test = keras_models['mae_intermediate_model'].predict(test_x)
 
-    keras_gen_train = gen_models['keras_mae'].predict(keras_mae_intermediate_train)
-    keras_gen_train = safe_exp(keras_gen_train)
+    xgboost_keras_gen_train = gen_models['keras_mae'].predict(keras_mae_intermediate_train)
+    xgboost_keras_gen_train = safe_exp(xgboost_keras_gen_train)
 
-    keras_gen_test = gen_models['keras_mae'].predict(keras_mae_intermediate_test)
-    keras_gen_test = safe_exp(keras_gen_test)
+    xgboost_keras_gen_test = gen_models['keras_mae'].predict(keras_mae_intermediate_test)
+    xgboost_keras_gen_test = safe_exp(xgboost_keras_gen_test)
 
-    keras_log_gen_train = gen_models['keras_log_mae'].predict(keras_mae_intermediate_train)
-    keras_log_gen_train = safe_exp(safe_exp(keras_log_gen_train))
+    xgboost_keras_log_gen_train = gen_models['keras_log_mae'].predict(keras_mae_intermediate_train)
+    xgboost_keras_log_gen_train = safe_exp(safe_exp(xgboost_keras_log_gen_train))
 
-    keras_log_gen_test = gen_models['keras_log_mae'].predict(keras_mae_intermediate_test)
-    keras_log_gen_test = safe_exp(safe_exp(keras_log_gen_test))
+    xgboost_keras_log_gen_test = gen_models['keras_log_mae'].predict(keras_mae_intermediate_test)
+    xgboost_keras_log_gen_test = safe_exp(safe_exp(xgboost_keras_log_gen_test))
+
+    # Make consistent shape for outputs from keras
+    keras_mape_train = keras_mape_train.reshape(keras_mape_train.shape[0], )
+    keras_log_train = keras_log_train.reshape(keras_log_train.shape[0], )
+
 
     train_predictions = pd.DataFrame.from_dict({
         'xgboost_log': gen_train,
@@ -1318,11 +1419,14 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
         'lgbm_log_log': log_lgbm_train,
         'keras_mape': keras_mape_train,
         'keras_log': keras_log_train,
-        'xgboost_keras_log': keras_gen_train,
-        'xgboost_keras_log_log': keras_log_gen_train,
-
+        'xgboost_keras_log': xgboost_keras_gen_train,
+        'xgboost_keras_log_log': xgboost_keras_log_gen_train,
     })
     train_predictions.to_pickle('data/train_predictions.pkl.gz', compression='gzip')
+
+    # Make consistent shape for outputs from keras
+    keras_mape_test = keras_mape_test.reshape(keras_mape_test.shape[0], )
+    keras_log_test = keras_log_test.reshape(keras_log_test.shape[0], )
 
     test_predictions = pd.DataFrame.from_dict({
         'xgboost_log': gen_test,
@@ -1330,12 +1434,13 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
         'lgbm_log_log': log_lgbm_test,
         'keras_mape': keras_mape_test,
         'keras_log': keras_log_test,
-        'xgboost_keras_log': keras_gen_test,
-        'xgboost_keras_log_log': keras_log_gen_test,
+        'xgboost_keras_log': xgboost_keras_gen_test,
+        'xgboost_keras_log_log': xgboost_keras_log_gen_test,
 
     })
     test_predictions.to_pickle('data/test_predictions.pkl.gz', compression='gzip')
 
+    return train_predictions, test_predictions
 
 def main():
     # Prepare run_str
@@ -1390,10 +1495,14 @@ def main():
     lgbm_models = train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x)
 
 
-    bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models)
 
-    export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_all_test_actuals, gen_models,
-                      lgbm_models, keras_models)
+    train_predictions, test_predictions = export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x,
+                                                            df_all_test_actuals, gen_models, lgbm_models, keras_models)
+
+    bagging_model, deep_bagged_predictions = deep_bagging(train_predictions, df_all_train_actuals, test_predictions,
+                                                         df_all_test_actuals)
+
+    bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models, deep_bagged_predictions)
 
     return
 
