@@ -442,7 +442,7 @@ def divide_data(share_data):
 
 def preprocess_train_data(train_x_df, train_y_df):
     scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
-    train_x_df[CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[CONTINUOUS_COLUMNS].as_matrix())
+    train_x_df[CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[CONTINUOUS_COLUMNS].values)
 
     # Save data fo use in genetic algorithm
     train_x_df.to_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
@@ -458,7 +458,7 @@ def preprocess_train_data(train_x_df, train_y_df):
 
 
 def preprocess_test_data(test_x_df, scaler, ce):
-    test_x_df[CONTINUOUS_COLUMNS] = scaler.transform(test_x_df[CONTINUOUS_COLUMNS].as_matrix())
+    test_x_df[CONTINUOUS_COLUMNS] = scaler.transform(test_x_df[CONTINUOUS_COLUMNS].values)
 
     test_x_df.to_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
 
@@ -477,12 +477,12 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     models['log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=70, base_score=0.1, colsample_bylevel=0.7,
                                            colsample_bytree=1.0, gamma=0, learning_rate=0.025, min_child_weight=3)
 
-    all_train_y = df_all_train_y.as_matrix()
+    all_train_y = df_all_train_y.values
     all_train_log_y = safe_log(all_train_y)
-    all_train_x = df_all_train_x.as_matrix()
-    all_test_actuals = df_all_test_actuals.as_matrix()
-    all_test_y = df_all_test_y.as_matrix()
-    all_test_x = df_all_test_x.as_matrix()
+    all_train_x = df_all_train_x.values
+    all_test_actuals = df_all_test_actuals.values
+    all_test_y = df_all_test_y.values
+    all_test_x = df_all_test_x.values
     all_test_log_y = safe_log(all_test_y)
 
 
@@ -816,73 +816,58 @@ def train_symbol_models(symbol_map, symbols_train_y, symbols_train_x, symbols_te
 # @profile
 def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
     params = {
-       # 'objective': 'fair',
-        #'objective': 'huber',
-        #'objective': 'regression_l1',
-        'objective': 'regression_l2',
-        'metric': 'mae',
-        'num_leaves': 16384,
-        'max_bin': 500000,
-        'boosting_type': 'dart'#,
-        #'learning_rate': 0.05
+        'num_leaves': 65536,
+        'max_bin': 5000000,
+        'boosting_type': "gbdt",
+        'feature_fraction': 0.7,
+        'min_split_gain': 0,
+        'boost_from_average': True,
     }
 
     gbms = {}
 
-    train_x = df_all_train_x.as_matrix()
+    train_x = df_all_train_x.values
     train_y = df_all_train_y[0].values
     train_log_y = safe_log(train_y)
-    test_x = df_all_test_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
+    test_x = df_all_test_x.values
+    test_actuals = df_all_test_actuals.values
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
 
 
-    # print('Building lgbm model...')
-    #
-    # # Set-up lightgbm
-    # train_set = lgb.Dataset(train_x, label=train_y)
-    # eval_set = lgb.Dataset(test_x, reference=train_set, label=test_y)
-    #
-    #
-    # # feature_name and categorical_feature
-    # gbms['log_y'] = lgb.train(params,
-    #                 train_set,
-    #                 valid_sets=eval_set,
-    #                 # feval=mae_eval,
-    #                 learning_rates=lambda iter: 0.75 * (0.9995 ** iter),
-    #                 num_boost_round=2000,
-    #                 early_stopping_rounds=50,
-    #                 verbose_eval=10)
-    #
-    # gc.collect()
-    #
-    # iteration_number = 2000
-    #
-    # if gbms['log_y'].best_iteration:
-    #     iteration_number = gbms['log_y'].best_iteration
-    #
-    #
-    # # Make predictions
-    # log_predictions = gbms['log_y'].predict(test_x, num_iteration=iteration_number)
-    # log_inverse_scaled_predictions = safe_exp(log_predictions)
-    #
-    # eval_results({'lgbm_log_y': {
-    #                     'log_y': test_y,
-    #                     'actual_y': test_actuals,
-    #                     'log_y_predict': log_predictions,
-    #                     'y_predict': log_inverse_scaled_predictions
-    #             }
-    # })
-    #
-    # gc.collect()
+    train_set = lgb.Dataset(df_all_train_x, label=train_y)
+    eval_set = lgb.Dataset(df_all_test_x, reference=train_set, label=test_y)
 
-    # Set-up lightgbm
-    train_set = lgb.Dataset(train_x, label=train_log_y)
-    eval_set = lgb.Dataset(test_x, reference=train_set, label=test_log_y)
+    params['histogram_pool_size'] = 8192
+    params['metric'] = ['mae', 'huber']
+    params['metric_freq'] = 10
 
-    # params['boosting_type'] = 'rf'
-    # params['objective']= 'huber'
+    # feature_name and categorical_feature
+    gbms['log_y'] = lgb.train(params,
+                    train_set,
+                    valid_sets=eval_set,  # eval training data
+                    # feval=mle_eval,
+                    # Set learning rate to reduce every 10 iterations
+                    learning_rates=lambda iter: 0.125 * (0.999 ** round_down(iter, 10)),
+                    num_boost_round=500,
+                    early_stopping_rounds=5)
+
+    iteration_number = 500
+
+    if gbms['log_y'].best_iteration:
+        iteration_number = gbm.best_iteration
+
+    predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
+    eval_predictions = safe_exp(predictions)
+
+    eval_results({'lgbm_log_y': {
+                        'log_y': test_y,
+                        'actual_y': test_actuals,
+                        'log_y_predict': predictions,
+                        'y_predict': eval_predictions
+                }
+    })
+
 
     # feature_name and categorical_feature
     gbms['log_log_y'] = lgb.train(params,
@@ -908,13 +893,6 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
     log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
 
 
-    eval_results({'lgbm_log_log_y': {
-                        'log_y': test_y,
-                        'actual_y': test_actuals,
-                        'log_y_predict': predictions_log_y,
-                        'y_predict': log_log_inverse_scaled_predictions
-                }
-    })
 
 
     range_results({
@@ -940,10 +918,10 @@ def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df
 
     train_y = df_all_train_y[0].values
     train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
     test_y = df_all_test_y[0].values
-    test_x = df_all_test_x.as_matrix()
+    test_x = df_all_test_x.values
 
     for estimator in estimators:
         print('Fitting',  estimator,  '...')
@@ -1058,11 +1036,11 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     train_y = df_all_train_y[0].values
     train_actuals = df_all_train_actuals[0].values
     train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
-    test_x = df_all_test_x.as_matrix()
+    test_x = df_all_test_x.values
 
 
     print('Fitting Keras mape model...')
@@ -1182,10 +1160,10 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
 def deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
 
-    train_x = train_predictions.as_matrix()
+    train_x = train_predictions.values
     train_y = train_actuals[0].values
     train_log_y = safe_log(train_y)
-    test_x = test_predictions.as_matrix()
+    test_x = test_predictions.values
     test_y = test_actuals[0].values
     test_log_y = safe_log(test_y)
 
@@ -1246,8 +1224,8 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
 # @profile
 def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models, deep_bagged_predictions):
 
-    test_actuals = df_all_test_actuals.as_matrix()
-    test_x = df_all_test_x.as_matrix()
+    test_actuals = df_all_test_actuals.values
+    test_x = df_all_test_x.values
 
     print('Running model predictions')
     gen = gen_models['log_y'].predict(test_x)
@@ -1360,8 +1338,8 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
     df_all_train_actuals.to_pickle('data/train_actuals.pkl.gz', compression='gzip')
 
 
-    test_x = df_all_test_x.as_matrix()
-    train_x = df_all_train_x.as_matrix()
+    test_x = df_all_test_x.values
+    train_x = df_all_train_x.values
 
     print('Exporting individual predictions')
     gen_train = gen_models['log_y'].predict(train_x)
@@ -1414,13 +1392,13 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
 
 
     train_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': gen_train,
-        'xgboost_log_log': log_gen_train,
-        'lgbm_log_log': log_lgbm_train,
-        'keras_mape': keras_mape_train,
-        'keras_log': keras_log_train,
-        'xgboost_keras_log': xgboost_keras_gen_train,
-        'xgboost_keras_log_log': xgboost_keras_log_gen_train,
+        'xgboost_log': np.concatenate(gen_train),
+        'xgboost_log_log': np.concatenate(log_gen_train),
+        'lgbm_log_log': np.concatenate(log_lgbm_train),
+        'keras_mape': np.concatenate(keras_mape_train),
+        'keras_log': np.concatenate(keras_log_train),
+        'xgboost_keras_log': np.concatenate(xgboost_keras_gen_train),
+        'xgboost_keras_log_log': np.concatenate(xgboost_keras_log_gen_train),
     })
     train_predictions.to_pickle('data/train_predictions.pkl.gz', compression='gzip')
 
@@ -1429,13 +1407,13 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
     keras_log_test = keras_log_test.reshape(keras_log_test.shape[0], )
 
     test_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': gen_test,
-        'xgboost_log_log': log_gen_test,
-        'lgbm_log_log': log_lgbm_test,
-        'keras_mape': keras_mape_test,
-        'keras_log': keras_log_test,
-        'xgboost_keras_log': xgboost_keras_gen_test,
-        'xgboost_keras_log_log': xgboost_keras_log_gen_test,
+        'xgboost_log': np.concatenate(gen_test),
+        'xgboost_log_log': np.concatenate(log_gen_test),
+        'lgbm_log_log': np.concatenate(log_lgbm_test),
+        'keras_mape': np.concatenate(keras_mape_test),
+        'keras_log': np.concatenate(keras_log_test),
+        'xgboost_keras_log': np.concatenate(xgboost_keras_gen_test),
+        'xgboost_keras_log_log': np.concatenate(xgboost_keras_log_gen_test),
 
     })
     test_predictions.to_pickle('data/test_predictions.pkl.gz', compression='gzip')
