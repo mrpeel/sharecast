@@ -616,6 +616,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
         }, all_test_actuals)
 
+    save(models, 'models/xgb.models')
 
     return models
 
@@ -900,90 +901,10 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
         'lgbm_log_log_y': log_log_inverse_scaled_predictions
         }, test_actuals)
 
+    save(gbms, 'models/lgbm.models')
 
     return gbms
 
-
-def train_sklearn_models(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x):
-    sklearn_models = {}
-
-    estimators = {
-        'SGDRegressor': (SGDRegressor(loss="epsilon_insensitive", epsilon=0.25, verbose=True)),
-        'huber_regression': (HuberRegressor(epsilon=5)),
-        'k_nearest_neighbours': (KNeighborsRegressor(n_jobs=-1))
-    }
-
-    all_predictions = {}
-
-
-    train_y = df_all_train_y[0].values
-    train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.values
-    test_actuals = df_all_test_actuals.values
-    test_y = df_all_test_y[0].values
-    test_x = df_all_test_x.values
-
-    for estimator in estimators:
-        print('Fitting',  estimator,  '...')
-
-        model_ref = estimator + '_log_y'
-        log_model_ref = estimator + '_log_log_y'
-
-        sklearn_models[model_ref] = estimators[estimator].fit(train_x, train_y)
-        gc.collect()
-
-        print('Executing', estimator, 'regressor predictions...')
-
-        # Make predictions
-        log_predictions = sklearn_models[model_ref].predict(test_x)
-        log_inverse_scaled_predictions = safe_exp(log_predictions)
-
-        all_predictions[estimator] = log_inverse_scaled_predictions
-
-        eval_results({model_ref: {
-                            'log_y': test_y,
-                            'actual_y': test_actuals,
-                            'log_y_predict': log_predictions,
-                            'y_predict': log_inverse_scaled_predictions
-                    }
-        })
-
-        # # Log log y
-        # sklearn_models[log_model_ref] = estimators[estimator].fit(train_x, train_y)
-        #
-        # gc.collect()
-        #
-        # sklearn_models[log_model_ref].fit(train_x, train_log_y)
-        # gc.collect()
-        #
-        # # Make predictions
-        # log_log_predictions = sklearn_models[log_model_ref].predict(test_x)
-        # predictions_log_y = safe_exp(log_log_predictions)
-        # log_log_inverse_scaled_predictions = safe_exp(predictions_log_y)
-        #
-        # eval_results({sklearn_models: {
-        #                     'log_y': test_y,
-        #                     'actual_y': test_actuals,
-        #                     'log_y_predict': predictions_log_y,
-        #                     'y_predict': log_log_inverse_scaled_predictions
-        #             }
-        # })
-
-    # Set up bagged results
-    bagged_results = None
-    for prediction in all_predictions:
-            if bagged_results is None:
-                bagged_results = all_predictions[prediction]
-            else:
-                bagged_results = bagged_results + all_predictions[prediction]
-
-    bagged_results = bagged_results / len(all_predictions)
-
-    all_predictions['bagged'] = bagged_results
-
-    range_results(all_predictions, test_actuals)
-
-    return sklearn_models
 
 def compile_keras_model(network, input_shape):
     """Compile a sequential model.
@@ -1148,9 +1069,9 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                                       outputs=model.get_layer('int_layer').output)
 
     # save models
-    p_model.save('models/mape-model.h5')
-    model.save('models/mae-model.h5')
-    mae_intermediate_model.save('models/mae_intermediate_model.h5')
+    p_model.save('models/keras-mape-model.h5')
+    model.save('models/keras-mae-model.h5')
+    mae_intermediate_model.save('models/keras-mae-intermediate-model.h5')
 
     return {
         'mape_model': p_model,
@@ -1233,6 +1154,9 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
     log_gen = gen_models['log_log_y'].predict(test_x)
     log_gen = safe_exp(safe_exp(log_gen))
 
+    lgbm = lgbm_models['log_log_y'].predict(test_x)
+    lgbm = safe_exp(safe_exp(lgbm))
+
     log_lgbm = lgbm_models['log_log_y'].predict(test_x)
     log_lgbm = safe_exp(safe_exp(log_lgbm))
 
@@ -1264,6 +1188,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
 
     # Reshape arrays
     gen = gen.reshape(gen.shape[0], 1)
+    lgbm = lgbm.reshape(log_lgbm.shape[0], 1)
     log_lgbm = log_lgbm.reshape(log_lgbm.shape[0], 1)
     log_gen = log_gen.reshape(log_gen.shape[0], 1)
     keras_mape = keras_mape.reshape(keras_mape.shape[0], 1)
@@ -1276,6 +1201,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
 
     print('gen shape', gen.shape)
     print('log_lgbm shape', log_lgbm.shape)
+    print('lgbm shape', lgbm.shape)
     print('log_gen shape', log_gen.shape)
     print('keras_mape shape', keras_mape.shape)
     print('keras_mae shape', keras_mae.shape)
@@ -1292,7 +1218,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
 
     # -10 - -5 should should use gen
     mask_neg_10_5 = ((gen > -10) & (gen <= 5))
-    bagged_predictions[mask_neg_10_5] = gen[mask_neg_10_5]
+    bagged_predictions[mask_neg_10_5] = lgbm[mask_neg_10_5]
 
     # 2 - 20 should should use gen
     mask_2_20 = ((gen > 0) & (gen <= 22))
@@ -1320,6 +1246,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_m
 
     range_results({
         'gen': gen,
+        'lgbm': lgbm,
         'log_lgbm': log_lgbm,
         'log_gen': log_gen,
         'xgboost_keras': keras_gen,
@@ -1353,6 +1280,12 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
 
     log_gen_test = gen_models['log_log_y'].predict(test_x)
     log_gen_test = safe_exp(safe_exp(log_gen_test))
+
+    lgbm_train = lgbm_models['log_y'].predict(train_x)
+    lgbm_train = safe_exp(lgbm_train)
+
+    lgbm_test = lgbm_models['log_y'].predict(test_x)
+    lgbm_test = safe_exp(lgbm_test)
 
     log_lgbm_train = lgbm_models['log_log_y'].predict(train_x)
     log_lgbm_train = safe_exp(safe_exp(log_lgbm_train))
@@ -1394,6 +1327,7 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
     train_predictions = pd.DataFrame.from_dict({
         'xgboost_log': np.concatenate(gen_train),
         'xgboost_log_log': np.concatenate(log_gen_train),
+        'lgbmlog': np.concatenate(lgbm_train),
         'lgbm_log_log': np.concatenate(log_lgbm_train),
         'keras_mape': np.concatenate(keras_mape_train),
         'keras_log': np.concatenate(keras_log_train),
@@ -1409,6 +1343,7 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
     test_predictions = pd.DataFrame.from_dict({
         'xgboost_log': np.concatenate(gen_test),
         'xgboost_log_log': np.concatenate(log_gen_test),
+        'lgb': np.concatenate(lgbm_test),
         'lgbm_log_log': np.concatenate(log_lgbm_test),
         'keras_mape': np.concatenate(keras_mape_test),
         'keras_log': np.concatenate(keras_log_test),
@@ -1482,217 +1417,6 @@ def main():
 
     bagging(df_all_test_x, df_all_test_actuals, gen_models, lgbm_models, keras_models, deep_bagged_predictions)
 
-    return
-
-    # Remove combined data, only required for general model
-    del df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x
-    gc.collect()
-
-    symbol_models, all_results, results_output = train_symbol_models(symbol_map, symbols_train_y, symbols_train_x,
-                                                                     symbols_test_actuals, symbols_test_y,
-                                                                     symbols_test_x, gen_model, lgbm_models,
-                                                                     keras_models)
-
-    gc.collect()
-
-    # Save results as csv
-    results_output.to_csv('xgboost-models/results-' + run_str + '.csv', columns = ['symbol',
-                                                                                   'general_mle',
-                                                                                   'lgbm_mle',
-                                                                                   'symbol_mle',
-                                                                                   'fifty_fifty_mle',
-                                                                                   'sixty_thirty_mle',
-                                                                                   'thirds_mle',
-                                                                                   'bagged_mle',
-                                                                                   'general_mae',
-                                                                                   'lgbm_mae',
-                                                                                   'symbol_mae',
-                                                                                   'fifty_fifty_mae',
-                                                                                   'sixty_thirty_mae',
-                                                                                   'thirds_mae',
-                                                                                   'bagged_mae',
-                                                                                   'general_mape',
-                                                                                   'lgbm_mape',
-                                                                                   'symbol_mape',
-                                                                                   'fifty_fifty_mape',
-                                                                                   'sixty_thirty_mape',
-                                                                                   'thirds_mape',
-                                                                                   'bagged_mape',
-                                                                                   'general_r2',
-                                                                                   'lgbm_r2',
-                                                                                   'symbol_r2',
-                                                                                   'fifty_fifty_r2',
-                                                                                   'sixty_thirty_r2',
-                                                                                   'thirds_r2',
-                                                                                   'bagged_r2'])
-
-
-    # Save models to file
-    #save(symbol_map, 'xgboost-models/symbol-map.dat.gz')
-    #save(gen_model, 'xgboost-models/general.dat.gz')
-    #save(symbol_models, 'xgboost-models/symbols.dat.gz')
-
-
-    # Generate final and combined results
-    gen_err = mean_absolute_error(all_results['actuals'].values, all_results['gen_predictions'].values)
-    symbol_err = mean_absolute_error(all_results['actuals'].values, all_results['symbol_predictions'].values)
-
-    gen_mape = safe_mape(all_results['actuals'].values, all_results['gen_predictions'].values)
-    symbol_mape = safe_mape(all_results['actuals'].values, all_results['symbol_predictions'].values)
-
-    gen_r2 = r2_score(all_results['actuals'].values, all_results['gen_predictions'].values)
-    symbol_r2 = r2_score(all_results['actuals'].values, all_results['symbol_predictions'].values)
-
-    fifty_err = mean_absolute_error(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
-    fifty_mape = safe_mape(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
-    fifty_r2 = r2_score(all_results['actuals'].values, ((all_results['gen_predictions'].values + all_results['symbol_predictions'].values) / 2))
-
-    sixty_err = mean_absolute_error(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
-    sixty_mape = safe_mape(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
-    sixty_r2 = r2_score(all_results['actuals'].values, ((all_results['gen_predictions'].values + (all_results['symbol_predictions'].values * 2)) / 3))
-
-    thirds_err = mean_absolute_error(all_results['actuals'].values, ((all_results['gen_predictions'].values +
-                                                                      all_results['symbol_predictions'].values +
-                                                                      all_results['lgbm_predictions'].values) / 3))
-    thirds_mape = safe_mape(all_results['actuals'].values, ((all_results['gen_predictions'].values +
-                                                             all_results['symbol_predictions'].values +
-                                                             all_results['lgbm_predictions'].values) / 3))
-    thirds_r2 = r2_score(all_results['actuals'].values, ((all_results['gen_predictions'].values +
-                                                          all_results['symbol_predictions'].values +
-                                                          all_results['lgbm_predictions'].values) / 3))
-
-    bagged_err = mean_absolute_error(all_results['actuals'].values, all_results['bagged_predictions'].values)
-    bagged_mape = safe_mape(all_results['actuals'].values, all_results['bagged_predictions'].values)
-    bagged_r2 = r2_score(all_results['actuals'].values, all_results['bagged_predictions'].values)
-
-
-
-    # Print results
-    print('Overall results')
-    print('-------------------')
-    print('Mean absolute error')
-    print('     gen:', gen_err)
-    print('  symbol:', symbol_err)
-    print('   50/50:', fifty_err)
-    print('   66/33:', sixty_err)
-    print('  thirds:', thirds_err)
-    print('  bagged:', bagged_err)
-
-    print('Mean absolute percentage error')
-    print('     gen:', gen_mape)
-    print('  symbol:', symbol_mape)
-    print('   50/50:', fifty_mape)
-    print('   66/33:', sixty_mape)
-    print('  thirds:', thirds_mape)
-    print('  bagged:', bagged_mape)
-
-    print('r2')
-    print('     gen:', gen_r2)
-    print('  symbol:', symbol_r2)
-    print('   50/50:', fifty_r2)
-    print('   66/33:', sixty_r2)
-    print('  thirds:', thirds_r2)
-    print('  bagged:', bagged_r2)
-
-    overall_results_output = pd.DataFrame()
-
-
-    result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
-    lower_range = -100
-
-    for upper_range in result_ranges:
-        range_results = all_results.loc[(all_results['actuals'] >= lower_range) &
-                                        (all_results['actuals'] < upper_range)]
-        # Generate final and combined results
-        range_actuals = range_results['actuals'].values
-        range_gen_predictions = range_results['gen_predictions'].values
-        range_lgbm_predictions = range_results['lgbm_predictions'].values
-        range_symbol_predictions = range_results['symbol_predictions'].values
-        range_bagged_predictions = range_results['bagged_predictions'].values
-
-        gen_mae = mean_absolute_error(range_actuals, range_gen_predictions)
-        lgbm_mae = mean_absolute_error(range_actuals, range_lgbm_predictions)
-        symbol_mae = mean_absolute_error(range_actuals, range_symbol_predictions)
-        bagged_mae = mean_absolute_error(range_actuals, range_bagged_predictions)
-        gen_mape = safe_mape(range_actuals, range_gen_predictions)
-        lgbm_mape = safe_mape(range_actuals, range_lgbm_predictions)
-        symbol_mape = safe_mape(range_actuals, range_symbol_predictions)
-        bagged_mape = safe_mape(range_actuals, range_bagged_predictions)
-
-        fifty_mae = mean_absolute_error(range_actuals, ((range_gen_predictions + range_symbol_predictions) / 2))
-        fifty_mape = safe_mape(range_actuals, (range_gen_predictions + range_symbol_predictions) / 2)
-
-        sixty_mae = mean_absolute_error(range_actuals, ((range_gen_predictions + (range_symbol_predictions * 2)) / 3))
-        sixty_mape = safe_mape(range_actuals, ((range_gen_predictions + (range_symbol_predictions * 2)) / 3))
-
-        thirds_mae = mean_absolute_error(range_actuals, ((range_gen_predictions + range_symbol_predictions +
-                                                          range_lgbm_predictions) / 3))
-        thirds_mape = safe_mape(range_actuals, (range_gen_predictions + range_symbol_predictions +
-                                                range_lgbm_predictions) / 3)
-
-
-        # Print results
-        print('Results:', lower_range, 'to', upper_range)
-        print('-------------------')
-        print('Mean absolute error')
-        print('     gen:', gen_mae)
-        print('    lgbm:', lgbm_mae)
-        print('  symbol:', symbol_mae)
-        print('   50/50:', fifty_mae)
-        print('   66/33:', sixty_mae)
-        print('  thirds:', thirds_mae)
-        print('  bagged:', bagged_mae)
-
-        print('Mean absolute percentage error')
-        print('     gen:', gen_mape)
-        print('    lgbm:', lgbm_mape)
-        print('  symbol:', symbol_mape)
-        print('   50/50:', fifty_mape)
-        print('   66/33:', sixty_mape)
-        print('  thirds:', thirds_mape)
-        print('  bagged:', bagged_mape)
-
-
-
-        overall_results_output = overall_results_output.append(pd.DataFrame.from_dict(
-            {'lower_range': [lower_range],
-             'upper_range': [upper_range],
-             'gen_mae': [gen_mae],
-             'lgbm_mae': [lgbm_mae],
-             'symbol_mae': [symbol_mae],
-             'fifty_mae': [fifty_mae],
-             'sixty_mae': [sixty_mae],
-             'thirds_mae': [thirds_mae],
-             'bagged_mae': [bagged_mae],
-             'gen_mape': [gen_mape],
-             'lgbm_mape': [lgbm_mape],
-             'symbol_mape': [symbol_mape],
-             'fifty_mape': [fifty_mape],
-             'sixty_mape': [sixty_mape],
-             'thirds_mape': [thirds_mape],
-             'bagged_mape': [bagged_mape]
-             }))
-
-
-        lower_range = upper_range
-
-    # Output range results as csv
-    overall_results_output.to_csv('xgboost-models/range-results-' + run_str+ '.csv', columns=['lower_range',
-                                                                                              'upper_range',
-                                                                                              'gen_mae',
-                                                                                              'lgbm_mae',
-                                                                                              'symbol_mae',
-                                                                                              'fifty_mae',
-                                                                                              'sixty_mae',
-                                                                                              'thirds_mae',
-                                                                                              'bagged_mae',
-                                                                                              'gen_mape',
-                                                                                              'lgbm_mape',
-                                                                                              'symbol_mape',
-                                                                                              'fifty_mape',
-                                                                                              'sixty_mape',
-                                                                                              'thirds_mape',
-                                                                                              'bagged_mape'])
 
 if __name__ == "__main__":
     main()

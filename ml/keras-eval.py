@@ -18,11 +18,22 @@ import numpy as np
 
 from eval_results import *
 
-def sc_mean_absolute_percentage_error(y_true, y_pred):
+def k_mean_absolute_percentage_error(y_true, y_pred):
     diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            1.,
-                                            None))
+                                            1., None))
     return 100. * K.mean(diff, axis=-1)
+
+def k_mae_mape(y_true, y_pred):
+    diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
+                                            1., None))
+    mape = 100. * K.mean(diff, axis=-1)
+    mae = K.mean(K.abs(y_true - y_pred), axis=-1)
+    return mape * mae
+
+def mae_mape(actual_y, prediction_y):
+    mape = safe_mape(actual_y, prediction_y)
+    mae = mean_absolute_error(actual_y, prediction_y)
+    return mape * mae
 
 def safe_log(input_array):
     return_vals = input_array.copy()
@@ -53,7 +64,7 @@ def safe_mape(actual_y, prediction_y):
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
-def compile_model(network, input_shape, model_type):
+def compile_model(network, input_shape, model_type=''):
     """Compile a sequential model.
 
     Args:
@@ -70,6 +81,9 @@ def compile_model(network, input_shape, model_type):
     optimizer = network['optimizer']
     dropout = network['dropout']
 
+    if 'model_type' in network:
+        model_type = network['model_type']
+
     model = Sequential()
 
     # Add each layer.
@@ -83,17 +97,21 @@ def compile_model(network, input_shape, model_type):
 
         model.add(Dropout(dropout))
 
-    if model_type == "mae":
-        model.add(Dense(30, activation=activation, name="int_layer"))
+
+    if 'int_layer' in network:
+        model.add(Dense(network['int_layer'], activation=activation, name="int_layer"))
         model.add(Dropout(dropout))
+
 
     # Output layer.
     model.add(Dense(1, activation='linear'))
 
     if model_type == "mape":
-        model.compile(loss=sc_mean_absolute_percentage_error, optimizer=optimizer, metrics=['mae'])
+        model.compile(loss=k_mean_absolute_percentage_error, optimizer=optimizer, metrics=['mae'])
+    elif model_type == "mae_mape":
+        model.compile(loss=k_mae_mape, optimizer=optimizer, metrics=['mae', k_mean_absolute_percentage_error])
     else:
-        model.compile(loss='mae', optimizer=optimizer, metrics=[sc_mean_absolute_percentage_error])
+        model.compile(loss='mae', optimizer=optimizer, metrics=[k_mean_absolute_percentage_error])
 
     return model
 
@@ -114,11 +132,11 @@ def train_and_score(network):
 
     train_y = df_all_train_y[0].values
     train_actuals = df_all_train_actuals[0].values
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
-    test_x = df_all_test_x.as_matrix()
+    test_x = df_all_test_x.values
 
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=10)
@@ -129,28 +147,29 @@ def train_and_score(network):
     input_shape = (train_x.shape[1],)
 
 
-    model = compile_model(network, input_shape, "mape")
+    model = compile_model(network, input_shape, "mae_mape")
 
     print('\rNetwork')
 
     for property in network:
         print(property, ':', network[property])
 
-    history = model.fit(train_x, train_y,
+    history = model.fit(train_x, train_actuals,
                         batch_size=network['batch_size'],
                         epochs=10000,  # using early stopping, so no real limit
                         verbose=0,
-                        validation_data=(test_x, test_y),
+                        validation_data=(test_x, test_actuals),
                         callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
 
     model.load_weights('weights.hdf5')
     predictions = model.predict(test_x)
     predictions = predictions.reshape(predictions.shape[0], )
-    predictions = safe_exp(predictions)
+    # predictions = safe_exp(predictions)
     mae = mean_absolute_error(test_actuals, predictions)
     mape = safe_mape(test_actuals, predictions)
+    maeape = mae_mape(test_actuals, predictions)
 
-    score = mape
+    score = maeape
 
     print('\rResults')
 
@@ -158,6 +177,7 @@ def train_and_score(network):
 
 
     print('epochs:', hist_epochs)
+    print('mae_mape:', maeape)
     print('mape:', mape)
     print('mae:', mae)
     print('-' * 20)
@@ -188,10 +208,10 @@ def train_and_score_bagging(network):
     test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
 
 
-    train_x = train_predictions.as_matrix()
+    train_x = train_predictions.values
     train_y = train_actuals[0].values
     train_log_y = safe_log(train_y)
-    test_x = test_predictions.as_matrix()
+    test_x = test_predictions.values
     test_y = test_actuals[0].values
     test_log_y = safe_log(test_y)
 
@@ -348,6 +368,121 @@ def train_and_score_entity_embedding(network):
 
     hist_epochs = len(history.history['val_loss'])
 
+def assess_models():
+
+    df_all_train_x = pd.read_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+    df_all_train_y = pd.read_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+    df_all_train_actuals = pd.read_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
+    df_all_test_x = pd.read_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
+    df_all_test_y = pd.read_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+    df_all_test_actuals = pd.read_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
+
+    train_y = df_all_train_y[0].values
+    train_actuals = df_all_train_actuals[0].values
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
+    test_y = df_all_test_y[0].values
+    test_log_y = safe_log(test_y)
+    test_x = df_all_test_x.values
+
+
+    print('Fitting Keras mape model...')
+
+    network = {
+        'nb_neurons': 512,
+        'nb_layers': 3,
+        'activation': "relu",
+        'optimizer': "adagrad",
+        'batch_size': 256,
+        'dropout': 0.05,
+        'model_type': "mape"
+    }
+
+    input_shape = (train_x.shape[1],)
+
+    p_model = compile_model(network, input_shape)
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
+    csv_logger = CSVLogger('./logs/actual-mape-training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    history = p_model.fit(train_x,
+                          train_actuals,
+                          validation_data=(test_x, test_actuals),
+                          epochs=20000,
+                          batch_size=network['batch_size'],
+                          callbacks=[reduce_lr, early_stopping, csv_logger, checkpointer],
+                          verbose=0)
+
+    p_model.load_weights('weights.hdf5')
+
+    predictions = p_model.predict(test_x)
+
+    eval_results({'keras_mape': {
+                        'actual_y': test_actuals,
+                        'y_predict': predictions
+                }
+    })
+
+
+    print('Building Keras mae model...')
+
+    network = {
+        'nb_layers': 4,
+        'nb_neurons': 768,
+        'activation': "relu",
+        'optimizer': "adamax",
+        'dropout': 0.05,
+        'batch_size': 256,
+        'model_type': "mae",
+        'int_layer': 30
+    }
+
+    input_shape = (train_x.shape[1],)
+
+    model = compile_model(network, input_shape)
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=26)
+    csv_logger = CSVLogger('./logs/log-training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    print('Fitting Keras mae model...')
+
+    history = model.fit(train_x,
+                        train_y,
+                        validation_data=(test_x, test_y),
+                        epochs=20000,
+                        batch_size=network['batch_size'],
+                        callbacks=[reduce_lr, early_stopping, checkpointer, csv_logger],
+                        verbose=0)
+
+    model.load_weights('weights.hdf5')
+
+
+    print('Executing keras predictions...')
+
+    log_y_predictions = model.predict(test_x)
+    exp_predictions = safe_exp(log_y_predictions)
+
+    eval_results({'keras_log_y': {
+                        #'log_y': test_y,
+                        'actual_y': test_actuals,
+                        #'log_y_predict': log_predictions,
+                        'y_predict': exp_predictions
+                }
+    })
+
+    range_results({
+        'keras_mape': predictions,
+        'keras_log_y': exp_predictions,
+    }, test_actuals)
+
+
+    # save models
+    p_model.save('models/mape-model.h5')
+    model.save('models/mae-model.h5')
 
 
 def main():
@@ -362,16 +497,18 @@ def main():
     #
     # train_and_score(network)
 
-    network = {
-        "nb_neurons": 512,
-        "nb_layers": 3,
-        "activation": "relu",
-        "optimizer": "adagrad",
-        "batch_size": 256,
-        "dropout": 0.05,
-    }
-
-    train_and_score(network)
+    # network = {
+    #     "nb_neurons": 768,
+    #     "nb_layers": 5,
+    #     "activation": "elu",
+    #     "optimizer": "adamax",
+    #     "batch_size": 256,
+    #     "dropout": 0.05,
+    #     "int_layer": 30,
+    # }
+    #
+    # train_and_score(network)
+    assess_models()
 
 
 if __name__ == '__main__':

@@ -123,11 +123,11 @@ def train_and_score_xgb(network):
     train_y = df_all_train_y[0].values
     train_actuals = df_all_train_actuals[0].values
     train_log_y = safe_log(train_y)
-    train_x = df_all_train_x.as_matrix()
-    test_actuals = df_all_test_actuals.as_matrix()
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
     test_y = df_all_test_y[0].values
     test_log_y = safe_log(test_y)
-    test_x = df_all_test_x.as_matrix()
+    test_x = df_all_test_x.values
 
     # Use keras model to generate x vals
     mae_intermediate_model = load_model('models/mae_intermediate_model.h5')
@@ -292,7 +292,7 @@ def train_and_score_lgbm(network):
                     valid_sets=eval_set,  # eval training data
                     feval=maepe_eval,
                     # Set learning rate to reduce every 10 iterations
-                    learning_rates=lambda iter: 0.125 * (0.999 ** round_down(iter, 10)),
+                    learning_rates=lambda iter: 0.1 * (0.999 ** round_down(iter, 10)),
                     num_boost_round=500,
                     early_stopping_rounds=5)
 
@@ -334,7 +334,9 @@ def train_and_score_lgbm(network):
     }, test_actuals)
 
 def main(type):
-    if type =="xgb":
+    if type == "xgb_combined":
+        xgboost_combined()
+    elif type =="xgb":
         network = {
             'max_depth': 110,
             'base_score': 1.0,
@@ -430,10 +432,129 @@ def main(type):
             'verbosity': -1,
             'histogram_pool_size': 8192,
             'metric_freq': 10,
+            # 'learning_rate': 0.125,
         }
 
         train_and_score_lgbm(network)
 
+def xgboost_combined():
+    df_all_train_x = pd.read_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+    df_all_train_y = pd.read_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+    df_all_train_actuals = pd.read_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
+    df_all_test_x = pd.read_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
+    df_all_test_y = pd.read_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+    df_all_test_actuals = pd.read_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
+
+    train_y = df_all_train_y[0].values
+    train_actuals = df_all_train_actuals[0].values
+    train_log_y = safe_log(train_y)
+    train_x = df_all_train_x.values
+    test_actuals = df_all_test_actuals.values
+    test_y = df_all_test_y[0].values
+    test_log_y = safe_log(test_y)
+    test_x = df_all_test_x.values
+
+    models = {}
+
+    # Use keras model to generate x vals
+    mae_intermediate_model = load_model('models/mae_intermediate_model.h5')
+
+    mae_vals_train = mae_intermediate_model.predict(train_x)
+    mae_vals_test = mae_intermediate_model.predict(test_x)
+
+    eval_set = [(test_x, test_y)]
+    models['log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=70, base_score=0.1,
+                                       colsample_bylevel=0.7,
+                                       colsample_bytree=1.0, gamma=0, learning_rate=0.025, min_child_weight=3)
+
+    models['log_y'].fit(train_x, train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+                        verbose=True)
+
+    predictions = models['log_y'].predict(test_x)
+    inverse_scaled_predictions = safe_exp(predictions)
+
+    eval_results({'xgboost_mae': {
+        'log_y': test_y,
+        'actual_y': test_actuals,
+        'log_y_predict': predictions,
+        'y_predict': inverse_scaled_predictions
+    }
+    })
+
+    models['log_log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000,
+                                           max_depth=130,
+                                           base_score=0.7,
+                                           colsample_bylevel=0.55,
+                                           colsample_bytree=0.85,
+                                           gamma=0.15,
+                                           min_child_weight=2,
+                                           learning_rate=0.025)
+
+    eval_set = [(test_x, test_log_y)]
+    models['log_log_y'].fit(train_x, train_log_y, early_stopping_rounds=50, eval_metric='mae',
+                            eval_set=eval_set,
+                            verbose=True)
+
+
+    log_predictions = models['log_log_y'].predict(test_x)
+    #### Double exp #######
+    log_inverse_scaled_predictions = safe_exp(safe_exp(log_predictions))
+
+    eval_results({'xgboost_log_log_mae': {
+        'actual_y': test_actuals,
+        'y_predict': log_inverse_scaled_predictions
+    }
+    })
+
+    models['keras_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=70, learning_rate=0.025,
+                                           base_score=0.25, colsample_bylevel=0.4, colsample_bytree=0.55,
+                                           gamma=0, min_child_weight=0)
+
+    eval_set = [(mae_vals_test, test_y)]
+    models['keras_mae'].fit(mae_vals_train, train_y, early_stopping_rounds=50, eval_metric='mae',
+                            eval_set=eval_set, verbose=True)
+
+    keras_log_predictions = models['keras_mae'].predict(mae_vals_test)
+    keras_inverse_scaled_predictions = safe_exp(keras_log_predictions)
+
+    eval_results({'xgboost_keras': {
+        'log_y': test_y,
+        'actual_y': test_actuals,
+        'log_y_predict': keras_log_predictions,
+        'y_predict': keras_inverse_scaled_predictions
+    }
+    })
+
+    models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000,
+                                               max_depth=130,
+                                               base_score=0.4,
+                                               colsample_bylevel=0.4,
+                                               colsample_bytree=0.4,
+                                               gamma=0,
+                                               min_child_weight=0,
+                                               learning_rate=0.025)
+
+    eval_set = [(mae_vals_test, test_log_y)]
+    models['keras_log_mae'].fit(mae_vals_train, train_log_y, early_stopping_rounds=50, eval_metric='mae',
+                                eval_set=eval_set, verbose=True)
+
+    keras_log_log_predictions = models['keras_log_mae'].predict(mae_vals_test)
+    #### Double exp #######
+    keras_log_inverse_scaled_predictions = safe_exp(safe_exp(keras_log_log_predictions))
+
+    eval_results({'xgboost_keras_log_y': {
+        'actual_y': test_actuals,
+        'y_predict': keras_log_inverse_scaled_predictions
+    }
+    })
+
+    range_results({
+        'xgboost_mae': inverse_scaled_predictions,
+        'xgboost_log_mae': log_inverse_scaled_predictions,
+        'xgboost_keras_mae': keras_inverse_scaled_predictions,
+        'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
+    }, test_actuals)
+
 
 if __name__ == '__main__':
-    main("lgbm")
+    main("xgb_combined")
