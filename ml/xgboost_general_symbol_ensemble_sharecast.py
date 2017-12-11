@@ -4,8 +4,9 @@ from __future__ import division
 from __future__ import print_function
 
 
-import pickle
-import gzip
+# import pickle
+# import gzip
+import joblib
 import sys
 #from sklearn.externals import joblib
 import datetime
@@ -112,29 +113,26 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteDate_TIMESTAMP', 'volume', 'previou
 
 
 def save(object, filename):
-        """Saves a compressed object to disk
-        """
-
-        with open(filename, 'wb') as f:
-            pickle.dump(object, f, protocol=pickle.HIGHEST_PROTOCOL)
-            # f.write(pickle.dumps(object, pickle.HIGHEST_PROTOCOL))
+    """Saves a compressed object to disk
+       """
+    # with gzip.open(filename, 'wb') as f:
+    #     f.write(pickle.dumps(object, protocol))
+    joblib.dump(object, filename)
 
 
 # @profile
 def load(filename):
-        """Loads a compressed object from disk
-        """
-        # file = gzip.GzipFile(filename, 'rb')
-        # buffer = ""
-        # while True:
-        #         data = file.read()
-        #         if data == "":
-        #                 break
-        #         buffer += data
-        # object = pickle.loads(buffer)
-        # file.close()
-        object = pickle.dump(object, open(filename, "rb"))
-        return object
+    """Loads a compressed object from disk
+    """
+    # with gzip.open(filename, 'rb') as f:
+    #     file_content = f.read()
+    #
+    # object = pickle.loads(file_content)
+    # return object
+    joblib.load(filename)
+
+def round_down(num, divisor):
+    return num - (num%divisor)
 
 # @profile
 def safe_log(input_array):
@@ -241,6 +239,14 @@ def mape_log_y_eval(actual_y, eval_y):
     assert len(actual_y) == len(prediction_y)
     return 'error', mape_log_y(actual_y, prediction_y)
 
+
+def flatten_array(np_array):
+    if np_array.ndim > 1:
+        new_array = np.concatenate(np_array)
+    else:
+        new_array = np_array
+
+    return new_array
 
 
 # @profile
@@ -474,7 +480,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     #Train general model
     models = {}
     # Create model
-    models['log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=70, base_score=0.1, colsample_bylevel=0.7,
+    models['log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=500, max_depth=70, base_score=0.1, colsample_bylevel=0.7,
                                            colsample_bytree=1.0, gamma=0, learning_rate=0.025, min_child_weight=3)
 
     all_train_y = df_all_train_y.values
@@ -516,7 +522,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     # all_test_x = np.column_stack([all_test_x, mae_vals_test])
 
     eval_set = [(all_test_x, all_test_y)]
-    models['log_y'].fit(all_train_x, all_train_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+    models['log_y'].fit(all_train_x, all_train_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
     #model.fit(all_train_x, all_train_y, early_stopping_rounds=250, eval_metric=mape_log_y_eval, eval_set=eval_set,
     #model.fit(stacked_train_x, all_train_y, early_stopping_rounds=250, eval_metric=huber_loss_eval, eval_set=eval_set,
                 verbose=True)
@@ -537,7 +543,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     })
 
 
-    models['log_log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000,
+    models['log_log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=500,
                                            max_depth=130,
                                            base_score=0.7,
                                            colsample_bylevel=0.55,
@@ -547,7 +553,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                                            learning_rate=0.025)
 
     eval_set = [(all_test_x, all_test_log_y)]
-    models['log_log_y'].fit(all_train_x, all_train_log_y, early_stopping_rounds=50, eval_metric='mae', eval_set=eval_set,
+    models['log_log_y'].fit(all_train_x, all_train_log_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
                 verbose=True)
 
 
@@ -563,12 +569,12 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                 }
     })
 
-    models['keras_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000, max_depth=70, learning_rate=0.025,
+    models['keras_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=500, max_depth=70, learning_rate=0.025,
                                            base_score=0.25, colsample_bylevel=0.4, colsample_bytree=0.55,
                                            gamma=0, min_child_weight=0)
 
     eval_set = [(mae_vals_test, all_test_y)]
-    models['keras_mae'].fit(mae_vals_train, all_train_y, early_stopping_rounds=50, eval_metric='mae',
+    models['keras_mae'].fit(mae_vals_train, all_train_y, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
     gc.collect()
 
@@ -584,7 +590,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                     }
         })
 
-    models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=5000,
+    models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=500,
                                                max_depth=130,
                                                base_score=0.4,
                                                colsample_bylevel=0.4,
@@ -594,7 +600,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                                                learning_rate=0.025)
 
     eval_set = [(mae_vals_test, all_test_log_y)]
-    models['keras_log_mae'].fit(mae_vals_train, all_train_log_y, early_stopping_rounds=50, eval_metric='mae',
+    models['keras_log_mae'].fit(mae_vals_train, all_train_log_y, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
     gc.collect()
 
@@ -616,7 +622,8 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
         }, all_test_actuals)
 
-    save(models, 'models/xgb.models')
+    for key in models:
+        save(models[key], 'models/xgb-' + key + '.model.gz')
 
     return models
 
@@ -856,7 +863,7 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
     iteration_number = 500
 
     if gbms['log_y'].best_iteration:
-        iteration_number = gbm.best_iteration
+        iteration_number = gbms['log_y'].best_iteration
 
     predictions = gbms['log_y'].predict(df_all_test_x, num_iteration=iteration_number)
     eval_predictions = safe_exp(predictions)
@@ -901,7 +908,8 @@ def train_lgbm(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_
         'lgbm_log_log_y': log_log_inverse_scaled_predictions
         }, test_actuals)
 
-    save(gbms, 'models/lgbm.models')
+    for key in gbms:
+        save(gbms[key], 'models/lgbm-' + key + '.model.gz')
 
     return gbms
 
@@ -1076,7 +1084,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     return {
         'mape_model': p_model,
         'mae_model': model,
-         'mae_intermediate_model': mae_intermediate_model
+        'mae_intermediate_model': mae_intermediate_model
         }
 
 def deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
@@ -1325,14 +1333,14 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
 
 
     train_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': np.concatenate(gen_train),
-        'xgboost_log_log': np.concatenate(log_gen_train),
-        'lgbmlog': np.concatenate(lgbm_train),
-        'lgbm_log_log': np.concatenate(log_lgbm_train),
-        'keras_mape': np.concatenate(keras_mape_train),
-        'keras_log': np.concatenate(keras_log_train),
-        'xgboost_keras_log': np.concatenate(xgboost_keras_gen_train),
-        'xgboost_keras_log_log': np.concatenate(xgboost_keras_log_gen_train),
+        'xgboost_log': flatten_array(gen_train),
+        'xgboost_log_log': flatten_array(log_gen_train),
+        'lgbmlog': flatten_array(lgbm_train),
+        'lgbm_log_log': flatten_array(log_lgbm_train),
+        'keras_mape': flatten_array(keras_mape_train),
+        'keras_log': flatten_array(keras_log_train),
+        'xgboost_keras_log': flatten_array(xgboost_keras_gen_train),
+        'xgboost_keras_log_log': flatten_array(xgboost_keras_log_gen_train),
     })
     train_predictions.to_pickle('data/train_predictions.pkl.gz', compression='gzip')
 
@@ -1341,14 +1349,14 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
     keras_log_test = keras_log_test.reshape(keras_log_test.shape[0], )
 
     test_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': np.concatenate(gen_test),
-        'xgboost_log_log': np.concatenate(log_gen_test),
-        'lgb': np.concatenate(lgbm_test),
-        'lgbm_log_log': np.concatenate(log_lgbm_test),
-        'keras_mape': np.concatenate(keras_mape_test),
-        'keras_log': np.concatenate(keras_log_test),
-        'xgboost_keras_log': np.concatenate(xgboost_keras_gen_test),
-        'xgboost_keras_log_log': np.concatenate(xgboost_keras_log_gen_test),
+        'xgboost_log': flatten_array(gen_test),
+        'xgboost_log_log': flatten_array(log_gen_test),
+        'lgb': flatten_array(lgbm_test),
+        'lgbm_log_log': flatten_array(log_lgbm_test),
+        'keras_mape': flatten_array(keras_mape_test),
+        'keras_log': flatten_array(keras_log_test),
+        'xgboost_keras_log': flatten_array(xgboost_keras_gen_test),
+        'xgboost_keras_log_log': flatten_array(xgboost_keras_log_gen_test),
 
     })
     test_predictions.to_pickle('data/test_predictions.pkl.gz', compression='gzip')
@@ -1385,8 +1393,8 @@ def main():
     #                                       df_all_test_x)
 
     # Write scaler and categorical encoder to files
-    save(scaler, 'models/scaler.pkl')
-    save(ce, 'models/ce.pkl')
+    save(scaler, 'models/scaler.pkl.gz')
+    save(ce, 'models/ce.pkl.gz')
 
     # Write data to files
     df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
