@@ -22,6 +22,22 @@ const lambdaParamsRetrieveDaily = {
   },
 };
 
+const lambdaParamsRetrieveFunction = {
+  FunctionName: 'retrieveFunction',
+  Handler: 'index.retrievalHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs4.3',
+  Description: 'Run single retrieve function for share data and store in dynamodb',
+  MemorySize: 256,
+  Timeout: 300,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
+
+
 const lambdaParamsCheckAdjustedPrices = {
   FunctionName: 'checkForAdjustments',
   Handler: 'index.checkForAdjustmentsHandler',
@@ -106,6 +122,7 @@ gulp.task('deploy', ['install_dependencies'], function() {
   gulp.src(['dist/**/*'])
     .pipe(zip('retrieve-share-data.zip'))
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveFunction))
     .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
     .pipe(awsLambda(awsCredentials, lambdaParamsReloadQuote))
     .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));

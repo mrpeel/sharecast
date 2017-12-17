@@ -248,6 +248,172 @@ let dailyHandler = asyncify(function(event, context) {
   }
 });
 
+/* Individual handler */
+let retrievalHandler = asyncify(function(event, context) {
+  let functionName = event.retrievalFunction || '';
+  console.log(`retrievalHandler called with event: ${JSON.stringify(event)}`);
+
+  try {
+    let t0 = getTiming();
+
+    // Execute the specified function
+    switch (functionName) {
+      case 'executeFinancialIndicators':
+        console.log('Executing retrieve financial indicators');
+        awaitify(retrieval.executeFinancialIndicators());
+        break;
+
+      case 'executeCompanyMetrics1':
+        console.log('Executing retrieve company metrics - phase 1');
+        awaitify(retrieval.executeCompanyMetrics({
+          startRec: 0,
+          endRec: 499,
+        }));
+        break;
+
+      case 'executeCompanyMetrics2':
+        console.log('Executing retrieve company metrics - phase 2');
+        awaitify(retrieval.executeCompanyMetrics({
+          startRec: 500,
+          endRec: 999,
+        }));
+        break;
+
+      case 'executeCompanyMetrics3':
+        console.log('Executing retrieve company metrics - phase 3');
+        awaitify(retrieval.executeCompanyMetrics({
+          startRec: 1000,
+        }));
+        break;
+
+      case 'executeIndexQuoteRetrieval':
+        console.log('Executing retrieve index quotes');
+        awaitify(retrieval.executeIndexQuoteRetrieval());
+        break;
+
+      case 'executeCompanyQuoteRetrieval1':
+        console.log('Executing retrieve company quotes - phase 1');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 0,
+          endRec: 249,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval2':
+        console.log('Executing retrieve company quotes - phase 2');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 250,
+          endRec: 499,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval3':
+        console.log('Executing retrieve company quotes - phase 3');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 500,
+          endRec: 749,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval4':
+        console.log('Executing retrieve company quotes - phase 4');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 750,
+          endRec: 999,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval5':
+        console.log('Executing retrieve company quotes - phase 5');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1000,
+          endRec: 1249,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval6':
+        console.log('Executing retrieve company quotes - phase 6');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1250,
+          endRec: 1499,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval7':
+        console.log('Executing retrieve company quotes - phase 7');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1500,
+          endRec: 1749,
+        }));
+        break;
+
+      case 'executeCompanyQuoteRetrieval8':
+        console.log('Executing retrieve company quotes - phase 8');
+        awaitify(retrieval.executeCompanyQuoteRetrieval({
+          startRec: 1750,
+        }));
+        break;
+
+
+      case 'executeMetricsUpdate1':
+        console.log('Executing update company quotes with metrics - phase 1');
+        awaitify(retrieval.executeMetricsUpdate({
+          startRec: 0,
+          endRec: 599,
+        }));
+        break;
+
+      case 'executeMetricsUpdate2':
+        console.log('Executing update company quotes with metrics - phase 2');
+        awaitify(retrieval.executeMetricsUpdate({
+          startRec: 600,
+          endRec: 1199,
+        }));
+        break;
+
+      case 'executeMetricsUpdate3':
+        console.log('Executing update company quotes with metrics - phase 3');
+        awaitify(retrieval.executeMetricsUpdate({
+          startRec: 1200,
+          endRec: 1799,
+        }));
+        break;
+
+      case 'executeMetricsUpdate4':
+        console.log('Executing update company quotes with metrics - phase 4');
+        awaitify(retrieval.executeMetricsUpdate({
+          startRec: 1800,
+        }));
+        break;
+    }
+
+    let duration = getTiming(t0);
+
+    // Update the last executed function
+    let logMessage = `${functionName} took ${duration} seconds to execute.`;
+    let msgSubject = `Lambda ${functionName} completed`;
+
+    console.log(logMessage);
+
+    // Send a confirmation email
+    awaitify(
+      sns.publishMsg(snsArn,
+        logMessage,
+        msgSubject));
+
+    context.succeed();
+  } catch (err) {
+    console.error(`retrieveShareData function ${functionName} failed: `, err);
+    try {
+      awaitify(
+        sns.publishMsg(snsArn,
+          err,
+          `Lambda retrieveShareData ${functionName} failed`));
+    } catch (err) {}
+    context.fail(`retrieveShareData ${functionName} failed`);
+  }
+});
+
 let checkForAdjustmentsHandler = asyncify(function(event, context) {
   try {
     awaitify(checkAdjustedPrices.checkForAdjustments(event));
@@ -296,10 +462,31 @@ let reloadQuoteHandler = asyncify(function(event, context) {
   }
 });
 
+let getTiming = function(start) {
+  if (!start) {
+    return process.hrtime();
+  }
+  let end = process.hrtime(start);
+  return end[0] + (end[1] / 1000000000);
+};
+
 
 module.exports = {
   dailyHandler: dailyHandler,
+  retrievalHandler: retrievalHandler,
   checkForAdjustmentsHandler: checkForAdjustmentsHandler,
   processReturnsHandler: processReturnsHandler,
   reloadQuote: reloadQuoteHandler,
 };
+
+// let event = {
+//   retrievalFunction: 'executeFinancialIndicators',
+// };
+// retrievalHandler(event, {
+//   succeed: function() {
+//     console.log('Succeeded');
+//   },
+//   fail: function(errMsg) {
+//     console.log('Failed');
+//   },
+// });

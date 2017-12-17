@@ -7,7 +7,7 @@ const dynamoSymbols = require('./dynamo-symbols');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 
-let baseUrl = 'https://www.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
+let baseUrl = 'https://finance.google.com/finance?output=json&start=0&num=5000&noIL=1&q=[currency%20%3D%3D%20%22AUD%22%20%26%20%28exchange%20%3D%3D%20%22ASX%22%29%20%26%20%28';
 let suffixUrl = ']&restype=company&ei=X6iZWMmFIMGW0AThhLPoCw';
 
 
@@ -70,104 +70,109 @@ let fields = {
 **/
 let retrieveCompanies = asyncify(function(existingCompanySymbols) {
   return new Promise(function(resolve, reject) {
-    let companyResults = {};
-    let resultFields = ['symbol', 'name'];
-    let resultData = [];
-    let checkSymbols = false;
+    try {
+      let companyResults = {};
+      let resultFields = ['symbol', 'name'];
+      let resultData = [];
+      let checkSymbols = false;
 
-    if (existingCompanySymbols && existingCompanySymbols.length) {
-      checkSymbols = true;
-    }
-    Object.keys(fields).forEach((lookupField) => {
-      // fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
-
-      let searchResults = awaitify(retrieveMetric(baseUrl +
-        fields[lookupField] + suffixUrl));
-
-      searchResults.forEach((result) => {
-        /* The first two returns are market cap and price.  Create filtered list
-            base don cpmanies with market cap >= 10M and price > 0 */
-
-        let companySymbol = result.ticker;
-
-
-        // Special handling for market_cap - add items to object
-        // if (lookupField === 'market_cap') {
-        if (lookupField === 'base') {
-          let marketCap = result.columns[0].value;
-          let price = result.columns[1].value;
-
-          if (marketCap === '-') {
-            marketCap = '';
-          } else {
-            marketCap = utils.checkForNumber(marketCap);
-          }
-
-          if (price === '-') {
-            price = '';
-          } else {
-            price = utils.checkForNumber(price);
-          }
-
-          // if price > 0 then add company
-          if (price > 0) {
-            companyResults[companySymbol] = {};
-            companyResults[companySymbol]['name'] = result.title;
-            companyResults[companySymbol][result.columns[0].field] = marketCap;
-            companyResults[companySymbol][result.columns[1].field] = price;
-          }
-        } else if (companyResults[companySymbol]) {
-          // for all opther fields, only add result if company already exists
-          result.columns.forEach((column) => {
-            let resultValue = column.value;
-            let resultField = column.field;
-
-            // Check for empty values which are listed as '-'
-            if (resultValue === '-') {
-              resultValue = '';
-            } else {
-              // Check and format number as required
-              resultValue = utils.checkForNumber(resultValue);
-            }
-
-            if (resultValue !== '') {
-              companyResults[companySymbol][resultField] = resultValue;
-            }
-          });
-        }
-      });
-    });
-
-    // Work through all values and build data
-    Object.keys(companyResults).forEach((company) => {
-      let companyData = {};
-
-      /* If check symbols, then compare symbol with list and if the symbol
-         is new, call add company */
-      if (checkSymbols && existingCompanySymbols.indexOf(company) < 0) {
-        // Symbol not found, so add it
-        let companyDetails = {
-          symbol: company,
-          companyName: companyResults[company]['name'],
-        };
-
-        dynamoSymbols.addCompany(companyDetails);
+      if (existingCompanySymbols && existingCompanySymbols.length) {
+        checkSymbols = true;
       }
+      Object.keys(fields).forEach((lookupField) => {
+        // fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
 
-      companyData.symbol = company;
-      // Loop through company and add each value
-      Object.keys(companyResults[company]).forEach((companyVal) => {
-        if (resultFields.indexOf(companyVal) === -1) {
-          resultFields.push(companyVal);
-        }
-        companyData[companyVal] = companyResults[company][companyVal];
+        let searchResults = awaitify(retrieveMetric(baseUrl +
+          fields[lookupField] + suffixUrl));
+
+        searchResults.forEach((result) => {
+          /* The first two returns are market cap and price.  Create filtered list
+              base don cpmanies with market cap >= 10M and price > 0 */
+
+          let companySymbol = result.ticker;
+
+
+          // Special handling for market_cap - add items to object
+          // if (lookupField === 'market_cap') {
+          if (lookupField === 'base') {
+            let marketCap = result.columns[0].value;
+            let price = result.columns[1].value;
+
+            if (marketCap === '-') {
+              marketCap = '';
+            } else {
+              marketCap = utils.checkForNumber(marketCap);
+            }
+
+            if (price === '-') {
+              price = '';
+            } else {
+              price = utils.checkForNumber(price);
+            }
+
+            // if price > 0 then add company
+            if (price > 0) {
+              companyResults[companySymbol] = {};
+              companyResults[companySymbol]['name'] = result.title;
+              companyResults[companySymbol][result.columns[0].field] = marketCap;
+              companyResults[companySymbol][result.columns[1].field] = price;
+            }
+          } else if (companyResults[companySymbol]) {
+            // for all opther fields, only add result if company already exists
+            result.columns.forEach((column) => {
+              let resultValue = column.value;
+              let resultField = column.field;
+
+              // Check for empty values which are listed as '-'
+              if (resultValue === '-') {
+                resultValue = '';
+              } else {
+                // Check and format number as required
+                resultValue = utils.checkForNumber(resultValue);
+              }
+
+              if (resultValue !== '') {
+                companyResults[companySymbol][resultField] = resultValue;
+              }
+            });
+          }
+        });
       });
-      resultData.push(companyData);
-    });
-    // console.log(resultData);
-    // utils.writeToCsv(resultData, resultFields, 'company-metrics');
 
-    resolve(resultData);
+      // Work through all values and build data
+      Object.keys(companyResults).forEach((company) => {
+        let companyData = {};
+
+        /* If check symbols, then compare symbol with list and if the symbol
+           is new, call add company */
+        if (checkSymbols && existingCompanySymbols.indexOf(company) < 0) {
+          // Symbol not found, so add it
+          let companyDetails = {
+            symbol: company,
+            companyName: companyResults[company]['name'],
+          };
+
+          dynamoSymbols.addCompany(companyDetails);
+        }
+
+        companyData.symbol = company;
+        // Loop through company and add each value
+        Object.keys(companyResults[company]).forEach((companyVal) => {
+          if (resultFields.indexOf(companyVal) === -1) {
+            resultFields.push(companyVal);
+          }
+          companyData[companyVal] = companyResults[company][companyVal];
+        });
+        resultData.push(companyData);
+      });
+      // console.log(resultData);
+      // utils.writeToCsv(resultData, resultFields, 'company-metrics');
+
+      resolve(resultData);
+    } catch (err) {
+      console.log(err);
+      reject(err);
+    }
   });
 });
 
@@ -215,6 +220,7 @@ let retrieveMetric = asyncify(function(url) {
  *    }
  */
 let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
+  console.log(`returnCompanyMetricValuesForDate called with symbol: ${symbol}, date: ${valueDate}`);
   return new Promise(function(resolve, reject) {
     if (!valueDate || !utils.isDate(valueDate)) {
       throw new Error('valueDate supplied is invalid: ' + valueDate);
@@ -282,24 +288,45 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
     awaitify(dynamodb.insertRecord(insertDetails));
   } catch (err) {
     console.log(err);
+    throw err;
   }
 });
 
 /**
  * Retrieves and processes each company metric information
  */
-let updateCompanyMetrics = asyncify(function() {
+let updateCompanyMetrics = asyncify(function(recLimits) {
   try {
     console.log('----- Start company metrics retrieval -----');
+    console.log(`Executed with: ${JSON.stringify(recLimits)}`);
+    let startTiming = utils.getTiming();
     let metricsData = awaitify(retrieveCompanies());
+    let duration = utils.getTiming(startTiming);
+    console.log(`Retrieve metrics took ${duration} seconds`);
 
-    // console.log(metricsData);
+    let startRec = 0;
+    let endRec = metricsData.length - 1;
 
-    console.log('----- Start write company metrics -----');
+    if (recLimits && recLimits.startRec) {
+      startRec = recLimits.startRec;
+    }
 
-    metricsData.forEach((companyMetricsRecord) => {
-      companyMetricsRecord['metricsDate'] = utils.returnDateAsString(
-        Date.now());
+    if (recLimits && recLimits.endRec && recLimits.endRec < endRec) {
+      endRec = recLimits.endRec;
+    }
+
+    if (startRec > endRec) {
+      console.log(`Nothing to do: start rec: ${startRec}, total number of results: ${endRec}`);
+      return;
+    }
+
+    let metricsDate = utils.returnDateAsString(Date.now());
+
+    console.log(`Updating company metrics for ${metricsDate} from ${startRec} to ${endRec}`);
+
+    for (let c = startRec; c <= endRec; c++) {
+      let companyMetricsRecord = metricsData[c];
+      companyMetricsRecord['metricsDate'] = metricsDate;
 
       // Remove nulls, empty values and -
       // Check through for values with null and remove from object
@@ -316,9 +343,12 @@ let updateCompanyMetrics = asyncify(function() {
       });
 
       awaitify(insertCompanyMetricsValue(companyMetricsRecord));
-    });
+    }
+
+    console.log(`Updating company metrics finished`);
   } catch (err) {
     console.log(err);
+    throw err;
   }
 });
 

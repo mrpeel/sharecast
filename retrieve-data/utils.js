@@ -13,6 +13,20 @@ let sleep = function(ms) {
   });
 };
 
+/** Sets up or returns the duration of an activity
+* @param {Object} start - optional - for the end of an activity, the start
+*                          object to compare with
+* @return {Object} if no start is supplied, returns a start object; if startRec
+*                   is supplied, returns a duration object
+*/
+let getTiming = function(start) {
+  if (!start) {
+    return process.hrtime();
+  }
+  let end = process.hrtime(start);
+  return end[0] + (end[1] / 1000000000);
+};
+
 
 /** Returns a date in a set format: YYYY-MM-DD
 * @param {String} dateValue - the date string to parse
@@ -213,6 +227,7 @@ let checkForNumber = function(value) {
 
 module.exports = {
   sleep: sleep,
+  getTiming: getTiming,
   returnDateAsString: returnDateAsString,
   dateAdd: dateAdd,
   dateDiff: dateDiff,

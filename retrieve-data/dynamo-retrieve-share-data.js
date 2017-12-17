@@ -752,11 +752,11 @@ let executeFinancialIndicators = asyncify(function() {
 /**  Executes the retrieval and storage of the latest company metrics
 *     information
 */
-let executeCompanyMetrics = asyncify(function() {
-  let symbolResult = awaitify(setupSymbols());
-  let mCompanies = symbolResult.companies;
+let executeCompanyMetrics = asyncify(function(recLimits) {
+  // let symbolResult = awaitify(setupSymbols());
+  // let mCompanies = symbolResult.companies;
 
-  awaitify(metrics.updateCompanyMetrics(mCompanies));
+  awaitify(metrics.updateCompanyMetrics(recLimits));
 });
 
 /**  Executes the retrieval and storage of the latest index quote
