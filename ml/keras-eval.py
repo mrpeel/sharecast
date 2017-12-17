@@ -13,6 +13,7 @@ from keras.models import Model
 from keras import backend as K
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
 from sklearn.metrics import mean_absolute_error
+from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import numpy as np
 
@@ -261,6 +262,112 @@ def train_and_score_bagging(network):
         'bagged_predictions': prediction_results,
     }, test_y)
 
+def train_and_score_shallow_bagging(network):
+    """Train the model, return test loss.
+
+    Args:
+        network (dict): the parameters of the network
+
+    """
+
+    train_predictions = pd.read_pickle('data/train_predictions.pkl.gz', compression='gzip')
+    test_predictions = pd.read_pickle('data/test_predictions.pkl.gz', compression='gzip')
+
+    train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
+    test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
+
+
+    train_x = train_predictions.values
+    train_y = train_actuals[0].values
+    train_log_y = safe_log(train_y)
+    test_x = test_predictions.values
+    test_y = test_actuals[0].values
+    test_log_y = safe_log(test_y)
+
+    # Set use of log of y or y
+    if network['log_y']:
+        train_eval_y = train_log_y
+        test_eval_y = test_log_y
+    else:
+        train_eval_y = train_y
+        test_eval_y = test_y
+
+    # Apply value scaling
+    scaler = MinMaxScaler(feature_range=(0,1))
+    train_x_scaled = scaler.fit_transform(train_x)
+    test_x_scaled = scaler.transform(test_x)
+
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=1)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
+    csv_logger = CSVLogger('./logs/training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    input_shape = (train_x_scaled.shape[1],)
+
+
+    model = compile_model(network, input_shape, network['model_type'])
+
+    print('\rNetwork')
+
+    for property in network:
+        print(property, ':', network[property])
+
+    # history = model.fit(train_x, train_y,
+    history = model.fit(train_x_scaled, train_eval_y,
+                        batch_size=network['batch_size'],
+                        epochs= network['epochs'],
+                        verbose=0,
+                        # validation_data=(test_x, test_y),
+                        validation_data=(test_x_scaled, test_eval_y),
+                        callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
+
+
+    print('\rResults')
+
+    hist_epochs = len(history.history['val_loss'])
+    # score = history.history['val_loss'][hist_epochs - 1]
+
+    model.load_weights('weights.hdf5')
+    predictions = model.predict(test_x_scaled)
+    prediction_results = predictions.reshape(predictions.shape[0],)
+
+    # If using log of y, get exponent
+    if network['log_y']:
+        prediction_results = safe_exp(prediction_results)
+
+
+    mae = mean_absolute_error(test_y, prediction_results)
+    mape = safe_mape(test_y, prediction_results)
+    maeape = mae_mape(test_y, prediction_results)
+
+    score = mape
+
+    print('\rResults')
+
+    hist_epochs = len(history.history['val_loss'])
+
+    if np.isnan(score):
+        score = 9999
+
+    print('epochs:', hist_epochs)
+    print('mae_mape:', maeape)
+    print('mape:', mape)
+    print('mae:', mae)
+    print('-' * 20)
+
+
+    eval_results({'bagged_predictions': {
+                        'actual_y': test_y,
+                        'y_predict': prediction_results
+                }
+    })
+
+    range_results({
+        'bagged_predictions': prediction_results,
+    }, test_y)
+
+
 
 def train_and_score_entity_embedding(network):
     # Creating the neural network
@@ -508,8 +615,33 @@ def main():
     # }
     #
     # train_and_score(network)
-    assess_models()
+    # assess_models()
 
+    # network = {
+    #     "nb_neurons": 768,
+    #     "nb_layers": 5,
+    #     "activation": "elu",
+    #     "optimizer": "adamax",
+    #     "batch_size": 256,
+    #     "dropout": 0.05,
+    #     "int_layer": 30,
+    # }
+    #
+    # train_and_score(network)
+
+    network = {
+        'nb_neurons': 16,
+        'nb_layers': 2,
+        'activation': 'selu',
+        'optimizer': 'adagrad',
+        'batch_size': 256,
+        'dropout': 0.7,
+        'model_type': 'mae',
+        'epochs': 10000,
+        'log_y': True
+    }
+
+    train_and_score_shallow_bagging(network)
 
 if __name__ == '__main__':
     main()
