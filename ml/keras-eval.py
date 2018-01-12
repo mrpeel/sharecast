@@ -5,17 +5,12 @@ Based on:
     https://github.com/fchollet/keras/blob/master/examples/mnist_mlp.py
 
 """
-from keras.models import Sequential
-from keras.layers import Dense, Dropout, Reshape, concatenate, Input
-from keras.layers.embeddings import Embedding
-from keras.models import Model
-
-from keras import backend as K
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
+from compile_keras import *
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import numpy as np
+import os
 
 from eval_results import *
 
@@ -65,7 +60,39 @@ def safe_mape(actual_y, prediction_y):
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
-def compile_model(network, input_shape, model_type=''):
+# For many activations, we can just pass the activation name into Activations
+# For some others, we have to import them as their own standalone activation function
+def get_activation_layer(activation):
+    if activation == 'LeakyReLU':
+        return LeakyReLU()
+    if activation == 'PReLU':
+        return PReLU()
+    if activation == 'ELU':
+        return ELU()
+    if activation == 'ThresholdedReLU':
+        return ThresholdedReLU()
+
+    return Activation(activation)
+
+def get_optimizer(name='Adadelta'):
+    if name == 'SGD':
+        return optimizers.SGD(clipnorm=1.)
+    if name == 'RMSprop':
+        return optimizers.RMSprop(clipnorm=1.)
+    if name == 'Adagrad':
+        return optimizers.Adagrad(clipnorm=1.)
+    if name == 'Adadelta':
+        return optimizers.Adadelta(clipnorm=1.)
+    if name == 'Adam':
+        return optimizers.Adam(clipnorm=1.)
+    if name == 'Adamax':
+        return optimizers.Adamax(clipnorm=1.)
+    if name == 'Nadam':
+        return optimizers.Nadam(clipnorm=1.)
+
+    return optimizers.Adam(clipnorm=1.)
+
+def compile_model(network, dimensions):
     """Compile a sequential model.
 
     Args:
@@ -76,45 +103,63 @@ def compile_model(network, input_shape, model_type=''):
 
     """
     # Get our network parameters.
-    nb_layers = network['nb_layers']
-    nb_neurons = network['nb_neurons']
+    # nb_layers = network['nb_layers']
+    # nb_neurons = network['nb_neurons']
     activation = network['activation']
     optimizer = network['optimizer']
     dropout = network['dropout']
+    kernel_initializer = network['kernel_initializer']
+    model_type = network['model_type']
+    num_classes = 0
 
-    if 'model_type' in network:
-        model_type = network['model_type']
+    if model_type == "categorical_crossentropy":
+        num_classes = network['num_classes']
 
     model = Sequential()
 
-    # Add each layer.
-    for i in range(nb_layers):
+    # The hidden_layers passed to us is simply describing a shape. it does not know the num_cols we are dealing with, it is simply values of 0.5, 1, and 2, which need to be multiplied by the num_cols
+    scaled_layers = []
+    for layer in network['hidden_layers']:
+        scaled_layers.append(max(int(dimensions * layer), 1))
 
-        # Need input shape for first layer.
-        if i == 0:
-            model.add(Dense(nb_neurons, activation=activation, input_shape=input_shape))
-        else:
-            model.add(Dense(nb_neurons, activation=activation))
+    print('scaled_layers', scaled_layers)
 
+    # Add input layers
+    model.add(Dense(scaled_layers[0], kernel_initializer=kernel_initializer,
+                    kernel_regularizer=regularizers.l2(0.01), input_dim=dimensions))
+    model.add(get_activation_layer(activation))
+    model.add(Dropout(dropout))
+
+    # Add hidden layers
+    for layer_size in scaled_layers[1:-1]:
+        model.add(Dense(layer_size, kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
+        model.add(get_activation_layer(activation))
         model.add(Dropout(dropout))
 
 
     if 'int_layer' in network:
-        model.add(Dense(network['int_layer'], activation=activation, name="int_layer"))
+        model.add(Dense(network['int_layer'], name="int_layer", kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
+        model.add(get_activation_layer(activation))
         model.add(Dropout(dropout))
 
-
     # Output layer.
-    model.add(Dense(1, activation='linear'))
+    if model_type != "categorical_crossentropy":
+        model.add(Dense(1, kernel_initializer=kernel_initializer))
+    else:
+        model.add(Dense(num_classes, kernel_initializer=kernel_initializer))
+        model.add(Activation("softmax"))
 
     if model_type == "mape":
-        model.compile(loss=k_mean_absolute_percentage_error, optimizer=optimizer, metrics=['mae'])
+        model.compile(loss=k_mean_absolute_percentage_error, optimizer=get_optimizer(optimizer), metrics=['mae'])
     elif model_type == "mae_mape":
-        model.compile(loss=k_mae_mape, optimizer=optimizer, metrics=['mae', k_mean_absolute_percentage_error])
+        model.compile(loss=k_mae_mape, optimizer=get_optimizer(optimizer), metrics=['mae', k_mean_absolute_percentage_error])
+    elif model_type == "categorical_crossentropy":
+        model.compile(loss="categorical_crossentropy", optimizer=get_optimizer(optimizer), metrics=["categorical_accuracy"])
     else:
-        model.compile(loss='mae', optimizer=optimizer, metrics=[k_mean_absolute_percentage_error])
+        model.compile(loss='mae', optimizer=get_optimizer(optimizer), metrics=[k_mean_absolute_percentage_error])
 
     return model
+
 
 def train_and_score(network):
     """Train the model, return test loss.
@@ -140,58 +185,125 @@ def train_and_score(network):
     test_x = df_all_test_x.values
 
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=10)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=36)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=26)
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(filepath="weights.hdf5", verbose=0, save_best_only=True)
 
-    input_shape = (train_x.shape[1],)
+    dimensions = train_x.shape[1]
 
+    # Set use of log of y or y
+    if network['log_y']:
+        train_eval_y = train_y
+        test_eval_y = test_y
+    else:
+        train_eval_y = train_actuals
+        test_eval_y = test_actuals
 
-    model = compile_model(network, input_shape, "mae_mape")
+    if 'epochs' in network:
+        epochs = network['epochs']
+    else:
+        epochs = 10000
+
+    results = {
+        'mae': [],
+        'mape': [],
+        'maeape': [],
+        'epochs': [],
+    }
 
     print('\rNetwork')
 
     for property in network:
         print(property, ':', network[property])
 
-    history = model.fit(train_x, train_actuals,
-                        batch_size=network['batch_size'],
-                        epochs=10000,  # using early stopping, so no real limit
-                        verbose=0,
-                        validation_data=(test_x, test_actuals),
-                        callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
+    num_folds = 2
 
-    model.load_weights('weights.hdf5')
-    predictions = model.predict(test_x)
-    predictions = predictions.reshape(predictions.shape[0], )
-    # predictions = safe_exp(predictions)
-    mae = mean_absolute_error(test_actuals, predictions)
-    mape = safe_mape(test_actuals, predictions)
-    maeape = mae_mape(test_actuals, predictions)
+    for _ in range(num_folds):
+        #  Clear all values
+        s = None
+        x_cv_train = None
+        y_cv_train = None
+        model = None
+        history = None
+        hist_epochs = None
 
-    score = maeape
+        # Delete weights file, if exists
+        try:
+            os.remove('weights.hdf5')
+        except:
+            pass
+
+        # Reorder array - get array index
+        s = np.arange(train_x.shape[0])
+        # Reshuffle index
+        np.random.shuffle(s)
+
+        # Create array using new index
+        x_cv_train = train_x[s]
+        y_cv_train = train_eval_y[s]
+
+        model = compile_model(network, dimensions)
+
+        history = model.fit(x_cv_train, y_cv_train,
+                            batch_size=network['batch_size'],
+                            epochs=epochs,  # using early stopping, so no real limit
+                            verbose=0,
+                            validation_split=0.2,
+                            callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
+
+        model.load_weights('weights.hdf5')
+        predictions = model.predict(test_x)
+        prediction_results = predictions.reshape(predictions.shape[0], )
+
+        # If using log of y, get exponent
+        if network['log_y']:
+            prediction_results = safe_exp(prediction_results)
+
+        mae = mean_absolute_error(test_actuals, prediction_results)
+        mape = safe_mape(test_actuals, prediction_results)
+        maeape = mae_mape(test_actuals, prediction_results)
+
+
+        results['mae'].append(mae)
+        results['mape'].append(mape)
+        results['maeape'].append(maeape)
+        results['epochs'].append(hist_epochs)
+
+        print('\rFold results')
+
+
+        print('epochs:', hist_epochs)
+        print('mae_mape:', maeape)
+        print('mape:', mape)
+        print('mae:', mae)
+        print('-' * 20)
+
+        eval_results({'bagged_predictions': {
+            'actual_y': test_actuals,
+            'y_predict': prediction_results
+        }
+        })
+
+        range_results({
+            'bagged_predictions': prediction_results,
+        }, test_actuals)
+
+    overall_scores = {
+        'mae': np.mean(results['mae']),
+        'mape': np.mean(results['mape']),
+        'maeape': np.mean(results['maeape']),
+        'epochs': np.mean(results['epochs']),
+    }
+
 
     print('\rResults')
 
-    hist_epochs = len(history.history['val_loss'])
-
-
-    print('epochs:', hist_epochs)
-    print('mae_mape:', maeape)
-    print('mape:', mape)
-    print('mae:', mae)
+    print('epochs:', overall_scores['epochs'])
+    print('mae_mape:', overall_scores['maeape'])
+    print('mape:', overall_scores['mape'])
+    print('mae:', overall_scores['mae'])
     print('-' * 20)
-
-    eval_results({'bagged_predictions': {
-                        'actual_y': test_actuals,
-                        'y_predict': predictions
-                }
-    })
-
-    range_results({
-        'bagged_predictions': predictions,
-    }, test_actuals)
 
 
 def train_and_score_bagging(network):
@@ -224,7 +336,7 @@ def train_and_score_bagging(network):
     input_shape = (train_x.shape[1],)
 
 
-    model = compile_model(network, input_shape, "mape")
+    model = compile_model(network, input_shape)
 
     print('\rNetwork')
 
@@ -276,6 +388,23 @@ def train_and_score_shallow_bagging(network):
     train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
     test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
 
+    target_columns = ['xgboost_keras_log', 'xgboost_keras_log_log', 'xgboost_log', 'keras_mape']
+
+    cols_to_drop = []
+    for col in train_predictions.columns:
+        if col not in target_columns:
+            cols_to_drop.append(col)
+
+    print('Dropping columns:', list(cols_to_drop))
+    train_predictions.drop(cols_to_drop, axis=1, inplace=True)
+
+    cols_to_drop = []
+    for col in test_predictions.columns:
+        if col not in target_columns:
+            cols_to_drop.append(col)
+
+    print('Dropping columns:', list(cols_to_drop))
+    test_predictions.drop(cols_to_drop, axis=1, inplace=True)
 
     train_x = train_predictions.values
     train_y = train_actuals[0].values
@@ -292,81 +421,126 @@ def train_and_score_shallow_bagging(network):
         train_eval_y = train_y
         test_eval_y = test_y
 
+    if 'epochs' in network:
+        epochs = network['epochs']
+    else:
+        epochs = 10000
+
     # Apply value scaling
     scaler = MinMaxScaler(feature_range=(0,1))
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
 
-
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=1)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=3)
-    csv_logger = CSVLogger('./logs/training.log')
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
-
-    input_shape = (train_x_scaled.shape[1],)
-
-
-    model = compile_model(network, input_shape, network['model_type'])
+    results = {
+        'mae': [],
+        'mape': [],
+        'maeape': [],
+        'epochs': [],
+    }
 
     print('\rNetwork')
 
     for property in network:
         print(property, ':', network[property])
 
-    # history = model.fit(train_x, train_y,
-    history = model.fit(train_x_scaled, train_eval_y,
-                        batch_size=network['batch_size'],
-                        epochs= network['epochs'],
-                        verbose=0,
-                        # validation_data=(test_x, test_y),
-                        validation_data=(test_x_scaled, test_eval_y),
-                        callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
+    num_folds = 2
+
+    for _ in range(num_folds):
+        #  Clear all values
+        s = None
+        x_cv_train = None
+        y_cv_train = None
+        model = None
+        history = None
+        hist_epochs = None
+
+        # Delete weights file, if exists
+        try:
+            os.remove('weights.hdf5')
+        except:
+            pass
+
+        # Reorder array - get array index
+        s = np.arange(train_x_scaled.shape[0])
+        # Reshuffle index
+        np.random.shuffle(s)
+
+        # Create array using new index
+        x_cv_train = train_x_scaled[s]
+        y_cv_train = train_eval_y[s]
+
+        reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
+        early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+        csv_logger = CSVLogger('./logs/training.log')
+        checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+        input_shape = train_x_scaled.shape[1]
+
+        model = compile_model(network, input_shape)
+
+        # history = model.fit(train_x, train_y,
+        history = model.fit(x_cv_train, y_cv_train,
+                            batch_size=network['batch_size'],
+                            epochs=epochs,
+                            verbose=0,
+                            validation_split=0.2,
+                            callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
+
+
+        model.load_weights('weights.hdf5')
+        predictions = model.predict(test_x_scaled)
+        prediction_results = predictions.reshape(predictions.shape[0],)
+
+        # If using log of y, get exponent
+        if network['log_y']:
+            prediction_results = safe_exp(prediction_results)
+
+
+        mae = mean_absolute_error(test_y, prediction_results)
+        mape = safe_mape(test_y, prediction_results)
+        maeape = mae_mape(test_y, prediction_results)
+
+        hist_epochs = len(history.history['val_loss'])
+
+        results['mae'].append(mae)
+        results['mape'].append(mape)
+        results['maeape'].append(maeape)
+        results['epochs'].append(hist_epochs)
+
+        print('\rFold results')
+
+
+        print('epochs:', hist_epochs)
+        print('mae_mape:', maeape)
+        print('mape:', mape)
+        print('mae:', mae)
+        print('-' * 20)
+
+        eval_results({'bagged_predictions': {
+            'actual_y': test_y,
+            'y_predict': prediction_results
+        }
+        })
+
+        range_results({
+            'bagged_predictions': prediction_results,
+        }, test_y)
+
+    overall_scores = {
+        'mae': np.mean(results['mae']),
+        'mape': np.mean(results['mape']),
+        'maeape': np.mean(results['maeape']),
+        'epochs': np.mean(results['epochs']),
+    }
 
 
     print('\rResults')
 
-    hist_epochs = len(history.history['val_loss'])
-    # score = history.history['val_loss'][hist_epochs - 1]
-
-    model.load_weights('weights.hdf5')
-    predictions = model.predict(test_x_scaled)
-    prediction_results = predictions.reshape(predictions.shape[0],)
-
-    # If using log of y, get exponent
-    if network['log_y']:
-        prediction_results = safe_exp(prediction_results)
-
-
-    mae = mean_absolute_error(test_y, prediction_results)
-    mape = safe_mape(test_y, prediction_results)
-    maeape = mae_mape(test_y, prediction_results)
-
-    score = mape
-
-    print('\rResults')
-
-    hist_epochs = len(history.history['val_loss'])
-
-    if np.isnan(score):
-        score = 9999
-
-    print('epochs:', hist_epochs)
-    print('mae_mape:', maeape)
-    print('mape:', mape)
-    print('mae:', mae)
+    print('epochs:', overall_scores['epochs'])
+    print('mae_mape:', overall_scores['maeape'])
+    print('mape:', overall_scores['mape'])
+    print('mae:', overall_scores['mae'])
     print('-' * 20)
-
-
-    eval_results({'bagged_predictions': {
-                        'actual_y': test_y,
-                        'y_predict': prediction_results
-                }
-    })
-
-    range_results({
-        'bagged_predictions': prediction_results,
-    }, test_y)
-
 
 
 def train_and_score_entity_embedding(network):
@@ -553,7 +727,7 @@ def assess_models():
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
     early_stopping = EarlyStopping(monitor='val_loss', patience=26)
     csv_logger = CSVLogger('./logs/log-training.log')
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', monitor='val_loss', verbose=1, save_best_only=True)
 
     print('Fitting Keras mae model...')
 
@@ -629,19 +803,44 @@ def main():
     #
     # train_and_score(network)
 
+
+    # network = {
+    #     'activation': 'PReLU',
+    #     'optimizer': 'Nadam',
+    #     'batch_size': 1024,
+    #     'dropout': 0,
+    #     'model_type': 'mae_mape',
+    #     'log_y': False,
+    #     'kernel_initializer': 'normal',
+    #     'hidden_layers': [5],
+    # }
+    #
+    # train_and_score_shallow_bagging(network)
+
     network = {
-        'nb_neurons': 16,
-        'nb_layers': 2,
-        'activation': 'selu',
-        'optimizer': 'adagrad',
-        'batch_size': 256,
-        'dropout': 0.7,
+        'activation': 'PReLU',
+        'optimizer': 'Nadam',
+        'batch_size': 512,
+        'dropout': 0,
         'model_type': 'mae',
-        'epochs': 10000,
-        'log_y': True
+        'log_y': False,
+        'kernel_initializer': 'glorot_normal',
+        'hidden_layers': [1, 1, 1, 1],
     }
 
-    train_and_score_shallow_bagging(network)
+    # network = {
+    #     # 'nb_layers': 4,
+    #     # 'nb_neurons': 768,
+    #     'hidden_layers': [7, 7, 7, 7],
+    #     'activation': "relu",
+    #     'optimizer': "adamax",
+    #     'dropout': 0.05,
+    #     'batch_size': 256,
+    #     'model_type': "mae",
+    #     'int_layer': 30
+    # }
+
+    train_and_score(network)
 
 if __name__ == '__main__':
     main()

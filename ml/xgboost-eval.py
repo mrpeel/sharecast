@@ -555,6 +555,42 @@ def xgboost_combined():
         'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
     }, test_actuals)
 
+def train_and_score_xgb_ae():
+    df_all_train_x = pd.read_pickle('data/ae_train_x.pkl.gz', compression='gzip')
+    df_all_train_y = pd.read_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+    df_all_train_actuals = pd.read_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
+    df_all_test_x = pd.read_pickle('data/ae_test_x.pkl.gz', compression='gzip')
+    df_all_test_y = pd.read_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+    df_all_test_actuals = pd.read_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
+
+    model = xgb.XGBRegressor(nthread=-1, n_estimators=500, max_depth=70, base_score=0.1, colsample_bylevel=0.7,
+                             colsample_bytree=1.0, gamma=0, learning_rate=0.025, min_child_weight=3)
+
+    all_train_actuals = df_all_train_actuals.values
+    all_train_y = df_all_train_y.values
+    all_train_x = df_all_train_x.values
+    all_test_actuals = df_all_test_actuals.values
+    all_test_y = df_all_test_y.values
+    all_test_x = df_all_test_x.values
+
+    eval_set = [(all_test_x, all_test_y)]
+    model.fit(all_train_x, all_train_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set, verbose=True)
+
+    log_predictions = model.predict(all_test_x)
+    log_inverse_scaled_predictions = safe_exp(log_predictions)
+
+    eval_results({'xgboost_log_mae': {
+        'actual_y': all_test_actuals,
+        'y_predict': log_inverse_scaled_predictions
+    }
+    })
+
+    range_results({
+        'xgb_predictions': log_inverse_scaled_predictions,
+    }, all_test_actuals)
+
+
 
 if __name__ == '__main__':
-    main("xgb_combined")
+    # main("xgb_combined")
+    train_and_score_xgb_ae()

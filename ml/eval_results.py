@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
-from memory_profiler import profile
 
 
 # @profile
@@ -21,7 +20,6 @@ def safe_mape(actual_y, prediction_y):
 # @profile
 def range_results(predictions, actuals):
     """
-    
     :param predictions: a dictionary with values {
         prediction_name:  y_predict
      }
@@ -38,7 +36,7 @@ def range_results(predictions, actuals):
     """
     overall_results_output = pd.DataFrame()
 
-    result_ranges = [-50, -25, -10, -5, 0, 2, 5, 10, 20, 50, 100, 1001]
+    result_ranges = [-50, -25, -10, -5, -0.25, 0.25, 1, 2, 5, 10, 20, 50, 100, 1001]
     lower_range = -100
 
     for upper_range in result_ranges:
@@ -54,10 +52,16 @@ def range_results(predictions, actuals):
             all_predictions = all_predictions.reshape(all_predictions.shape[0], 1)
             range_predictions = all_predictions[range_mask]
 
-            range_results[prediction_name] = {
-                'mae': mean_absolute_error(range_actuals, range_predictions),
-                'mape': safe_mape(range_actuals, range_predictions)
-            }
+            if len(range_predictions) > 0:
+                range_results[prediction_name] = {
+                    'mae': mean_absolute_error(range_actuals, range_predictions),
+                    'mape': safe_mape(range_actuals, range_predictions),
+                }
+            else:
+                range_results[prediction_name] = {
+                    'mae': 'N/A',
+                    'mape': 'N/A,'
+                }
 
         # Print results
         print('Results:', lower_range, 'to', upper_range)

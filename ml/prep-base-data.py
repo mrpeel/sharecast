@@ -3,7 +3,6 @@ import pandas as pd
 from memory_profiler import profile
 import gc
 import random
-from xgboost_general_symbol_ensemble_sharecast import *
 
 
 
@@ -89,17 +88,14 @@ def load_data(base_path, increments):
 
 
 
-share_data = load_data(base_path='data/companyQuotes-20170820-%03d.csv.gz', increments=range(1, 74))
-gc.collect()
-
-save_data = setup_data_columns(share_data)
+share_data = load_data(base_path='data/companyQuotes-20170820-%03d.csv.gz', increments=range(1, 4)) #74))
 gc.collect()
 
 
 print('Saving data')
 
 
-save_data.to_pickle('data/ml-aug-data.pkl.gz', compression='gzip')
+save_data.to_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
 # share_data.to_hdf('data/ml-july-data.hdf5', 'sharecast', mode='w', complevel=9, complib='bzip2')
 
 # Get a unique list of companies and pick a random 500 companies
@@ -108,4 +104,4 @@ symbols = save_data['symbol'].unique().tolist()
 random_500 = random.sample(symbols, 500)
 sample2 = save_data[save_data['symbol'].isin(random_500)]
 
-sample2.to_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
+sample2.to_pickle('data/ml-dec-sample.pkl.gz', compression='gzip')
