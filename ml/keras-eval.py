@@ -13,18 +13,7 @@ import numpy as np
 import os
 
 from eval_results import *
-
-def k_mean_absolute_percentage_error(y_true, y_pred):
-    diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            1., None))
-    return 100. * K.mean(diff, axis=-1)
-
-def k_mae_mape(y_true, y_pred):
-    diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            1., None))
-    mape = 100. * K.mean(diff, axis=-1)
-    mae = K.mean(K.abs(y_true - y_pred), axis=-1)
-    return mape * mae
+from random import *
 
 def mae_mape(actual_y, prediction_y):
     mape = safe_mape(actual_y, prediction_y)
@@ -60,106 +49,6 @@ def safe_mape(actual_y, prediction_y):
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
-# For many activations, we can just pass the activation name into Activations
-# For some others, we have to import them as their own standalone activation function
-def get_activation_layer(activation):
-    if activation == 'LeakyReLU':
-        return LeakyReLU()
-    if activation == 'PReLU':
-        return PReLU()
-    if activation == 'ELU':
-        return ELU()
-    if activation == 'ThresholdedReLU':
-        return ThresholdedReLU()
-
-    return Activation(activation)
-
-def get_optimizer(name='Adadelta'):
-    if name == 'SGD':
-        return optimizers.SGD(clipnorm=1.)
-    if name == 'RMSprop':
-        return optimizers.RMSprop(clipnorm=1.)
-    if name == 'Adagrad':
-        return optimizers.Adagrad(clipnorm=1.)
-    if name == 'Adadelta':
-        return optimizers.Adadelta(clipnorm=1.)
-    if name == 'Adam':
-        return optimizers.Adam(clipnorm=1.)
-    if name == 'Adamax':
-        return optimizers.Adamax(clipnorm=1.)
-    if name == 'Nadam':
-        return optimizers.Nadam(clipnorm=1.)
-
-    return optimizers.Adam(clipnorm=1.)
-
-def compile_model(network, dimensions):
-    """Compile a sequential model.
-
-    Args:
-        network (dict): the parameters of the network
-
-    Returns:
-        a compiled network.
-
-    """
-    # Get our network parameters.
-    # nb_layers = network['nb_layers']
-    # nb_neurons = network['nb_neurons']
-    activation = network['activation']
-    optimizer = network['optimizer']
-    dropout = network['dropout']
-    kernel_initializer = network['kernel_initializer']
-    model_type = network['model_type']
-    num_classes = 0
-
-    if model_type == "categorical_crossentropy":
-        num_classes = network['num_classes']
-
-    model = Sequential()
-
-    # The hidden_layers passed to us is simply describing a shape. it does not know the num_cols we are dealing with, it is simply values of 0.5, 1, and 2, which need to be multiplied by the num_cols
-    scaled_layers = []
-    for layer in network['hidden_layers']:
-        scaled_layers.append(max(int(dimensions * layer), 1))
-
-    print('scaled_layers', scaled_layers)
-
-    # Add input layers
-    model.add(Dense(scaled_layers[0], kernel_initializer=kernel_initializer,
-                    kernel_regularizer=regularizers.l2(0.01), input_dim=dimensions))
-    model.add(get_activation_layer(activation))
-    model.add(Dropout(dropout))
-
-    # Add hidden layers
-    for layer_size in scaled_layers[1:-1]:
-        model.add(Dense(layer_size, kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
-        model.add(get_activation_layer(activation))
-        model.add(Dropout(dropout))
-
-
-    if 'int_layer' in network:
-        model.add(Dense(network['int_layer'], name="int_layer", kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
-        model.add(get_activation_layer(activation))
-        model.add(Dropout(dropout))
-
-    # Output layer.
-    if model_type != "categorical_crossentropy":
-        model.add(Dense(1, kernel_initializer=kernel_initializer))
-    else:
-        model.add(Dense(num_classes, kernel_initializer=kernel_initializer))
-        model.add(Activation("softmax"))
-
-    if model_type == "mape":
-        model.compile(loss=k_mean_absolute_percentage_error, optimizer=get_optimizer(optimizer), metrics=['mae'])
-    elif model_type == "mae_mape":
-        model.compile(loss=k_mae_mape, optimizer=get_optimizer(optimizer), metrics=['mae', k_mean_absolute_percentage_error])
-    elif model_type == "categorical_crossentropy":
-        model.compile(loss="categorical_crossentropy", optimizer=get_optimizer(optimizer), metrics=["categorical_accuracy"])
-    else:
-        model.compile(loss='mae', optimizer=get_optimizer(optimizer), metrics=[k_mean_absolute_percentage_error])
-
-    return model
-
 
 def train_and_score(network):
     """Train the model, return test loss.
@@ -188,7 +77,6 @@ def train_and_score(network):
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
     early_stopping = EarlyStopping(monitor='val_loss', patience=26)
     csv_logger = CSVLogger('./logs/training.log')
-    checkpointer = ModelCheckpoint(filepath="weights.hdf5", verbose=0, save_best_only=True)
 
     dimensions = train_x.shape[1]
 
@@ -228,11 +116,9 @@ def train_and_score(network):
         history = None
         hist_epochs = None
 
-        # Delete weights file, if exists
-        try:
-            os.remove('weights.hdf5')
-        except:
-            pass
+        run_id = randint(1, 1000000)
+        run_id = format(run_id, '06')
+        weights_location = './weights/' + run_id + 'weights.hdf5'
 
         # Reorder array - get array index
         s = np.arange(train_x.shape[0])
@@ -243,7 +129,9 @@ def train_and_score(network):
         x_cv_train = train_x[s]
         y_cv_train = train_eval_y[s]
 
-        model = compile_model(network, dimensions)
+        model = compile_keras_model(network, dimensions)
+
+        checkpointer = ModelCheckpoint(filepath=weights_location, verbose=0, save_best_only=True)
 
         history = model.fit(x_cv_train, y_cv_train,
                             batch_size=network['batch_size'],
@@ -252,7 +140,9 @@ def train_and_score(network):
                             validation_split=0.2,
                             callbacks=[early_stopping, csv_logger, reduce_lr, checkpointer])
 
-        model.load_weights('weights.hdf5')
+        hist_epochs = len(history.history['val_loss'])
+
+        model.load_weights(weights_location)
         predictions = model.predict(test_x)
         prediction_results = predictions.reshape(predictions.shape[0], )
 
@@ -289,6 +179,12 @@ def train_and_score(network):
             'bagged_predictions': prediction_results,
         }, test_actuals)
 
+        # Delete weights file, if found
+        try:
+            os.remove(weights_location)
+        except:
+            pass
+
     overall_scores = {
         'mae': np.mean(results['mae']),
         'mape': np.mean(results['mape']),
@@ -296,14 +192,15 @@ def train_and_score(network):
         'epochs': np.mean(results['epochs']),
     }
 
-
-    print('\rResults')
+    print('-' * 20)
+    print('\rOverall Results')
 
     print('epochs:', overall_scores['epochs'])
     print('mae_mape:', overall_scores['maeape'])
     print('mape:', overall_scores['mape'])
     print('mae:', overall_scores['mae'])
     print('-' * 20)
+
 
 
 def train_and_score_bagging(network):
@@ -336,7 +233,7 @@ def train_and_score_bagging(network):
     input_shape = (train_x.shape[1],)
 
 
-    model = compile_model(network, input_shape)
+    model = compile_keras_model(network, input_shape)
 
     print('\rNetwork')
 
@@ -476,7 +373,7 @@ def train_and_score_shallow_bagging(network):
 
         input_shape = train_x_scaled.shape[1]
 
-        model = compile_model(network, input_shape)
+        model = compile_keras_model(network, input_shape)
 
         # history = model.fit(train_x, train_y,
         history = model.fit(x_cv_train, y_cv_train,
@@ -681,7 +578,7 @@ def assess_models():
 
     input_shape = (train_x.shape[1],)
 
-    p_model = compile_model(network, input_shape)
+    p_model = compile_keras_model(network, input_shape)
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
     early_stopping = EarlyStopping(monitor='val_loss', patience=30)
@@ -722,7 +619,7 @@ def assess_models():
 
     input_shape = (train_x.shape[1],)
 
-    model = compile_model(network, input_shape)
+    model = compile_keras_model(network, input_shape)
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
     early_stopping = EarlyStopping(monitor='val_loss', patience=26)
@@ -817,30 +714,73 @@ def main():
     #
     # train_and_score_shallow_bagging(network)
 
-    network = {
-        'activation': 'PReLU',
-        'optimizer': 'Nadam',
-        'batch_size': 512,
-        'dropout': 0,
-        'model_type': 'mae',
-        'log_y': False,
-        'kernel_initializer': 'glorot_normal',
-        'hidden_layers': [1, 1, 1, 1],
-    }
-
     # network = {
-    #     # 'nb_layers': 4,
-    #     # 'nb_neurons': 768,
-    #     'hidden_layers': [7, 7, 7, 7],
-    #     'activation': "relu",
-    #     'optimizer': "adamax",
-    #     'dropout': 0.05,
-    #     'batch_size': 256,
-    #     'model_type': "mae",
-    #     'int_layer': 30
+    #     'activation': 'PReLU',
+    #     'optimizer': 'Nadam',
+    #     'batch_size': 512,
+    #     'dropout': 0,
+    #     'model_type': 'mae',
+    #     'log_y': False,
+    #     'kernel_initializer': 'glorot_normal',
+    #     'hidden_layers': [1, 1, 1, 1],
     # }
 
+    # network = {
+    #     'hidden_layers': [7, 7, 7, 7],
+    #     'activation': 'relu',
+    #     'optimizer': 'Adamax',
+    #     'kernel_initializer': 'normal',
+    #     'dropout': 0.05,
+    #     'batch_size': 256,
+    #     'model_type': 'mae',
+    #     'int_layer': 30,
+    #     'log_y': True,
+    # }
+    #
+    # train_and_score(network)
+    #
+    # network = {
+    #     'hidden_layers': [7, 7, 7, 7],
+    #     'activation': "relu",
+    #     'optimizer': "Adamax",
+    #     'kernel_initializer': 'normal',
+    #     'dropout': 0,
+    #     'batch_size': 512,
+    #     'model_type': "mae",
+    #     'int_layer': 30,
+    #     'log_y': False,
+    # }
+    #
+    # train_and_score(network)
+
+    network = {
+        'hidden_layers': [5, 5, 5],
+        'activation': "relu",
+        'optimizer': "Adagrad",
+        'kernel_initializer': 'glorot_uniform',
+        'batch_size': 256,
+        'dropout': 0.05,
+        'model_type': "mape",
+        'log_y': False,
+    }
+
     train_and_score(network)
+
+
+    network = {
+        'hidden_layers': [5, 5, 5, 5],
+        'int_layer': 30,
+        'activation': "PReLU",
+        'optimizer': "Adamax",
+        'kernel_initializer': 'he_uniform',
+        'batch_size': 512,
+        'dropout': 0.0,
+        'model_type': "mape",
+        'log_y': False,
+    }
+
+    train_and_score(network)
+
 
 if __name__ == '__main__':
     main()

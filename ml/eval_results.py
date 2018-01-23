@@ -56,15 +56,17 @@ def range_results(predictions, actuals):
                 range_results[prediction_name] = {
                     'mae': mean_absolute_error(range_actuals, range_predictions),
                     'mape': safe_mape(range_actuals, range_predictions),
+                    'num_vals': len(range_predictions),
                 }
             else:
                 range_results[prediction_name] = {
                     'mae': 'N/A',
-                    'mape': 'N/A,'
+                    'mape': 'N/A,',
+                    'num_vals': 0,
                 }
 
         # Print results
-        print('Results:', lower_range, 'to', upper_range)
+        print('Results: %s to %s, number of instances %s'  % (lower_range, upper_range, len(range_predictions)))
 
         pd_dict = {
             'lower_range': [lower_range],
@@ -116,6 +118,9 @@ def eval_results(predictions):
         actual_y = prediction_vals['actual_y']
         y_predict = prediction_vals['y_predict']
 
+        num_vals = len(actual_y)
+        print('Number of instances: %s' % num_vals)
+
         # Ensure shape is correct
         actual_y = actual_y.reshape(actual_y.shape[0], 1)
         y_predict = y_predict.reshape(y_predict.shape[0], 1)
@@ -143,12 +148,14 @@ def eval_results(predictions):
                 'mae': mae,
                 'mape': mape,
                 'r2': r2,
+                'num_vals': num_vals,
             }
         else:
             results[prediction_name] = {
                 'mae': mae,
                 'mape': mape,
                 'r2': r2,
+                'num_vals': num_vals,
             }
 
 

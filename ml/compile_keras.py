@@ -35,21 +35,21 @@ def get_activation_layer(activation):
 
 def get_optimizer(name='Adadelta'):
     if name == 'SGD':
-        return optimizers.SGD(clipnorm=1.)
+        return optimizers.SGD()#clipnorm=1.)
     if name == 'RMSprop':
-        return optimizers.RMSprop(clipnorm=1.)
+        return optimizers.RMSprop()#clipnorm=1.)
     if name == 'Adagrad':
-        return optimizers.Adagrad(clipnorm=1.)
+        return optimizers.Adagrad()#clipnorm=1.)
     if name == 'Adadelta':
-        return optimizers.Adadelta(clipnorm=1.)
+        return optimizers.Adadelta()#clipnorm=1.)
     if name == 'Adam':
-        return optimizers.Adam(clipnorm=1.)
+        return optimizers.Adam()#clipnorm=1.)
     if name == 'Adamax':
-        return optimizers.Adamax(clipnorm=1.)
+        return optimizers.Adamax()#clipnorm=1.)
     if name == 'Nadam':
-        return optimizers.Nadam(clipnorm=1.)
+        return optimizers.Nadam()#clipnorm=1.)
 
-    return optimizers.Adam(clipnorm=1.)
+    return optimizers.Adam()#clipnorm=1.)
 
 
 def compile_keras_model(network, dimensions):
@@ -83,36 +83,29 @@ def compile_keras_model(network, dimensions):
     print('scaled_layers', scaled_layers)
 
     # Add input layers
-    model.add(Dense(scaled_layers[0], kernel_initializer=kernel_initializer,
-                    kernel_regularizer=regularizers.l2(0.01), input_dim=dimensions))
+    model.add(Dense(scaled_layers[0], kernel_initializer=kernel_initializer, input_dim=dimensions))
     model.add(get_activation_layer(activation))
     model.add(Dropout(dropout))
 
     # Add hidden layers
     for layer_size in scaled_layers[1:-1]:
-        model.add(Dense(layer_size, kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
+        model.add(Dense(layer_size, kernel_initializer=kernel_initializer))
         model.add(get_activation_layer(activation))
         model.add(Dropout(dropout))
 
 
     if 'int_layer' in network:
-        model.add(Dense(network['int_layer'], name="int_layer", kernel_initializer=kernel_initializer, kernel_regularizer=regularizers.l2(0.01)))
+        model.add(Dense(network['int_layer'], name="int_layer", kernel_initializer=kernel_initializer))
         model.add(get_activation_layer(activation))
         model.add(Dropout(dropout))
 
     # Output layer.
-    model.add(Dense(1, kernel_initializer=kernel_initializer))
-    model.add(Activation("linear"))
-
-    # Output layer.
     if model_type == "categorical_crossentropy":
-        model.add(Dense(num_classes, kernel_initializer=kernel_initializer))
-        model.add(Activation("softmax"))
+        model.add(Dense(num_classes, kernel_initializer=kernel_initializer, activation='softmax'))
         model.compile(loss="categorical_crossentropy", optimizer=get_optimizer(optimizer),
                       metrics=["categorical_accuracy"])
     else:
-        model.add(Dense(1, kernel_initializer=kernel_initializer))
-        model.add(Activation("linear"))
+        model.add(Dense(1, kernel_initializer=kernel_initializer, activation='linear'))
 
         if model_type == "mape":
             model.compile(loss=k_mean_absolute_percentage_error, optimizer=get_optimizer(optimizer), metrics=['mae'])

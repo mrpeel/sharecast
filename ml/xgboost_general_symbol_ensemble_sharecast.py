@@ -4,31 +4,23 @@ from __future__ import division
 from __future__ import print_function
 
 
-# import pickle
-# import gzip
 import joblib
 import sys
-#from sklearn.externals import joblib
 import datetime
 import pandas as pd
 import numpy as np
 import xgboost as xgb
 import lightgbm as lgb
 import gc
-from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import MaxAbsScaler
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import r2_score
-from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor, GradientBoostingRegressor
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.linear_model import SGDRegressor, HuberRegressor
+from sklearn.model_selection import train_test_split
 
 from categorical_encoder import *
 from eval_results import *
 #from autoencoder import *
 from compile_keras import *
-
+import logging
 
 
 #import matplotlib.pyplot as plt
@@ -105,6 +97,26 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteDate_TIMESTAMP', 'volume', 'previou
                 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales',
                 '4WeekBollingerBandLower', '4WeekBollingerBandUpper', '12WeekBollingerBandLower',
                 '12WeekBollingerBandUpper', 'Beta', 'daysHigh', 'daysLow']
+
+# Setup logging.
+logging.basicConfig(
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%d/%m/%Y %I:%M:%S %p',
+    level=logging.DEBUG,
+    filename='log.txt'
+)
+
+
+def print(*log_line_vals):
+    """
+        Prints and logs a string with an arbitrary set of values
+    """
+    log_line = ''
+    for arg in log_line_vals:
+        log_line = log_line + str(arg) + ' '
+
+    sys.stdout.write(log_line.strip() + '\n')
+    logging.info(log_line.strip())
 
 
 def save(object, filename):
@@ -256,6 +268,7 @@ def sc_mean_absolute_percentage_error(y_true, y_pred):
                                             None))
     return 100. * K.mean(diff, axis=-1)
 
+
 # @profile
 def drop_unused_columns(df, data_cols):
     # Check for columns to drop
@@ -270,6 +283,7 @@ def drop_unused_columns(df, data_cols):
 
     return df
 
+
 # @profile
 def convert_date(df, column_name):
     df[column_name + "_TIMESTAMP"] = (pd.DatetimeIndex(df[column_name]) - pd.datetime(2007, 1, 1)).total_seconds()
@@ -278,6 +292,7 @@ def convert_date(df, column_name):
     df[column_name + "_MONTH"] = pd.DatetimeIndex(df[column_name]).month.astype('str')
     df[column_name + "_DAY"] = pd.DatetimeIndex(df[column_name]).day.astype('str')
     df[column_name + "_DAYOFWEEK"] = pd.DatetimeIndex(df[column_name]).dayofweek.astype('str')
+
 
 # @profile
 def setup_data_columns(df):
@@ -288,12 +303,12 @@ def setup_data_columns(df):
     return_df = drop_unused_columns(df, columns_to_keep)
     return return_df
 
+
 # @profile
 def load_data():
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
-    df = pd.read_pickle('data/ml-aug-sample.pkl.gz', compression='gzip')
-    #df = pd.read_pickle('data/ml-july-data.pkl.gz', compression='gzip')
+    df = pd.read_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
     gc.collect()
 
     df = setup_data_columns(df)
@@ -347,28 +362,6 @@ def prep_data():
 
 # @profile
 def divide_data(share_data):
-    # Use pandas dummy columns for categorical columns other than symbol
-    # share_data = pd.get_dummies(data=share_data, columns=['4WeekBollingerPrediction',
-    #                                                        '4WeekBollingerType',
-    #                                                        '12WeekBollingerPrediction',
-    #                                                        '12WeekBollingerType',
-    #                                                        'quoteDate_DAY',
-    #                                                        'quoteDate_DAYOFWEEK',
-    #                                                        'quoteDate_MONTH',
-    #                                                        'quoteDate_YEAR'])
-
-
-    # Run one-hot encoding and keep original values for entity embedding
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['4WeekBollingerPrediction'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['4WeekBollingerType'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['12WeekBollingerPrediction'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['12WeekBollingerType'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['quoteDate_DAY'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['quoteDate_DAYOFWEEK'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['quoteDate_MONTH'])], axis=1)
-    # share_data = pd.concat([share_data, pd.get_dummies(share_data['quoteDate_YEAR'])], axis=1)
-
-
     symbol_models = {}
     symbols = share_data['symbol'].unique()
     # For testing only take the first 10 elements
@@ -418,14 +411,6 @@ def divide_data(share_data):
 
         # Make sure a minimum number of rows are present in sample for symbol
         if (len(df_train) > 50 & len(df_test) > 10):
-            # symbols_train_y[symbol] = df_train[LABEL_COLUMN + '_scaled'].values
-            # symbols_train_actuals[symbol] = df_train[LABEL_COLUMN].values
-            # symbols_train_x[symbol] = df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
-            #
-            # symbols_test_actuals[symbol] = df_test[LABEL_COLUMN].values
-            # symbols_test_y[symbol] = df_test[LABEL_COLUMN + '_scaled'].values
-            # symbols_test_x[symbol] = df_test.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1).values
-
             df_all_train_y = pd.concat([df_all_train_y, df_train[LABEL_COLUMN + '_scaled']])
             df_all_train_actuals = pd.concat([df_all_train_actuals, df_train[LABEL_COLUMN]])
             df_all_train_x = df_all_train_x.append(df_train.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
@@ -439,6 +424,7 @@ def divide_data(share_data):
 
         symbol_num += 1
 
+
     print(symbol_map)
 
     # Clean-up the initial data variable
@@ -446,7 +432,11 @@ def divide_data(share_data):
            symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
+
 def preprocess_train_data(train_x_df, train_y_df):
+    print('Pre-processing training data...')
+
+    print('Scaling data...')
     scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
     train_x_df[CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[CONTINUOUS_COLUMNS].values)
 
@@ -454,6 +444,7 @@ def preprocess_train_data(train_x_df, train_y_df):
     train_x_df.to_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
     train_y_df.to_pickle('data/pp_train_y_df.pkl.gz', compression='gzip')
 
+    print('Encoding categorical data...')
     # Use categorical entity embedding encoder
     ce = Categorical_encoder(strategy="entity_embedding", verbose=False)
     df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
@@ -464,22 +455,25 @@ def preprocess_train_data(train_x_df, train_y_df):
 
 
 def preprocess_test_data(test_x_df, scaler, ce):
+    print('Pre-processing test data...')
+
+    print('Scaling data...')
     test_x_df[CONTINUOUS_COLUMNS] = scaler.transform(test_x_df[CONTINUOUS_COLUMNS].values)
 
     test_x_df.to_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
 
+    print('Encoding categorical data...')
     # Use categorical entity embedding encoder
     df_test_transform = ce.transform(test_x_df)
 
-    # df_test_transform['symbol'] = test_x_df['symbol']
+    return df_test_transform
 
-    return df_test_transform
-    return df_test_transform
 
 # @profile
 def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models):
     #Train general model
     models = {}
+    print('Training xgboost log of y model...')
     # Create model
     models['log_y'] = xgb.XGBRegressor(nthread=-1, n_estimators=500, max_depth=70, base_score=0.1, colsample_bylevel=0.7,
                                            colsample_bytree=1.0, gamma=0, learning_rate=0.025, min_child_weight=3)
@@ -494,8 +488,11 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
 
     mae_vals_train = keras_models['mae_intermediate_model'].predict(all_train_x)
     mae_vals_test = keras_models['mae_intermediate_model'].predict(all_test_x)
-    eval_set = [(all_test_x, all_test_y)]
-    models['log_y'].fit(all_train_x, all_train_y, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
+
+    x_train, x_test, y_train, y_test = train_test_split(all_train_x, all_train_y, test_size = 0.15)
+
+    eval_set = [(x_test, y_test)]
+    models['log_y'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
                 verbose=True)
 
 
@@ -513,13 +510,15 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                 }
     })
 
-
+    print('Training xgboost log of y with keras outputs model...')
     models['keras_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=500, max_depth=70, learning_rate=0.025,
                                            base_score=0.25, colsample_bylevel=0.4, colsample_bytree=0.55,
                                            gamma=0, min_child_weight=0)
 
-    eval_set = [(mae_vals_test, all_test_y)]
-    models['keras_mae'].fit(mae_vals_train, all_train_y, early_stopping_rounds=25, eval_metric='mae',
+    x_train, x_test, y_train, y_test = train_test_split(mae_vals_train, all_train_y, test_size=0.15)
+
+    eval_set = [(x_test, y_test)]
+    models['keras_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
     gc.collect()
 
@@ -535,6 +534,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                     }
         })
 
+    print('Training xgboost log of log of y with keras outputs model...')
     models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, n_estimators=500,
                                                max_depth=130,
                                                base_score=0.4,
@@ -544,8 +544,10 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                                                min_child_weight=0,
                                                learning_rate=0.025)
 
-    eval_set = [(mae_vals_test, all_test_log_y)]
-    models['keras_log_mae'].fit(mae_vals_train, all_train_log_y, early_stopping_rounds=25, eval_metric='mae',
+    x_train, x_test, y_train, y_test = train_test_split(mae_vals_train, all_train_log_y, test_size=0.15)
+
+    eval_set = [(x_test, y_test)]
+    models['keras_log_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
     gc.collect()
 
@@ -585,25 +587,24 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     test_x = df_all_test_x.values
 
 
-    print('Fitting Keras mape model...')
+    print('Training keras mape model...')
 
     network = {
-        # 'nb_neurons': 512,
-        # 'nb_layers': 3,
         'hidden_layers': [5, 5, 5],
-        'activation': "relu",
-        'optimizer': "adagrad",
+        'activation': 'relu',
+        'optimizer': 'Adagrad',
+        'kernel_initializer': 'glorot_uniform',
         'batch_size': 256,
         'dropout': 0.05,
-        'model_type': "mape"
+        'model_type': 'mape',
     }
 
     dimensions = train_x.shape[1]
 
     p_model = compile_keras_model(network, dimensions)
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
     checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
@@ -636,30 +637,28 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    print('Building Keras mae model...')
 
     network = {
-        # 'nb_layers': 4,
-        # 'nb_neurons': 768,
         'hidden_layers': [7, 7, 7, 7],
-        'activation': "relu",
-        'optimizer': "adamax",
-        'dropout': 0.05,
-        'batch_size': 256,
-        'model_type': "mae",
-        'int_layer': 30
+        'activation': 'relu',
+        'optimizer': 'Adamax',
+        'kernel_initializer': 'normal',
+        'dropout': 0,
+        'batch_size': 512,
+        'model_type': 'mae',
+        'int_layer': 30,
     }
 
     dimensions = train_x.shape[1]
 
     model = compile_keras_model(network, dimensions)
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=8)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=26)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/log-training.log')
     checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
-    print('Fitting Keras mae model...')
+    print('Training keras mae model...')
 
     # Reorder array - get array index
     s = np.arange(train_x.shape[0])
@@ -721,7 +720,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         }
 
 def deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
-
+    print('Executing keras based bagging...')
     train_x = train_predictions.values
     train_y = train_actuals[0].values
     test_x = test_predictions.values
@@ -738,7 +737,7 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
-    input_shape = (train_x.shape[1],)
+    dimensions = train_x.shape[1]
 
     network = {
         'activation': 'PReLU',
@@ -750,7 +749,7 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
         'hidden_layers': [5],
     }
 
-    model = compile_keras_model(network, input_shape)
+    model = compile_keras_model(network, dimensions)
 
     print('\rNetwork')
 
@@ -787,7 +786,7 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
 
 # @profile
 def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_bagged_predictions):
-
+    print('Executing manual bagging...')
     test_actuals = df_all_test_actuals.values
     test_x = df_all_test_x.values
 
@@ -806,16 +805,6 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_b
     keras_gen = safe_exp(keras_gen)
 
 
-    # Call deep bagging
-    # train_predictions = pd.DataFrame.from_dict({
-    #     'xgboost_log': gen,
-    #     'xgboost_log_log': log_gen,
-    #     'lgbm_log_log': log_lgbm,
-    #     'keras_mape': keras_mape,
-    #     'keras_log': keras_mae,
-    #     'xgboost_keras_log': keras_gen,
-    #     'xgboost_keras_log_log': keras_log_gen,
-    # })
 
 
     # Reshape arrays
@@ -823,7 +812,6 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_b
     keras_mape = keras_mape.reshape(keras_mape.shape[0], 1)
     keras_mae = keras_mae.reshape(keras_mape.shape[0], 1)
     keras_gen = keras_gen.reshape(keras_gen.shape[0], 1)
-    keras_log_gen = keras_log_gen.reshape(keras_gen.shape[0], 1)
     deep_bagged_predictions = deep_bagged_predictions.reshape(deep_bagged_predictions.shape[0], 1)
 
     small_pred_average = keras_mape
@@ -832,10 +820,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_b
     print('keras_mape shape', keras_mape.shape)
     print('keras_mae shape', keras_mae.shape)
     print('keras_gen shape', keras_gen.shape)
-    print('keras_log_gen shape', keras_log_gen.shape)
     print('small_pred_average shape', small_pred_average.shape)
-
-
 
     print('Bagging predictions')
 
@@ -881,7 +866,7 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_b
 
 def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_all_test_actuals,
                 gen_models, keras_models):
-
+    print('Exporting predictions data...')
     # export results
     df_all_test_actuals.to_pickle('data/test_actuals.pkl.gz', compression='gzip')
     df_all_train_actuals.to_pickle('data/train_actuals.pkl.gz', compression='gzip')
@@ -947,8 +932,7 @@ def main():
     # Prepare run_str
     run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
 
-    # log = open("logs/execution-" + run_str + ".log", "a")
-    # sys.stdout = log
+    print('Starting sharecast run:', run_str)
 
     # Retrieve and run combined prep on data
     share_data  = prep_data()
