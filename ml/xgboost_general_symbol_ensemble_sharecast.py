@@ -474,8 +474,9 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     #Train general model
     models = {}
     print('Training xgboost log of y model...')
+    tree_method = 'hist'
     # Create model
-    models['log_y'] = xgb.XGBRegressor(nthread=-1, tree_method='hist', n_estimators=500, max_depth=70, base_score=0.1,
+    models['log_y'] = xgb.XGBRegressor(nthread=-1, tree_method=tree_method, n_estimators=500, max_depth=70, base_score=0.1,
                                        colsample_bylevel=0.7, colsample_bytree=1.0, gamma=0, learning_rate=0.025,
                                        min_child_weight=3)
 
@@ -511,8 +512,9 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
                 }
     })
 
+
     print('Training xgboost log of y with keras outputs model...')
-    models['keras_mae'] = xgb.XGBRegressor(nthread=-1, tree_method='hist', n_estimators=500, max_depth=70,
+    models['keras_mae'] = xgb.XGBRegressor(nthread=-1, tree_method=tree_method, n_estimators=500, max_depth=70,
                                            learning_rate=0.025, base_score=0.25, colsample_bylevel=0.4,
                                            colsample_bytree=0.55, gamma=0, min_child_weight=0)
 
@@ -536,7 +538,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         })
 
     print('Training xgboost log of log of y with keras outputs model...')
-    models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, tree_method='hist', n_estimators=500,
+    models['keras_log_mae'] = xgb.XGBRegressor(nthread=-1, tree_method=tree_method, n_estimators=500,
                                                max_depth=130,
                                                base_score=0.4,
                                                colsample_bylevel=0.4,
