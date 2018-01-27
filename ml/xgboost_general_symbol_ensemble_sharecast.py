@@ -10,7 +10,6 @@ import datetime
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-import lightgbm as lgb
 import gc
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import MaxAbsScaler
@@ -20,6 +19,7 @@ from categorical_encoder import *
 from eval_results import *
 #from autoencoder import *
 from compile_keras import *
+from keras.models import load_model
 import logging
 
 
@@ -136,7 +136,8 @@ def load(filename):
     #
     # object = pickle.loads(file_content)
     # return object
-    joblib.load(filename)
+    model_object = joblib.load(filename)
+    return model_object
 
 def round_down(num, divisor):
     return num - (num%divisor)
@@ -433,40 +434,37 @@ def divide_data(share_data):
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
 
-def preprocess_train_data(train_x_df, train_y_df):
-    print('Pre-processing training data...')
+def train_preprocessor(train_x_df, train_y_df):
+    print('Training pre-processor...')
 
     print('Scaling data...')
     scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
     train_x_df[CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[CONTINUOUS_COLUMNS].values)
 
-    # Save data fo use in genetic algorithm
-    train_x_df.to_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
-    train_y_df.to_pickle('data/pp_train_y_df.pkl.gz', compression='gzip')
 
     print('Encoding categorical data...')
     # Use categorical entity embedding encoder
     ce = Categorical_encoder(strategy="entity_embedding", verbose=False)
     df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
 
-    # df_train_transform['symbol'] = train_x_df['symbol']
+    # Write scaler and categorical encoder to files
+    save(scaler, 'models/scaler.pkl.gz')
+    save(ce, 'models/ce.pkl.gz')
 
     return df_train_transform, scaler, ce
 
 
-def preprocess_test_data(test_x_df, scaler, ce):
-    print('Pre-processing test data...')
+def execute_preprocessor(transform_df, scaler, ce):
+    print('Executing pre-processor on supplied data...')
 
     print('Scaling data...')
-    test_x_df[CONTINUOUS_COLUMNS] = scaler.transform(test_x_df[CONTINUOUS_COLUMNS].values)
-
-    test_x_df.to_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
+    transform_df[CONTINUOUS_COLUMNS] = scaler.transform(transform_df[CONTINUOUS_COLUMNS].values)
 
     print('Encoding categorical data...')
     # Use categorical entity embedding encoder
-    df_test_transform = ce.transform(test_x_df)
+    transform_df = ce.transform(transform_df)
 
-    return df_test_transform
+    return transform_df
 
 
 # @profile
@@ -571,8 +569,9 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
         }, all_test_actuals)
 
-    for key in models:
-        save(models[key], 'models/xgb-' + key + '.model.gz')
+    save(models['log_y'], 'models/xgb-log_y.model.gz')
+    save(models['keras_mae'], 'models/xgb-keras_mae.model.gz')
+    save(models['keras_log_mae'], 'models/xgb-keras_log_mae.model.gz')
 
     return models
 
@@ -722,8 +721,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'mae_intermediate_model': mae_intermediate_model
         }
 
-def deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
-    print('Executing keras based bagging...')
+def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_actuals):
+    print('Training keras based bagging...')
     train_x = train_predictions.values
     train_y = train_actuals[0].values
     test_x = test_predictions.values
@@ -732,8 +731,6 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
     scaler = MinMaxScaler(feature_range=(0,1))
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
-
-
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
@@ -784,11 +781,23 @@ def deep_bagging(train_predictions, train_actuals, test_predictions, test_actual
 
     # save models
     model.save('models/keras-bagging-model.h5')
+    save(scaler, 'models/deep-bagging-scaler.pkl.gz')
 
-    return model, prediction_results
+    return model, scaler, prediction_results
+
+def execute_deep_bagging(model, scaler, bagging_data):
+    print('Executing keras based bagging...')
+    test_x = bagging_data.values
+
+    test_x_scaled = scaler.transform(test_x)
+
+    predictions = model.predict(test_x_scaled)
+    prediction_results = predictions.reshape(predictions.shape[0], )
+
+    return prediction_results
 
 # @profile
-def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_bagged_predictions):
+def final_bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_bagged_predictions):
     print('Executing manual bagging...')
     test_actuals = df_all_test_actuals.values
     test_x = df_all_test_x.values
@@ -806,8 +815,6 @@ def bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_b
     keras_mae_intermediate = keras_models['mae_intermediate_model'].predict(test_x)
     keras_gen = gen_models['keras_mae'].predict(keras_mae_intermediate)
     keras_gen = safe_exp(keras_gen)
-
-
 
 
     # Reshape arrays
@@ -931,58 +938,125 @@ def export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x, df_al
 
     return train_predictions, test_predictions
 
-def main():
+def main(run_config):
     # Prepare run_str
     run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
 
     print('Starting sharecast run:', run_str)
 
-    # Retrieve and run combined prep on data
-    share_data  = prep_data()
-    gc.collect()
+    # Retrieve and divide data
+    if 'load_data' in run_config and run_config['load_data'] == True:
+        # Load and divide data
+        share_data  = prep_data()
+        gc.collect()
 
-    # Divide data into symbol sand general data for training an testing
-    symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
-    symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x, \
-    df_all_test_actuals, df_all_test_y, df_all_test_x = divide_data(share_data)
+        # Divide data into symbol sand general data for training an testing
+        symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
+        symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x, \
+        df_all_test_actuals, df_all_test_y, df_all_test_x = divide_data(share_data)
 
-    del share_data
-    gc.collect()
+        del share_data
+        gc.collect()
 
-    # Run pre-processing steps
-    df_all_train_x, scaler, ce = preprocess_train_data(df_all_train_x, df_all_train_y)
-    df_all_test_x  = preprocess_test_data(df_all_test_x, scaler, ce)
+        # Save data after dividing
+        df_all_train_x.to_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+        df_all_train_y.to_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+        df_all_train_actuals.to_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
+        df_all_test_x.to_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
+        df_all_test_y.to_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+        df_all_test_actuals.to_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
+    else:
+        # Data already divided
+        print('Loading divided data')
+        df_all_train_x = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+        df_all_train_y = pd.read_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+        df_all_train_actuals = pd.read_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
+        df_all_test_x = pd.read_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
+        df_all_test_y = pd.read_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+        df_all_test_actuals = pd.read_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
+
+    if 'train_pre_process' in run_config and run_config['train_pre_process'] == True:
+        # Execute pre-processing trainer
+        df_all_train_x, scaler, ce = train_preprocessor(df_all_train_x, df_all_train_y)
+        df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
+
+    else:
+        print('Loading pre-processing models')
+        # Load pre-processing models
+        scaler = load('models/scaler.pkl.gz')
+        ce = load('models/ce.pkl.gz')
+        # Execute pre-processing
+        df_all_train_x = execute_preprocessor(df_all_train_x, scaler, ce)
+        df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
 
 
-    # Write scaler and categorical encoder to files
-    save(scaler, 'models/scaler.pkl.gz')
-    save(ce, 'models/ce.pkl.gz')
-
-    # Write data to files
+    # Write processed data to files
     df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
-    df_all_train_y.to_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
-    df_all_train_actuals.to_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
     df_all_test_x.to_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
-    df_all_test_y.to_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
-    df_all_test_actuals.to_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
 
 
-    keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
-                                  df_all_test_y, df_all_test_x)
+    if 'train_keras' in run_config and run_config['train_keras'] == True:
+        # Train keras models
+        keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
+                                      df_all_test_y, df_all_test_x)
+    else:
+        print('Loading keras models')
+        # Load keras models
+        keras_models =  {
+            'mape_model': load_model('models/keras-mape-model.h5', custom_objects={
+                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
+                'k_mae_mape': k_mae_mape,
+            }),
+            'mae_model': load_model('models/keras-mae-model.h5', custom_objects={
+                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
+                'k_mae_mape': k_mae_mape,
+            }),
+            'mae_intermediate_model': load_model('models/keras-mae-intermediate-model.h5', custom_objects={
+                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
+                'k_mae_mape': k_mae_mape,
+            }),
+        }
+
+    if 'train_xgb' in run_config and run_config['train_xgb'] == True:
+        # Train the general models
+        gen_models = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y,
+                                         df_all_test_x, keras_models)
+    else:
+        print('Loading xgboost models')
+        # Load the general models
+        gen_models = {
+            'log_y': load('models/xgb-log_y.model.gz'),
+            'keras_mae': load('models/xgb-keras_mae.model.gz'),
+            'keras_log_mae': load('models/xgb-keras_log_mae.model.gz'),
+        }
 
 
-    # Train the general model
-    gen_models = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x,
-                                    keras_models)
-
+    # Export data prior to bagging
     train_predictions, test_predictions = export_final_data(df_all_train_x, df_all_train_actuals, df_all_test_x,
                                                             df_all_test_actuals, gen_models, keras_models)
 
-    bagging_model, deep_bagged_predictions = deep_bagging(train_predictions, df_all_train_actuals, test_predictions,
-                                                         df_all_test_actuals)
+    if 'train_deep_bagging' in run_config and run_config['train_deep_bagging'] == True:
+        bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
+                                                                                    df_all_train_actuals,
+                                                                                    test_predictions,
+                                                                                    df_all_test_actuals)
+    else:
+        print('Loading bagging models')
+        bagging_model = load_model('models/keras-bagging-model.h5')
+        bagging_scaler = load('models/deep-bagging-scaler.pkl.gz')
+        deep_bagged_predictions = execute_deep_bagging(bagging_model, bagging_scaler, test_predictions)
 
-    bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_bagged_predictions)
+
+    final_bagging(df_all_test_x, df_all_test_actuals, gen_models, keras_models, deep_bagged_predictions)
 
 
 if __name__ == "__main__":
-    main()
+    run_config = {
+        'load_data': False,
+        'train_pre_process': False,
+        'train_keras': False,
+        'train_xgb': True,
+        'train_deep_bagging': True,
+    }
+
+    main(run_config)
