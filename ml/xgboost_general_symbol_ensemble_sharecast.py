@@ -985,15 +985,22 @@ def main(run_config):
         # Load pre-processing models
         scaler = load('models/scaler.pkl.gz')
         ce = load('models/ce.pkl.gz')
+
+    if 'execute_pre_process' in run_config and run_config['execute_pre_process'] == True:
+        print('Executing pre-processing')
         # Execute pre-processing
         df_all_train_x = execute_preprocessor(df_all_train_x, scaler, ce)
         df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
 
+        # Write processed data to files
+        df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+        df_all_test_x.to_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
 
-    # Write processed data to files
-    df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
-    df_all_test_x.to_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
-
+    else:
+        print('Loading pre-processed data')
+        # Write processed data to files
+        df_all_train_x = pd.read_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+        df_all_test_x = pd.read_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
 
     if 'train_keras' in run_config and run_config['train_keras'] == True:
         # Train keras models
@@ -1054,6 +1061,7 @@ if __name__ == "__main__":
     run_config = {
         'load_data': False,
         'train_pre_process': False,
+        'execute_pre_process': False,
         'train_keras': False,
         'train_xgb': True,
         'train_deep_bagging': True,
