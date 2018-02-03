@@ -1,7 +1,6 @@
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
-from keras.layers.normalization import BatchNormalization
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 import numpy as np
 import pandas as pd
 
@@ -35,17 +34,13 @@ def build_encoder(x_data):
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2, verbose=1, patience=10)
     early_stopping = EarlyStopping(monitor='loss', patience=25)
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
     history = model.fit(x_data,
                         x_data,
                         epochs=10000,
                         batch_size=512,
-                        callbacks=[reduce_lr, early_stopping, checkpointer],
+                        callbacks=[reduce_lr, early_stopping],
                         verbose=1)
-
-    model.load_weights('weights.hdf5')
-
 
     # Make intermediate model which outputs the encoding stage results
     encoder_model = Model(inputs=model.input, outputs=model.get_layer('encoded').output)
