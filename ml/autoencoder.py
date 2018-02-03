@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def reduce_dimensions(x_data):
+def build_encoder(x_data):
     n_layer1 = int(x_data.shape[1])
     n_layer2 = int(x_data.shape[1] / 2)
     n_layer3 = int(x_data.shape[1] / 4)
@@ -55,6 +55,9 @@ def reduce_dimensions(x_data):
     # Make intermediate model which outputs the encoding stage results
     encoder_model = Model(inputs=model.input, outputs=model.get_layer('encoded').output)
 
+    return encoder_model
+
+def reduce_dimensions(encoder_model, x_data):
 
     return_x_data = encoder_model.predict(x_data)
 
@@ -65,8 +68,10 @@ def main():
     df_all_test_x = pd.read_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
     all_x = np.row_stack([df_all_train_x.values, df_all_test_x.values])
 
-    reduced_train_x = reduce_dimensions(df_all_train_x.values)
-    reduced_test_x = reduce_dimensions(df_all_test_x.values)
+    encoder_model = build_encoder(all_x)
+
+    reduced_train_x = reduce_dimensions(encoder_model, df_all_train_x.values)
+    reduced_test_x = reduce_dimensions(encoder_model, df_all_test_x.values)
 
     pd_reduced_train_x = pd.DataFrame(reduced_train_x)
     pd_reduced_test_x = pd.DataFrame(reduced_test_x)
