@@ -1,7 +1,6 @@
 from keras import backend as K
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard, CSVLogger, ModelCheckpoint
 from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
 from keras import regularizers, optimizers
 

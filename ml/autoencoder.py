@@ -1,10 +1,9 @@
 from keras.models import Sequential, Model
 from keras.layers import Dense, Dropout, Activation
 from keras.layers.normalization import BatchNormalization
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorBoard
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, ModelCheckpoint
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 def build_encoder(x_data):
     n_layer1 = int(x_data.shape[1])
@@ -35,22 +34,18 @@ def build_encoder(x_data):
     print('Fitting Keras autoencoder model...')
 
     reduce_lr = ReduceLROnPlateau(monitor='loss', factor=0.2, verbose=1, patience=10)
-    early_stopping = EarlyStopping(monitor='loss', patience=50)
+    early_stopping = EarlyStopping(monitor='loss', patience=25)
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
     history = model.fit(x_data,
                         x_data,
                         epochs=10000,
                         batch_size=512,
-                        callbacks=[reduce_lr, early_stopping],
+                        callbacks=[reduce_lr, early_stopping, checkpointer],
                         verbose=1)
 
+    model.load_weights('weights.hdf5')
 
-    plt.plot(history.history['loss'])
-    plt.title('Keras autoencoder model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
-    plt.ion()
-    plt.show()
 
     # Make intermediate model which outputs the encoding stage results
     encoder_model = Model(inputs=model.input, outputs=model.get_layer('encoded').output)
@@ -69,6 +64,7 @@ def main():
     all_x = np.row_stack([df_all_train_x.values, df_all_test_x.values])
 
     encoder_model = build_encoder(all_x)
+    encoder_model.save('models/keras-encoder-model.h5')
 
     reduced_train_x = reduce_dimensions(encoder_model, df_all_train_x.values)
     reduced_test_x = reduce_dimensions(encoder_model, df_all_test_x.values)

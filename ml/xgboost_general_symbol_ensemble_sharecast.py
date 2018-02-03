@@ -20,6 +20,7 @@ from eval_results import *
 #from autoencoder import *
 from compile_keras import *
 from keras.models import load_model
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
 import logging
 
 
