@@ -474,10 +474,11 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     models = {}
 
     tree_method = 'auto'
-    nthread = -1
+    predictor = 'gpu_predictor'
+    nthread = 8
     # Create model
-    models['log_y'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method,
-                                       n_estimators=1000, max_depth=70, base_score=0.1,
+    models['log_y'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, predictor = predictor,
+                                       n_estimators=250, max_depth=70, base_score=0.1,
                                        colsample_bylevel=0.7, colsample_bytree=1.0, gamma=0, learning_rate=0.05,
                                        min_child_weight=3)
 
@@ -496,11 +497,21 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     models['log_y'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
                 verbose=True)
 
+    # Save, delete and reload model to clear memory when using GPU
+    print('Saving xgboost log of y model...')
+    save(models['log_y'], 'models/xgb-log-y.model.gz')
+    print('Deleting xgboost log of y model...')
+    del models['log_y']
+    print('Reloading xgboost log of y model...')
+    models['log_y'] = load('models/xgb-log-y.model.gz')
 
     gc.collect()
 
+    # output feature importances
+    print(models['log_y'].feature_importances_)
+
+
     predictions = models['log_y'].predict(all_test_x)
-    #### Double exp #######
     inverse_scaled_predictions = safe_exp(predictions)
 
     eval_results({'xgboost_mae': {
@@ -516,16 +527,29 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     mae_vals_test = keras_models['mae_intermediate_model'].predict(all_test_x)
 
     print('Training xgboost log of y with keras outputs model...')
-    models['keras_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, n_estimators=1000, max_depth=70,
-                                           learning_rate=0.05, base_score=0.25, colsample_bylevel=0.4,
-                                           colsample_bytree=0.55, gamma=0, min_child_weight=0)
+    models['keras_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, predictor = predictor,
+                                           n_estimators=250, max_depth=70, learning_rate=0.05, base_score=0.25,
+                                           colsample_bylevel=0.4, colsample_bytree=0.55, gamma=0, min_child_weight=0)
 
     x_train, x_test, y_train, y_test = train_test_split(mae_vals_train, all_train_y, test_size=0.15)
 
     eval_set = [(x_test, y_test)]
     models['keras_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
+
+    # Save, delete and reload model to clear memory when using GPU
+    print('Saving xgboost log of y with keras outputs model...')
+    save(models['keras_mae'], 'models/xgb-keras-mae.model.gz')
+    print('Deleting xgboost log of y with keras outputs model...')
+    del models['keras_mae']
+    print('Reloading xgboost log of y with keras outputs model...')
+    models['keras_mae'] = load('models/xgb-keras-mae.model.gz')
+
     gc.collect()
+
+    # output feature importances
+    print(models['keras_mae'].feature_importances_)
+
 
     keras_log_predictions = models['keras_mae'].predict(mae_vals_test)
     #### Double exp #######
@@ -540,7 +564,8 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         })
 
     print('Training xgboost log of log of y with keras outputs model...')
-    models['keras_log_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, n_estimators=1000,
+    models['keras_log_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, predictor = predictor,
+                                               n_estimators=250,
                                                max_depth=130,
                                                base_score=0.4,
                                                colsample_bylevel=0.4,
@@ -554,7 +579,20 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     eval_set = [(x_test, y_test)]
     models['keras_log_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
                                             eval_set=eval_set,verbose=True)
+
+    # Save, delete and reload model to clear memory when using GPU
+    print('Saving xgboost log of log of y with keras outputs model...')
+    save(models['keras_log_mae'], 'models/xgb-keras-log-mae.model.gz')
+    print('Deleting xgboost log of log of y with keras outputs model...')
+    del models['keras_log_mae']
+    print('Reloading xgboost log of log of y with keras outputs model...')
+    models['keras_log_mae'] = load('models/xgb-keras-log-mae.model.gz')
+
     gc.collect()
+
+    # output feature importances
+    print(models['keras_log_mae'].feature_importances_)
+
 
     keras_log_log_predictions = models['keras_log_mae'].predict(mae_vals_test)
     #### Double exp #######
@@ -573,129 +611,9 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
         'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
         }, all_test_actuals)
 
-    save(models['log_y'], 'models/xgb-log_y.model.gz')
-    save(models['keras_mae'], 'models/xgb-keras_mae.model.gz')
-    save(models['keras_log_mae'], 'models/xgb-keras_log_mae.model.gz')
 
     return models
 
-def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models):
-    #Train general model
-    models = {}
-
-    tree_method = 'auto'
-    nthread = -1
-    # Create model
-    models['log_y'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method,
-                                       n_estimators=1000, max_depth=70, base_score=0.1,
-                                       colsample_bylevel=0.7, colsample_bytree=1.0, gamma=0, learning_rate=0.05,
-                                       min_child_weight=3)
-
-    all_train_y = df_all_train_y.values
-    all_train_log_y = safe_log(all_train_y)
-    all_train_x = df_all_train_x.values
-    all_test_actuals = df_all_test_actuals.values
-    all_test_y = df_all_test_y.values
-    all_test_x = df_all_test_x.values
-    all_test_log_y = safe_log(all_test_y)
-
-    print('Training xgboost log of y model...')
-    x_train, x_test, y_train, y_test = train_test_split(all_train_x, all_train_y, test_size = 0.15)
-
-    eval_set = [(x_test, y_test)]
-    models['log_y'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae', eval_set=eval_set,
-                verbose=True)
-
-
-    gc.collect()
-
-    predictions = models['log_y'].predict(all_test_x)
-    #### Double exp #######
-    inverse_scaled_predictions = safe_exp(predictions)
-
-    eval_results({'xgboost_mae': {
-                        'log_y': all_test_y,
-                        'actual_y': all_test_actuals,
-                        'log_y_predict': predictions,
-                        'y_predict': inverse_scaled_predictions
-                }
-    })
-
-    range_results({
-        'xgboost_mae': inverse_scaled_predictions,
-    }, all_test_actuals)
-
-    save(models['log_y'], 'models/xgb-log_y.model.gz')
-
-    print('Retrieving keras intermediate model vals...')
-    mae_vals_train = keras_models['mae_intermediate_model'].predict(all_train_x)
-    mae_vals_test = keras_models['mae_intermediate_model'].predict(all_test_x)
-
-    print('Training xgboost log of y with keras outputs model...')
-    models['keras_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, n_estimators=1000, max_depth=70,
-                                           learning_rate=0.05, base_score=0.25, colsample_bylevel=0.4,
-                                           colsample_bytree=0.55, gamma=0, min_child_weight=0)
-
-    x_train, x_test, y_train, y_test = train_test_split(mae_vals_train, all_train_y, test_size=0.15)
-
-    eval_set = [(x_test, y_test)]
-    models['keras_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
-                                            eval_set=eval_set,verbose=True)
-    gc.collect()
-
-    keras_log_predictions = models['keras_mae'].predict(mae_vals_test)
-    #### Double exp #######
-    keras_inverse_scaled_predictions = safe_exp(keras_log_predictions)
-
-    eval_results({'xgboost_keras': {
-                            'log_y': all_test_y,
-                            'actual_y': all_test_actuals,
-                            'log_y_predict': keras_log_predictions,
-                            'y_predict': keras_inverse_scaled_predictions
-                    }
-        })
-
-    range_results({
-        'xgboost_keras_mae': keras_inverse_scaled_predictions,
-    }, all_test_actuals)
-
-    save(models['keras_mae'], 'models/xgb-keras_mae.model.gz')
-
-    print('Training xgboost log of log of y with keras outputs model...')
-    models['keras_log_mae'] = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, n_estimators=1000,
-                                               max_depth=130,
-                                               base_score=0.4,
-                                               colsample_bylevel=0.4,
-                                               colsample_bytree=0.4,
-                                               gamma=0,
-                                               min_child_weight=0,
-                                               learning_rate=0.05)
-
-    x_train, x_test, y_train, y_test = train_test_split(mae_vals_train, all_train_log_y, test_size=0.15)
-
-    eval_set = [(x_test, y_test)]
-    models['keras_log_mae'].fit(x_train, y_train, early_stopping_rounds=25, eval_metric='mae',
-                                            eval_set=eval_set,verbose=True)
-    gc.collect()
-
-    keras_log_log_predictions = models['keras_log_mae'].predict(mae_vals_test)
-    #### Double exp #######
-    keras_log_inverse_scaled_predictions = safe_exp(safe_exp(keras_log_log_predictions))
-
-    eval_results({'xgboost_keras_log_y': {
-                            'actual_y': all_test_actuals,
-                            'y_predict': keras_log_inverse_scaled_predictions
-                    }
-        })
-
-
-    range_results({
-        'xgboost_keras_log_mae': keras_log_inverse_scaled_predictions
-        }, all_test_actuals)
-
-    save(models['keras_log_mae'], 'models/xgb-keras_log_mae.model.gz')
-
-    return models
 
 # @profile
 def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals, df_all_test_y,
