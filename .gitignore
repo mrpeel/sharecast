@@ -47,6 +47,8 @@ Temporary Items
 data
 ml/data
 ml/xgboost-models
+ml/models
+ml/temp
 
 # User name and password
 # =========================
