@@ -1,8 +1,8 @@
 from __future__ import print_function
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_absolute_error
-from sklearn.metrics import r2_score
+from sklearn.metrics import mean_absolute_error, explained_variance_score, r2_score, median_absolute_error
+
 
 
 # @profile
@@ -56,12 +56,14 @@ def range_results(predictions, actuals):
                 range_results[prediction_name] = {
                     'mae': mean_absolute_error(range_actuals, range_predictions),
                     'mape': safe_mape(range_actuals, range_predictions),
+                    'medae': median_absolute_error(range_actuals, range_predictions),
                     'num_vals': len(range_predictions),
                 }
             else:
                 range_results[prediction_name] = {
                     'mae': 'N/A',
                     'mape': 'N/A,',
+                    'medae': 'N/A,',
                     'num_vals': 0,
                 }
 
@@ -77,9 +79,11 @@ def range_results(predictions, actuals):
             print('  ' + result)
             print('    Mean absolute error: ', range_results[result]['mae'])
             print('    Mean absolute percentage error: ', range_results[result]['mape'])
+            print('    Median absolute error: ', range_results[result]['medae'])
 
             pd_dict[result + '_mae'] = [range_results[result]['mae']]
             pd_dict[result + '_mape'] = [range_results[result]['mape']]
+            pd_dict[result + '_medae'] = [range_results[result]['medae']]
 
 
         overall_results_output = overall_results_output.append(pd.DataFrame.from_dict(pd_dict))
@@ -141,6 +145,10 @@ def eval_results(predictions):
         print('Mean absolute percentage error: %s' % mape)
         r2 = r2_score(actual_y, y_predict)
         print('r2: %s' % r2)
+        explain_variance = explained_variance_score(actual_y, y_predict)
+        print('Explained variance: %s' % explain_variance)
+        medae = median_absolute_error(actual_y, y_predict)
+        print('Median absolute error: %s' % medae)
 
         if prediction_vals.__contains__('log_y'):
             results[prediction_name] = {
@@ -148,6 +156,8 @@ def eval_results(predictions):
                 'mae': mae,
                 'mape': mape,
                 'r2': r2,
+                'explain_variance': explain_variance,
+                'medae': medae,
                 'num_vals': num_vals,
             }
         else:
@@ -155,6 +165,8 @@ def eval_results(predictions):
                 'mae': mae,
                 'mape': mape,
                 'r2': r2,
+                'explain_variance': explain_variance,
+                'medae': medae,
                 'num_vals': num_vals,
             }
 
