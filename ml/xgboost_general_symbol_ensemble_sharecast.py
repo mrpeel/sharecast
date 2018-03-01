@@ -1123,7 +1123,8 @@ def execute_deep_bagging(model, scaler, bagging_data):
     return prediction_results
 
 # @profile
-def final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_models, keras_models, deep_bagged_predictions):
+def final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_models, keras_models,
+                  deep_bagged_predictions, run_str):
     print('Executing manual bagging...')
     test_actuals = df_all_test_actuals.values
     test_x = df_all_test_x.values
@@ -1201,6 +1202,47 @@ def final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_mo
         'bagged_predictions': bagged_predictions,
         'deep_bagged_predictions': deep_bagged_predictions
     }, test_actuals)
+
+    symbol_results(test_x_model_names, deep_bagged_predictions, test_actuals, run_str)
+
+def symbol_results(x_symbols, predictions, actuals, run_str):
+    # Determine unique list of symbols
+    symbols = np.unique(x_symbols)
+
+    print('Executing symbol results, number of symbols in prediction data:', len(symbols))
+
+    df_results = pd.DataFrame()
+
+    for symbol in symbols:
+        # Retrieve data indices which match symbols
+        pred_index = np.where(x_symbols == symbol)[0]
+
+        # Retrieve data which matches symbol
+        symbol_predictions = predictions[pred_index]
+        symbol_actuals = actuals[pred_index]
+
+        # execute val for symbol
+        symbol_results =  eval_results({symbol: {
+            'actual_y': symbol_actuals,
+            'y_predict': symbol_predictions
+            }
+        })
+
+        symbol_dict = {
+            'symbol': [symbol],
+        }
+
+        for key in symbol_results[symbol]:
+            symbol_dict[key] = [symbol_results[symbol][key]]
+
+        # create data frame from results
+        df_symbol_result = pd.DataFrame.from_dict(symbol_dict)
+
+        # Add data frame into all results
+        df_results = pd.concat([df_results, df_symbol_result])
+
+    # When all symbols are done, write the results as a csv
+    df_results.to_csv('./results/' + run_str + '.csv')
 
 def execute_model_predictions(df_all_train_x, train_x_model_names, df_all_train_actuals,
                               df_all_test_x, test_x_model_names, df_all_test_actuals,
@@ -1400,7 +1442,7 @@ def main(run_config):
 
 
     final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_models, keras_models,
-                  deep_bagged_predictions)
+                  deep_bagged_predictions, run_str)
 
 
 if __name__ == "__main__":
