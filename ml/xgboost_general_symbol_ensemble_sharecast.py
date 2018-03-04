@@ -394,6 +394,9 @@ def divide_data(share_data):
     symbols_test_y = {}
     symbols_test_actuals = {}
 
+    # Shuffle symbols into random order
+    np.random.shuffle(symbols)
+
     # prep data for fitting into both model types
     for symbol in symbols:
         gc.collect()
@@ -406,6 +409,8 @@ def divide_data(share_data):
         model_data = share_data.loc[share_data['symbol'] == symbol]
 
         print('Symbol:', symbol, 'num:', symbol_num, 'number of records:', len(model_data))
+
+        model_data = append_recurrent_columns(model_data)
 
         # Remove symbol as it has now been encoded separately
         #model_data.drop(['symbol'], axis=1, inplace=True)
@@ -442,7 +447,7 @@ def divide_data(share_data):
 
         symbol_num += 1
 
-        if symbol_num>=5:
+        if symbol_num >= 100:
             break
 
 
@@ -457,6 +462,427 @@ def divide_data(share_data):
            symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
+
+def append_recurrent_columns(symbol_df):
+    # Add extra columns
+    # Today's adjusted price - previous: T - median 2-5, T - median 6-10
+    # Today ALLORD - previous: T - median 2 - 5, T - median, 6 - 10
+    # Today ASX - previous: T - median 2 - 5, T - median 6 - 10
+    # FXRUSD - previous: T - 1, T - 2 - 5 median, T - median 6 - 10
+    # FIRMMCRT: T - 1
+    # GRCPAIAD: T - 1
+    # GRCPAISAD: T - 1
+    # GRCPBCAD: T - 1
+    # GRCPBCSAD: T - 1
+    # GRCPBMAD: T - 1
+    # GRCPNRAD: T - 1
+    # GRCPRCAD: T - 1
+    # H01_GGDPCVGDPFY: T - 1
+    # H05_GLFSEPTPOP: T - 1
+
+    # Sort data frame in time order to apply shifting
+    sorted_df = symbol_df.sort_values('quoteDate_TIMESTAMP', ascending=True, inplace=False)
+
+    # Add time shifted columns with proprortion of change
+
+    # Adjusted price 2 days ago, 3-5 days ago, 6-10 days ago
+    sorted_df['adjustedPrice_T2P'] = (sorted_df['adjustedPrice'] - sorted_df['adjustedPrice'].shift(2)) / sorted_df['adjustedPrice'].shift(2)
+
+    # Create median for previous days (3-5)
+    df_dict = {}
+    for x in range(3, 6):
+        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['adjustedPrice_T3_5P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
+
+    # Create median for previous days (6-10)
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['adjustedPrice_T6_10P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
+
+    # Create median for previous days (6-10)
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['adjustedPrice_T11_20P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # All ords previous close 1 day ago, 2-5 days ago, 6-10 days ago
+    sorted_df['allordpreviousclose_T1P'] = (sorted_df['allordpreviousclose'] - sorted_df['allordpreviousclose'].shift(1)) / sorted_df['allordpreviousclose'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['allordpreviousclose_T2_5P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['allordpreviousclose_T6_10P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['allordpreviousclose_T11_20P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # ASX previous close 1 day ago, 2-5 days ago, 6-10 days ago
+    sorted_df['asxpreviousclose_T1P'] = (sorted_df['asxpreviousclose'] - sorted_df['asxpreviousclose'].shift(1)) / sorted_df['asxpreviousclose'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['asxpreviousclose_T2_5P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['asxpreviousclose_T6_10P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['asxpreviousclose_T11_20P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    ## FXRUSD
+
+    # AUD - USD exchange 1 day ago, 2-5 days ago, 6-10 days ago
+    sorted_df['FXRUSD_T1P'] = (sorted_df['FXRUSD'] - sorted_df['FXRUSD'].shift(1)) / sorted_df['FXRUSD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FXRUSD_T2_5P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FXRUSD_T6_10P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FXRUSD_T11_20P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    ## FIRMMCRT
+
+    # Other values only add in previous value
+    sorted_df['FIRMMCRT_T1P'] = (sorted_df['FIRMMCRT'] - sorted_df['FIRMMCRT'].shift(1)) / sorted_df['FIRMMCRT'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FIRMMCRT_T2_5P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FIRMMCRT_T6_10P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['FIRMMCRT_T11_20P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    ## GRCPAID
+
+    sorted_df['GRCPAIAD_T1P'] = (sorted_df['GRCPAIAD'] - sorted_df['GRCPAIAD'].shift(1)) / sorted_df['GRCPAIAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAIAD_T2_5P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAIAD_T6_10P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAIAD_T11_20P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
+
+    ## GRCPAISAD
+
+    sorted_df['GRCPAISAD_T1P'] = (sorted_df['GRCPAISAD'] - sorted_df['GRCPAISAD'].shift(1)) / sorted_df['GRCPAISAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAISAD_T2_5P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAISAD_T6_10P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPAISAD_T11_20P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## GRCPBCAD
+
+    sorted_df['GRCPBCAD_T1P'] = (sorted_df['GRCPBCAD'] - sorted_df['GRCPBCAD'].shift(1)) / sorted_df['GRCPBCAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCAD_T2_5P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCAD_T6_10P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCAD_T11_20P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## GRCBCSAD
+
+    sorted_df['GRCPBCSAD_T1P'] = (sorted_df['GRCPBCSAD'] - sorted_df['GRCPBCSAD'].shift(1)) / sorted_df['GRCPBCSAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCSAD_T2_5P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCSAD_T6_10P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBCSAD_T11_20P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## GRCBMAD
+
+    sorted_df['GRCPBMAD_T1P'] = (sorted_df['GRCPBMAD'] - sorted_df['GRCPBMAD'].shift(1)) / sorted_df['GRCPBMAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBMAD_T2_5P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBMAD_T6_10P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPBMAD_T11_20P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## GRCPNRAD
+
+    sorted_df['GRCPNRAD_T1P'] = (sorted_df['GRCPNRAD'] - sorted_df['GRCPNRAD'].shift(1)) / sorted_df['GRCPNRAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPNRAD_T2_5P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPNRAD_T6_10P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPNRAD_T11_20P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## GRCPRCAD
+
+    sorted_df['GRCPRCAD_T1P'] = (sorted_df['GRCPRCAD'] - sorted_df['GRCPRCAD'].shift(1)) / sorted_df['GRCPRCAD'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPRCAD_T2_5P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPRCAD_T6_10P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['GRCPRCAD_T11_20P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## H01_GGDPCVGDPFY
+
+    sorted_df['H01_GGDPCVGDPFY_T1P'] = (sorted_df['H01_GGDPCVGDPFY'] - sorted_df['H01_GGDPCVGDPFY'].shift(1)) / sorted_df['H01_GGDPCVGDPFY'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H01_GGDPCVGDPFY_T2_5P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H01_GGDPCVGDPFY_T6_10P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H01_GGDPCVGDPFY_T11_20P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    ## H05_GLFSEPTPOP
+
+    sorted_df['H05_GLFSEPTPOP_T1P'] = (sorted_df['H05_GLFSEPTPOP'] - sorted_df['H05_GLFSEPTPOP'].shift(1)) / sorted_df['H05_GLFSEPTPOP'].shift(1)
+
+    # Create median for previous days (2-5)
+    df_dict = {}
+    for x in range(2, 6):
+        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H05_GLFSEPTPOP_T2_5P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (6-10)
+    df_dict = {}
+    for x in range(6, 11):
+        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H05_GLFSEPTPOP_T6_10P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+    # Create median for previous days (11-20)
+    df_dict = {}
+    for x in range(11, 21):
+        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
+
+    temp_df = pd.DataFrame.from_dict(df_dict)
+    sorted_df['H05_GLFSEPTPOP_T11_20P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
+
+
+    # Fill N/A vals with dummy number
+    sorted_df.fillna(-999, inplace=True)
+
+    return sorted_df
 
 def train_preprocessor(train_x_df, train_y_df):
     print('Training pre-processor...')
@@ -637,7 +1063,7 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     gc.collect()
 
     # output feature importances
-    print(keras_mae_model.feature_importances_)
+    # print(keras_mae_model.feature_importances_)
 
 
     keras_log_predictions = keras_mae_model.predict(stacked_vals_test)
@@ -674,7 +1100,7 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     gc.collect()
 
     # output feature importances
-    print(keras_log_mae_model.feature_importances_)
+    # print(keras_log_mae_model.feature_importances_)
 
 
     keras_log_log_predictions = keras_log_mae_model.predict(stacked_vals_test)
@@ -1134,8 +1560,8 @@ def final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_mo
     print('Executing xgb predictions')
     xgb_test_predictions = execute_xgb_predictions(df_all_test_x, test_x_model_names, xgb_models, keras_models)
 
-    gen = safe_exp(xgb_test_predictions['log_y_predictions'])
-    keras_gen = safe_exp(xgb_test_predictions['keras_mae_predictions'])
+    gen = xgb_test_predictions['log_y_predictions']
+    keras_gen = xgb_test_predictions['keras_mae_predictions']
 
     # xgboost_keras_log_train = safe_exp(xgb_test_predictions['keras_log_mae_predictions'])
     # xgboost_keras_log_test = safe_exp(xgb_test_predictions['keras_log_mae_predictions'])
@@ -1228,8 +1654,11 @@ def symbol_results(x_symbols, predictions, actuals, run_str):
             }
         })
 
+        mean_actual_val = np.mean(symbol_actuals)
+
         symbol_dict = {
             'symbol': [symbol],
+            'mean_actual_val': [mean_actual_val],
         }
 
         for key in symbol_results[symbol]:
