@@ -310,11 +310,11 @@ def setup_data_columns(df):
 
 
 # @profile
-def load_data():
+def load_data(file_name):
     """Load pickled data and run combined prep """
     # Return dataframe and mask to split data
     # df = pd.read_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
-    df = pd.read_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
+    df = pd.read_pickle(file_name, compression='gzip')
     gc.collect()
 
 
@@ -359,13 +359,6 @@ def load_data():
     df.fillna(-999, inplace=True)
 
     return df
-
-# @profile
-def prep_data():
-    df = load_data()
-
-    return df
-
 
 # @profile
 def divide_data(share_data):
@@ -447,8 +440,8 @@ def divide_data(share_data):
 
         symbol_num += 1
 
-        if symbol_num >= 100:
-            break
+        # if symbol_num >= 100:
+        #     break
 
 
     print(symbol_map)
@@ -456,8 +449,6 @@ def divide_data(share_data):
     # Write symbol models array to file
     save(symbol_models, 'models/symbol-models-list.pkl.gz')
 
-
-    # Clean-up the initial data variable
     return symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
            symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x,\
            df_all_test_actuals, df_all_test_y, df_all_test_x
@@ -894,7 +885,7 @@ def train_preprocessor(train_x_df, train_y_df):
 
     print('Encoding categorical data...')
     # Use categorical entity embedding encoder
-    ce = Categorical_encoder(strategy="entity_embedding", verbose=False)
+    ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
     # Transform everything except the model name
     df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
 
@@ -932,7 +923,7 @@ def load_xgb_models():
         model_name = file_name.replace(xgb_set_path,'').replace('.model.gz','')
 
         # create model property and load model set into it
-        all_xgb_models[model_name] = load(file_name)
+        all_xgb_models[model_name] = file_name
 
     return all_xgb_models
 
@@ -945,8 +936,6 @@ def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x
     for f in files:
         os.remove(f)
 
-
-    all_xgb_models = {}
 
     # Retrieve model name list
     model_names = np.unique(train_x_model_names)
@@ -964,17 +953,14 @@ def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x
         model_test_y = df_all_test_y.iloc[test_index, :]
         model_test_actuals = df_all_test_actuals.iloc[test_index, :]
 
-        all_xgb_models[model] =  train_xgb_model_set(model, model_train_x, model_train_y, model_test_actuals,
-                                                     model_test_y, model_test_x, keras_models)
+        xgb_model_set =  train_xgb_model_set(model, model_train_x, model_train_y, model_test_actuals,
+                                             model_test_y, model_test_x, keras_models)
 
 
         # Save model set
         print('Saving model set for ', model)
-        save(all_xgb_models[model], xgb_set_path + model + '.model.gz')
+        save(xgb_model_set, xgb_set_path + model + '.model.gz')
 
-
-    # Return all models
-    return all_xgb_models
 
 # @profile
 def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_test_actuals,
@@ -1002,7 +988,7 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     all_test_x = df_all_test_x.values
     all_test_log_y = safe_log(all_test_y)
 
-    print('Training xgboost log of y model for' + model_set_name)
+    print('Training xgboost log of y model for', model_set_name)
     x_train, x_test, y_train, y_test = train_test_split(all_train_x, all_train_y, test_size = 0.15)
 
     eval_set = [(x_test, y_test)]
@@ -1041,7 +1027,7 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     stacked_vals_train = np.column_stack([all_train_x, mae_vals_train])
     stacked_vals_test = np.column_stack([all_test_x, mae_vals_test])
 
-    print('Training xgboost log of y with keras outputs model for ' + model_set_name)
+    print('Training xgboost log of y with keras outputs model for',  model_set_name)
     keras_mae_model = xgb.XGBRegressor(nthread=nthread, tree_method=tree_method, predictor = predictor,
                                         n_estimators=150, max_depth=70, learning_rate=0.05, base_score=0.25,
                                         colsample_bylevel=0.4, colsample_bytree=0.55, gamma=0, min_child_weight=0)
@@ -1159,13 +1145,15 @@ def execute_xgb_predictions(x_df, x_model_names, xgb_models, keras_models):
             print('WARNING.  Model', model, 'not found.  Using generic model')
             model = 'generic'
 
-        model_log_y_predictions = xgb_models[model]['log_y_model'].predict(x_data)
+        xgb_model_set = load(xgb_models[model])
+
+        model_log_y_predictions = xgb_model_set['log_y_model'].predict(x_data)
         model_log_y_predictions = safe_exp(model_log_y_predictions)
 
-        model_keras_mae_predictions = xgb_models[model]['keras_mae_model'].predict(x_stacked_vals)
+        model_keras_mae_predictions = xgb_model_set['keras_mae_model'].predict(x_stacked_vals)
         model_keras_mae_predictions = safe_exp(model_keras_mae_predictions)
 
-        model_keras_log_mae_predictions = xgb_models[model]['keras_log_mae_model'].predict(x_stacked_vals)
+        model_keras_log_mae_predictions = xgb_model_set['keras_log_mae_model'].predict(x_stacked_vals)
         model_keras_log_mae_predictions = safe_exp(safe_exp(model_keras_log_mae_predictions))
 
         # Update overall arrays
@@ -1549,91 +1537,17 @@ def execute_deep_bagging(model, scaler, bagging_data):
     return prediction_results
 
 # @profile
-def final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_models, keras_models,
-                  deep_bagged_predictions, run_str):
-    print('Executing manual bagging...')
-    test_actuals = df_all_test_actuals.values
-    test_x = df_all_test_x.values
+def assess_results(df_predictions, model_names, df_actuals, run_str):
 
-    print('Running model predictions')
+    test_actuals = df_actuals.values
 
-    print('Executing xgb predictions')
-    xgb_test_predictions = execute_xgb_predictions(df_all_test_x, test_x_model_names, xgb_models, keras_models)
+    range_results(df_predictions, test_actuals)
 
-    gen = xgb_test_predictions['log_y_predictions']
-    keras_gen = xgb_test_predictions['keras_mae_predictions']
+    symbol_results(model_names, df_predictions['deep_bagged_predictions'], test_actuals, run_str)
 
-    # xgboost_keras_log_train = safe_exp(xgb_test_predictions['keras_log_mae_predictions'])
-    # xgboost_keras_log_test = safe_exp(xgb_test_predictions['keras_log_mae_predictions'])
-
-    keras_mape = keras_models['mape_model'].predict(test_x)
-
-    keras_mae = keras_models['mae_model'].predict(test_x)
-    keras_mae = safe_exp(keras_mae)
-
-
-    # Reshape arrays
-    gen = gen.reshape(gen.shape[0], 1)
-    keras_mape = keras_mape.reshape(keras_mape.shape[0], 1)
-    keras_mae = keras_mae.reshape(keras_mape.shape[0], 1)
-    keras_gen = keras_gen.reshape(keras_gen.shape[0], 1)
-    deep_bagged_predictions = deep_bagged_predictions.reshape(deep_bagged_predictions.shape[0], 1)
-
-    small_pred_average = keras_mape
-
-    print('gen shape', gen.shape)
-    print('keras_mape shape', keras_mape.shape)
-    print('keras_mae shape', keras_mae.shape)
-    print('keras_gen shape', keras_gen.shape)
-    print('small_pred_average shape', small_pred_average.shape)
-
-    print('Bagging predictions')
-
-    # Set default value to mape
-    bagged_predictions = np.copy(keras_gen)
-
-    # -10 - -5 should should use gen
-    mask_neg_10_5 = ((gen > -10) & (gen <= 5))
-    bagged_predictions[mask_neg_10_5] = gen[mask_neg_10_5]
-
-    # 2 - 20 should should use gen
-    mask_2_20 = ((gen > 0) & (gen <= 22))
-    bagged_predictions[mask_2_20] = gen[mask_2_20]
-
-    # > 2 and < 5 use average of gen and log_gen
-    mask_2_5 = ((small_pred_average > 1.5) & (small_pred_average <= 6))
-    bagged_predictions[mask_2_5] = gen[mask_2_5]
-
-    # -5 - 0 should should average of keras_mape
-    mask_neg_5_0 = ((small_pred_average > -6.5) & (small_pred_average <= 0))
-    bagged_predictions[mask_neg_5_0] = keras_mape[mask_neg_5_0]
-
-    # 0 > and < 2 use keras_mape only
-    mask_neg_0_2 = ((small_pred_average > -0.5) & (small_pred_average <= 3.5) & (keras_mape > -0.5) &
-                    (keras_mape <= 2.5))
-    bagged_predictions[mask_neg_0_2] = keras_mape[mask_neg_0_2]
-
-
-    eval_results({'bagged_predictions': {
-                        'actual_y': test_actuals,
-                        'y_predict': bagged_predictions
-                }
-    })
-
-    range_results({
-        'gen': gen,
-        'xgboost_keras': keras_gen,
-        'keras_mape': keras_mape,
-        'keras_mae': keras_mae,
-        'bagged_predictions': bagged_predictions,
-        'deep_bagged_predictions': deep_bagged_predictions
-    }, test_actuals)
-
-    symbol_results(test_x_model_names, deep_bagged_predictions, test_actuals, run_str)
-
-def symbol_results(x_symbols, predictions, actuals, run_str):
+def symbol_results(symbols, predictions, actuals, run_str):
     # Determine unique list of symbols
-    symbols = np.unique(x_symbols)
+    symbols = np.unique(symbols)
 
     print('Executing symbol results, number of symbols in prediction data:', len(symbols))
 
@@ -1641,7 +1555,7 @@ def symbol_results(x_symbols, predictions, actuals, run_str):
 
     for symbol in symbols:
         # Retrieve data indices which match symbols
-        pred_index = np.where(x_symbols == symbol)[0]
+        pred_index = np.where(symbols == symbol)[0]
 
         # Retrieve data which matches symbol
         symbol_predictions = predictions[pred_index]
@@ -1673,70 +1587,70 @@ def symbol_results(x_symbols, predictions, actuals, run_str):
     # When all symbols are done, write the results as a csv
     df_results.to_csv('./results/' + run_str + '.csv')
 
-def execute_model_predictions(df_all_train_x, train_x_model_names, df_all_train_actuals,
-                              df_all_test_x, test_x_model_names, df_all_test_actuals,
-                              xgb_models, keras_models):
+def execute_train_test_predictions(df_all_train_x, train_x_model_names, df_all_train_actuals,
+                                   df_all_test_x, test_x_model_names, df_all_test_actuals,
+                                   xgb_models, keras_models):
 
     print('Executing and exporting predictions data...')
     # export results
     df_all_test_actuals.to_pickle('data/test_actuals.pkl.gz', compression='gzip')
     df_all_train_actuals.to_pickle('data/train_actuals.pkl.gz', compression='gzip')
 
-    print('Executing xgb predictions')
-    xgb_train_predictions = execute_xgb_predictions(df_all_train_x, train_x_model_names, xgb_models, keras_models)
-    xgb_test_predictions = execute_xgb_predictions(df_all_test_x, test_x_model_names, xgb_models, keras_models)
-
-    gen_train = xgb_train_predictions['log_y_predictions']
-    gen_test = xgb_test_predictions['log_y_predictions']
-
-    xgboost_keras_gen_train = xgb_train_predictions['keras_mae_predictions']
-    xgboost_keras_gen_test = xgb_test_predictions['keras_mae_predictions']
-
-    xgboost_keras_log_train = xgb_train_predictions['keras_log_mae_predictions']
-    xgboost_keras_log_test = xgb_test_predictions['keras_log_mae_predictions']
-
-    print('Executing keras predictions')
-    test_x = df_all_test_x.values
-    train_x = df_all_train_x.values
-
-    keras_mape_train = keras_models['mape_model'].predict(train_x)
-    keras_mape_test = keras_models['mape_model'].predict(test_x)
-
-    keras_log_train = keras_models['mae_model'].predict(train_x)
-    keras_log_train = safe_exp(keras_log_train)
-
-    keras_log_test = keras_models['mae_model'].predict(test_x)
-    keras_log_test = safe_exp(keras_log_test)
-
-
-    # Make consistent shape for outputs from keras
-    keras_mape_train = keras_mape_train.reshape(keras_mape_train.shape[0], )
-    keras_log_train = keras_log_train.reshape(keras_log_train.shape[0], )
-
+    train_y_predictions = execute_model_predictions(df_all_train_x, train_x_model_names, xgb_models, keras_models)
+    test_y_predictions = execute_model_predictions(df_all_test_x, test_x_model_names, xgb_models, keras_models)
 
     train_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': flatten_array(gen_train),
-        'keras_mape': flatten_array(keras_mape_train),
-        'keras_log': flatten_array(keras_log_train),
-        'xgboost_keras_log': flatten_array(xgboost_keras_gen_train),
-        'xgboost_keras_log_log': flatten_array(xgboost_keras_log_train),
+        'xgboost_log': train_y_predictions['xgboost_log'],
+        'keras_mape': train_y_predictions['keras_mape'],
+        'keras_log': train_y_predictions['keras_log'],
+        'xgboost_keras_log': train_y_predictions['xgboost_keras_log'],
+        'xgboost_keras_log_log': train_y_predictions['xgboost_keras_log_log'],
     })
     train_predictions.to_pickle('data/train_predictions.pkl.gz', compression='gzip')
 
-    # Make consistent shape for outputs from keras
-    keras_mape_test = keras_mape_test.reshape(keras_mape_test.shape[0], )
-    keras_log_test = keras_log_test.reshape(keras_log_test.shape[0], )
-
     test_predictions = pd.DataFrame.from_dict({
-        'xgboost_log': flatten_array(gen_test),
-        'keras_mape': flatten_array(keras_mape_test),
-        'keras_log': flatten_array(keras_log_test),
-        'xgboost_keras_log': flatten_array(xgboost_keras_gen_test),
-        'xgboost_keras_log_log': flatten_array(xgboost_keras_log_test),
+        'xgboost_log': test_y_predictions['xgboost_log'],
+        'keras_mape': test_y_predictions['keras_mape'],
+        'keras_log': test_y_predictions['keras_log'],
+        'xgboost_keras_log': test_y_predictions['xgboost_keras_log'],
+        'xgboost_keras_log_log': test_y_predictions['xgboost_keras_log_log'],
     })
     test_predictions.to_pickle('data/test_predictions.pkl.gz', compression='gzip')
 
     return train_predictions, test_predictions
+
+def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
+
+
+    print('Executing xgb predictions')
+    xgb_predictions = execute_xgb_predictions(df_x, x_model_names, xgb_models, keras_models)
+
+    gen_predictions = xgb_predictions['log_y_predictions']
+    xgboost_keras_gen_predictions = xgb_predictions['keras_mae_predictions']
+    xgboost_keras_log_predictions = xgb_predictions['keras_log_mae_predictions']
+
+    print('Executing keras predictions')
+    data_x = df_x.values
+
+    keras_mape_predictions = keras_models['mape_model'].predict(data_x)
+
+    keras_log_predictions = keras_models['mae_model'].predict(data_x)
+    keras_log_predictions = safe_exp(keras_log_predictions)
+
+
+    # Make consistent shape for outputs from keras
+    keras_mape_predictions = keras_mape_predictions.reshape(keras_mape_predictions.shape[0], )
+    keras_log_predictions = keras_log_predictions.reshape(keras_log_predictions.shape[0], )
+
+
+    return {
+        'xgboost_log': flatten_array(gen_predictions),
+        'keras_mape': flatten_array(keras_mape_predictions),
+        'keras_log': flatten_array(keras_log_predictions),
+        'xgboost_keras_log': flatten_array(xgboost_keras_gen_predictions),
+        'xgboost_keras_log_log': flatten_array(xgboost_keras_log_predictions),
+    }
+
 
 def main(run_config):
     # Prepare run_str
@@ -1747,7 +1661,7 @@ def main(run_config):
     # Retrieve and divide data
     if 'load_data' in run_config and run_config['load_data'] == True:
         # Load and divide data
-        share_data  = prep_data()
+        share_data  = load_data('data/ml-dec-data.pkl.gz')
         gc.collect()
 
         # Divide data into symbol sand general data for training an testing
@@ -1839,24 +1753,18 @@ def main(run_config):
         # Train the general models
         # gen_models = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y,
         #                                  df_all_test_x, keras_models)
-          xgb_models = train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x_model_names,
-                                        df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models)
-    else:
-        print('Loading xgboost models')
-        # Load the general models
-        # gen_models = {
-        #     'log_y': load('models/xgb-log_y.model.gz'),
-        #     'keras_mae': load('models/xgb-keras_mae.model.gz'),
-        #     'keras_log_mae': load('models/xgb-keras_log_mae.model.gz'),
-        # }
-        xgb_models = load_xgb_models()
+          train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x_model_names,
+                           df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models)
+
+    print('Loading xgboost model list')
+    xgb_models = load_xgb_models()
 
 
     # Export data prior to bagging
-    train_predictions, test_predictions = execute_model_predictions(df_all_train_x, train_x_model_names,
-                                                                    df_all_train_actuals, df_all_test_x,
-                                                                    test_x_model_names, df_all_test_actuals,
-                                                                    xgb_models, keras_models)
+    train_predictions, test_predictions = execute_train_test_predictions(df_all_train_x, train_x_model_names,
+                                                                         df_all_train_actuals, df_all_test_x,
+                                                                         test_x_model_names, df_all_test_actuals,
+                                                                         xgb_models, keras_models)
 
     if 'train_deep_bagging' in run_config and run_config['train_deep_bagging'] == True:
         bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
@@ -1869,9 +1777,10 @@ def main(run_config):
         bagging_scaler = load('models/deep-bagging-scaler.pkl.gz')
         deep_bagged_predictions = execute_deep_bagging(bagging_model, bagging_scaler, test_predictions)
 
+    # Add deep bagged predictions to set
+    test_predictions['deep_bagged_predictions'] = deep_bagged_predictions
 
-    final_bagging(df_all_test_x, test_x_model_names, df_all_test_actuals, xgb_models, keras_models,
-                  deep_bagged_predictions, run_str)
+    assess_results(test_predictions, test_x_model_names, df_all_test_actuals, run_str)
 
 
 if __name__ == "__main__":
