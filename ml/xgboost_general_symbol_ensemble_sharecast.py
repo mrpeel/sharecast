@@ -15,6 +15,7 @@ import gc
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from categorical_encoder import *
 from eval_results import *
@@ -875,6 +876,24 @@ def append_recurrent_columns(symbol_df):
 
     return sorted_df
 
+def train_one_hot_symbol_encoder(x_symbols):
+    symbol_label = LabelEncoder()
+    symbol_one_hot = OneHotEncoder()
+
+    train_symbol_le = symbol_label.fit_transform(x_symbols)
+    train_symbol_le = train_symbol_le.reshape(train_symbol_le.shape[0], 1)
+    train_symbol_oh = symbol_one_hot.fit_transform(train_symbol_le)
+
+    return train_symbol_oh, symbol_label, symbol_one_hot
+
+def execute_one_hot_symbol_encoder(x_symbols, symbol_label, symbol_one_hot):
+    symbol_le = symbol_label.transform(x_symbols)
+    symbol_le = symbol_le.reshape(symbol_le.shape[0], 1)
+    symbol_oh = symbol_one_hot.transform(symbol_le)
+
+    return symbol_oh
+
+
 def train_preprocessor(train_x_df, train_y_df):
     print('Training pre-processor...')
 
@@ -1525,9 +1544,9 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_
 
     return model, scaler, prediction_results
 
-def execute_deep_bagging(model, scaler, bagging_data):
+def execute_deep_bagging(model, scaler, bagging_df):
     print('Executing keras based bagging...')
-    test_x = bagging_data.values
+    test_x = bagging_df.values
 
     test_x_scaled = scaler.transform(test_x)
 
@@ -1541,13 +1560,18 @@ def assess_results(df_predictions, model_names, df_actuals, run_str):
 
     test_actuals = df_actuals.values
 
-    range_results(df_predictions, test_actuals)
+    range_predictions = {}
 
-    symbol_results(model_names, df_predictions['deep_bagged_predictions'], test_actuals, run_str)
+    for column in df_predictions.columns.values:
+        range_predictions[column] = df_predictions[column].values
 
-def symbol_results(symbols, predictions, actuals, run_str):
+    range_results(range_predictions, test_actuals)
+
+    symbol_results(model_names, df_predictions['deep_bagged_predictions'].values, test_actuals, run_str)
+
+def symbol_results(symbols_x, predictions, actuals, run_str):
     # Determine unique list of symbols
-    symbols = np.unique(symbols)
+    symbols = np.unique(symbols_x)
 
     print('Executing symbol results, number of symbols in prediction data:', len(symbols))
 
@@ -1555,7 +1579,7 @@ def symbol_results(symbols, predictions, actuals, run_str):
 
     for symbol in symbols:
         # Retrieve data indices which match symbols
-        pred_index = np.where(symbols == symbol)[0]
+        pred_index = np.where(symbols_x == symbol)[0]
 
         # Retrieve data which matches symbol
         symbol_predictions = predictions[pred_index]
@@ -1569,10 +1593,18 @@ def symbol_results(symbols, predictions, actuals, run_str):
         })
 
         mean_actual_val = np.mean(symbol_actuals)
+        median_actual_val = np.median(symbol_actuals)
+
+        mean_predicted_val = np.mean(symbol_predictions)
+        median_predicted_val = np.median(symbol_predictions)
+
 
         symbol_dict = {
             'symbol': [symbol],
             'mean_actual_val': [mean_actual_val],
+            'median_actual_val': [median_actual_val],
+            'mean_predicted_val': [mean_predicted_val],
+            'median_predicted_val': [median_predicted_val],
         }
 
         for key in symbol_results[symbol]:
@@ -1643,13 +1675,15 @@ def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
     keras_log_predictions = keras_log_predictions.reshape(keras_log_predictions.shape[0], )
 
 
-    return {
+    predictions_df = pd.DataFrame.from_dict({
         'xgboost_log': flatten_array(gen_predictions),
         'keras_mape': flatten_array(keras_mape_predictions),
         'keras_log': flatten_array(keras_log_predictions),
         'xgboost_keras_log': flatten_array(xgboost_keras_gen_predictions),
         'xgboost_keras_log_log': flatten_array(xgboost_keras_log_predictions),
-    }
+    })
+
+    return predictions_df
 
 
 def main(run_config):
@@ -1691,8 +1725,6 @@ def main(run_config):
 
     # Retain model names for train and test
     print('Retaining model name data')
-    # train_x_model_names = pd.DataFrame()
-    # test_x_model_names = pd.DataFrame()
     train_x_model_names = df_all_train_x['model'].values
     test_x_model_names = df_all_test_x['model'].values
 
@@ -1700,11 +1732,37 @@ def main(run_config):
     df_all_train_x = df_all_train_x.drop(['model'], axis=1)
     df_all_test_x = df_all_test_x.drop(['model'], axis=1)
 
+    # if 'train_one_hot_encoder' in run_config and run_config['train_one_hot_encoder'] == True:
+    #     print('Training symbol one hot encoder')
+    #     train_symbol_oh, symbol_label, symbol_one_hot  = train_one_hot_symbol_encoder(df_all_train_x['symbol'].values)
+    #
+    #     save(symbol_label, './models/symbol_label.pkl.gz')
+    #     save(symbol_one_hot, './models/symbol_one_hot.pkl.gz')
+    # else:
+    #     print('Loading symbol one hot encoder')
+    #     symbol_label = load('./models/symbol_label.pkl.gz')
+    #     symbol_one_hot = load('./models/symbol_one_hot.pkl.gz')
+    #     train_symbol_oh = execute_one_hot_symbol_encoder(df_all_train_x['symbol'].values, symbol_label, symbol_one_hot)
+
+    # if 'one_hot_encode_symbols' in run_config and run_config['one_hot_encode_symbols'] == True:
+    #     # Encoding symbol values
+    #     test_symbol_oh = execute_one_hot_symbol_encoder(df_all_test_x['symbol'].values, symbol_label, symbol_one_hot)
+    #     save(train_symbol_oh, './data/one_hot_symbols_train.pkl.gz')
+    #     save(test_symbol_oh, './data/one_hot_symbols_test.pkl.gz')
+    # else:
+    #     # Values already encoded and saved so load values
+    #     train_symbol_oh = load('./data/one_hot_symbols_train.pkl.gz')
+    #     test_symbol_oh = load('./data/one_hot_symbols_test.pkl.gz')
+
 
     if 'train_pre_process' in run_config and run_config['train_pre_process'] == True:
         # Execute pre-processing trainer
         df_all_train_x, scaler, ce = train_preprocessor(df_all_train_x, df_all_train_y)
         df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
+
+        # Write processed data to files
+        df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+        df_all_test_x.to_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
 
     elif 'load_and_execute_pre_process' in run_config and run_config['load_and_execute_pre_process'] == True:
         print('Loading pre-processing models')
@@ -1786,6 +1844,8 @@ def main(run_config):
 if __name__ == "__main__":
     run_config = {
         'load_data': True,
+        'train_one_hot_encoder': True,
+        'one_hot_encode_symbols': True,
         'train_pre_process': True,
         'load_and_execute_pre_process': False,
         'load_processed_data': False,

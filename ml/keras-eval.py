@@ -6,14 +6,19 @@ Based on:
 
 """
 from compile_keras import *
+from keras.models import load_model
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
+
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import MinMaxScaler
 import pandas as pd
 import numpy as np
 import os
+import joblib
 
 from eval_results import *
 from random import *
+from categorical_encoder import *
 
 def mae_mape(actual_y, prediction_y):
     mape = safe_mape(actual_y, prediction_y)
@@ -781,6 +786,186 @@ def main():
 
     train_and_score(network)
 
+def train_deep_bagging():
+    print('Training keras based bagging...')
+    train_predictions = pd.read_pickle('data/train_predictions.pkl.gz', compression='gzip')
+    test_predictions = pd.read_pickle('data/test_predictions.pkl.gz', compression='gzip')
+    train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
+    test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
+
+    print('Encoding categorical data...')
+    # Use categorical entity embedding encoder
+    ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
+    # Transform everything except the model name
+    df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
+
+
+    train_x = train_predictions.values
+    train_y = train_actuals[0].values
+    test_x = test_predictions.values
+    test_y = test_actuals[0].values
+
+    scaler = MinMaxScaler(feature_range=(0,1))
+    train_x_scaled = scaler.fit_transform(train_x)
+    test_x_scaled = scaler.transform(test_x)
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+    csv_logger = CSVLogger('./logs/training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    dimensions = train_x.shape[1]
+
+    network = {
+        'activation': 'PReLU',
+        'optimizer': 'Nadam',
+        'batch_size': 1024,
+        'dropout': 0,
+        'model_type': 'mae_mape',
+        'kernel_initializer': 'normal',
+        'hidden_layers': [5],
+    }
+
+    model = compile_keras_model(network, dimensions)
+
+    print('\rNetwork')
+
+    for property in network:
+        print(property, ':', network[property])
+
+    history = model.fit(train_x_scaled, train_y,
+                        batch_size=network['batch_size'],
+                        epochs=20000,
+                        verbose=0,
+                        validation_split=0.2,
+                        callbacks=[csv_logger, reduce_lr, early_stopping, checkpointer])
+
+    print('\rResults')
+
+    model.load_weights('weights.hdf5')
+    predictions = model.predict(test_x_scaled)
+    prediction_results = predictions.reshape(predictions.shape[0], )
+
+    eval_results({'deep_bagged_predictions': {
+                        'actual_y': test_y,
+                        'y_predict': prediction_results
+                }
+    })
+
+    range_results({
+        'deep_bagged_predictions': prediction_results
+    }, test_y)
+
+def encode_symbols():
+    pp_train = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+    train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
+    pp_test = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+
+    train_symbols = pp_train[['symbol']]
+    test_symbols = pp_test[['symbol']]
+
+    print('Encoding categorical data...')
+    # Use categorical entity embedding encoder
+    ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
+    # Transform everything except the model name
+    df_train_transform = ce.fit_transform(train_symbols, train_actuals[0])
+    df_test_transform = ce.transform(test_symbols)
+
+    df_train_transform.to_pickle('data/train_symbol_embedding.pkl.gz', compression='gzip')
+    df_test_transform.to_pickle('data/test_symbol_embedding.pkl.gz', compression='gzip')
+
+def train_deep_bagging_w_symbols():
+    print('Training keras based bagging...')
+    train_predictions = pd.read_pickle('data/train_predictions.pkl.gz', compression='gzip')
+    test_predictions = pd.read_pickle('data/test_predictions.pkl.gz', compression='gzip')
+    train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
+    test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
+    pp_train = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+    pp_test = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+
+    # train_oh_symbols_csr = joblib.load('./data/one_hot_symbols_train.pkl.gz')
+    # test_oh_symbols_csr = joblib.load('./data/one_hot_symbols_test.pkl.gz')
+
+    train_x = train_predictions.values
+    train_y = train_actuals[0].values
+    test_x = test_predictions.values
+    test_y = test_actuals[0].values
+
+    # Convert csr matrix to np array
+    # train_oh_symbols = train_oh_symbols_csr.todense()
+    # test_oh_symbols = test_oh_symbols_csr.todense()
+    #
+    print(train_x.shape)
+    print(pp_train.shape)
+    print(test_x.shape)
+    print(pp_test.shape)
+
+    scaler = MinMaxScaler(feature_range=(0,1))
+    train_x_scaled = scaler.fit_transform(train_x)
+    test_x_scaled = scaler.transform(test_x)
+
+    train_symbols = pp_train[['symbol']]
+    test_symbols = pp_test[['symbol']]
+
+
+    print('Encoding categorical data...')
+    # Use categorical entity embedding encoder
+    ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
+    # Transform everything except the model name
+    df_train_transform = ce.fit_transform(train_symbols, train_actuals[0])
+    df_test_transform = ce.transform(test_symbols)
+
+
+
+    stacked_train_x = np.column_stack([train_x_scaled, df_train_transform.values])
+    stacked_test_x = np.column_stack([test_x_scaled, df_test_transform.values])
+
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+    csv_logger = CSVLogger('./logs/training.log')
+    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+
+    dimensions = stacked_train_x.shape[1]
+
+    network = {
+        'activation': 'PReLU',
+        'optimizer': 'Nadam',
+        'batch_size': 1024,
+        'dropout': 0,
+        'model_type': 'mae_mape',
+        'kernel_initializer': 'normal',
+        'hidden_layers': [5],
+    }
+
+    model = compile_keras_model(network, dimensions)
+
+    print('\rNetwork')
+
+    for property in network:
+        print(property, ':', network[property])
+
+    history = model.fit(stacked_train_x, train_y,
+                        batch_size=network['batch_size'],
+                        epochs=20000,
+                        verbose=0,
+                        validation_split=0.2,
+                        callbacks=[csv_logger, reduce_lr, early_stopping, checkpointer])
+
+    print('\rResults')
+
+    model.load_weights('weights.hdf5')
+    predictions = model.predict(stacked_test_x)
+    prediction_results = predictions.reshape(predictions.shape[0], )
+
+    eval_results({'deep_bagged_predictions': {
+                        'actual_y': test_y,
+                        'y_predict': prediction_results
+                }
+    })
+
+    range_results({
+        'deep_bagged_predictions': prediction_results
+    }, test_y)
 
 if __name__ == '__main__':
-    main()
+    encode_symbols()

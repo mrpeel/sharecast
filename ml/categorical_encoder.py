@@ -220,7 +220,7 @@ class Categorical_encoder():
                 nb_layers = 5
                 nb_neurons = 1024
                 dropout = 0.15
-                batch_size = 1024
+                batch_size = 2048
                 activation = 'relu'
                 optimizer =  'adamax'
 

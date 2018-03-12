@@ -14,6 +14,10 @@ def safe_mape(actual_y, prediction_y):
         actual_y - numpy array containing targets with shape (n_samples, n_targets)
         prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
     """
+    # Reshape arrays to ensure clip and absolute won't chew through memory
+    prediction_y = prediction_y.reshape(prediction_y.shape[0], 1)
+    actual_y = actual_y.reshape(actual_y.shape[0], 1)
+
     diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
@@ -44,6 +48,8 @@ def range_results(predictions, actuals):
 
         # Generate final and combined results
         range_actuals = actuals[range_mask]
+        # Re-shape the actuals array
+        range_actuals = range_actuals.reshape(range_actuals.shape[0], 1)
         range_results = {}
 
         for prediction_name in predictions:
