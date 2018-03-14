@@ -11,6 +11,7 @@ from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCh
 
 from sklearn.metrics import mean_absolute_error
 from sklearn.preprocessing import MinMaxScaler
+from sklearn import preprocessing
 import pandas as pd
 import numpy as np
 import os
@@ -874,14 +875,37 @@ def encode_symbols():
     df_train_transform.to_pickle('data/train_symbol_embedding.pkl.gz', compression='gzip')
     df_test_transform.to_pickle('data/test_symbol_embedding.pkl.gz', compression='gzip')
 
+def re_encode_symbols():
+    pp_train = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+    # pp_test = pd.read_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
+
+    print('Encoding categorical data...')
+    # Use categorical entity embedding encoder
+    ce = joblib.load('models/ce.pkl.gz')
+    # Transform everything except the model name
+    df_train_transform = ce.transform(pp_train)
+    # df_test_transform = ce.transform(pp_test)
+
+    train_symbols =  df_train_transform[['symbol_emb1', 'symbol_emb2', 'symbol_emb3', 'symbol_emb4', 'symbol_emb5', 'symbol_emb6']]
+    train_symbols.to_pickle('data/train_symbol_embedding.pkl.gz', compression='gzip')
+
+    # test_symbols =  df_test_transform[['symbol_emb1', 'symbol_emb2', 'symbol_emb3', 'symbol_emb4', 'symbol_emb5', 'symbol_emb6']]
+    # test_symbols.to_pickle('data/test_symbol_embedding.pkl.gz', compression='gzip')
+
 def train_deep_bagging_w_symbols():
     print('Training keras based bagging...')
     train_predictions = pd.read_pickle('data/train_predictions.pkl.gz', compression='gzip')
     test_predictions = pd.read_pickle('data/test_predictions.pkl.gz', compression='gzip')
     train_actuals = pd.read_pickle('data/train_actuals.pkl.gz', compression='gzip')
     test_actuals = pd.read_pickle('data/test_actuals.pkl.gz', compression='gzip')
+    # train_symbols = pd.read_pickle('data/train_symbol_embedding.pkl.gz', compression='gzip')
+    # test_symbols = pd.read_pickle('data/test_symbol_embedding.pkl.gz', compression='gzip')
     pp_train = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
-    pp_test = pd.read_pickle('data/pp_train_x_df.pkl.gz', compression='gzip')
+    pp_test = pd.read_pickle('data/pp_test_x_df.pkl.gz', compression='gzip')
+    # values to try:  'quoteDate_YEAR' 'quoteDate_MONTH' 'quoteDate_TIMESTAMP' '4WeekBollingerType' '12WeekBollingerType'
+    train_append = pp_train['quoteDate_YEAR'].astype(int)
+    test_append = pp_test['quoteDate_YEAR'].astype(int)
+
 
     # train_oh_symbols_csr = joblib.load('./data/one_hot_symbols_train.pkl.gz')
     # test_oh_symbols_csr = joblib.load('./data/one_hot_symbols_test.pkl.gz')
@@ -891,41 +915,57 @@ def train_deep_bagging_w_symbols():
     test_x = test_predictions.values
     test_y = test_actuals[0].values
 
+    # train_index = np.where(train_symbols == 'MNC')[0]
+    # test_index = np.where(test_symbols == 'MNC')[0]
+    #
+    # train_x = train_predictions.iloc[train_index, :].values
+    # train_y = train_actuals.iloc[train_index, 0].values
+    # test_x = test_predictions.iloc[test_index, :].values
+    # test_y = test_actuals.iloc[test_index, 0].values
+
+
     # Convert csr matrix to np array
     # train_oh_symbols = train_oh_symbols_csr.todense()
     # test_oh_symbols = test_oh_symbols_csr.todense()
     #
     print(train_x.shape)
-    print(pp_train.shape)
     print(test_x.shape)
-    print(pp_test.shape)
+    # print(train_symbols.shape)
+    # print(test_symbols.shape)
 
     scaler = MinMaxScaler(feature_range=(0,1))
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
 
-    train_symbols = pp_train[['symbol']]
-    test_symbols = pp_test[['symbol']]
+    # le = preprocessing.LabelEncoder()
+    # train_append = le.fit_transform(train_append)
+    # test_append = le.transform(test_append)
+
+    append_scaler = MinMaxScaler(feature_range=(0,1))
+    train_append = train_append.reshape(train_append.shape[0], 1)
+    test_append = test_append.reshape(test_append.shape[0], 1)
+    train_append_scaled = append_scaler.fit_transform(train_append)
+    test_append_scaled = append_scaler.transform(test_append)
 
 
-    print('Encoding categorical data...')
-    # Use categorical entity embedding encoder
-    ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
-    # Transform everything except the model name
-    df_train_transform = ce.fit_transform(train_symbols, train_actuals[0])
-    df_test_transform = ce.transform(test_symbols)
+    # X = np.column_stack([train_x_scaled, train_append])
+    # X_test = np.column_stack([test_x_scaled, test_append])
 
+    X = np.column_stack([train_x_scaled, train_append_scaled])
+    X_test = np.column_stack([test_x_scaled, test_append_scaled])
 
+    # X = train_x_scaled
+    # X_test = test_x_scaled
 
-    stacked_train_x = np.column_stack([train_x_scaled, df_train_transform.values])
-    stacked_test_x = np.column_stack([test_x_scaled, df_test_transform.values])
+    Y = train_y
+    Y_test = test_y
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
 
-    dimensions = stacked_train_x.shape[1]
+    dimensions = X.shape[1]
 
     network = {
         'activation': 'PReLU',
@@ -944,7 +984,7 @@ def train_deep_bagging_w_symbols():
     for property in network:
         print(property, ':', network[property])
 
-    history = model.fit(stacked_train_x, train_y,
+    history = model.fit(X, Y,
                         batch_size=network['batch_size'],
                         epochs=20000,
                         verbose=0,
@@ -954,18 +994,18 @@ def train_deep_bagging_w_symbols():
     print('\rResults')
 
     model.load_weights('weights.hdf5')
-    predictions = model.predict(stacked_test_x)
+    predictions = model.predict(X_test)
     prediction_results = predictions.reshape(predictions.shape[0], )
 
     eval_results({'deep_bagged_predictions': {
-                        'actual_y': test_y,
+                        'actual_y': Y_test,
                         'y_predict': prediction_results
                 }
     })
 
     range_results({
         'deep_bagged_predictions': prediction_results
-    }, test_y)
+    }, Y_test)
 
 if __name__ == '__main__':
-    encode_symbols()
+    train_deep_bagging_w_symbols()
