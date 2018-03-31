@@ -88,20 +88,19 @@ def load_data(base_path, increments):
 
 
 
-share_data = load_data(base_path='data/companyQuotes-20170820-%03d.csv.gz', increments=range(1, 4)) #74))
+share_data = load_data(base_path='data/companyQuotes-20170820-%03d.csv.gz', increments=range(1, 62))
 gc.collect()
 
 
 print('Saving data')
 
 
-save_data.to_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
-# share_data.to_hdf('data/ml-july-data.hdf5', 'sharecast', mode='w', complevel=9, complib='bzip2')
+share_data.to_pickle('data/ml-2018-03-data.pkl.gz', compression='gzip')
 
 # Get a unique list of companies and pick a random 500 companies
-symbols = save_data['symbol'].unique().tolist()
+symbols = share_data['symbol'].unique().tolist()
 
 random_500 = random.sample(symbols, 500)
-sample2 = save_data[save_data['symbol'].isin(random_500)]
+sample2 = share_data[share_data['symbol'].isin(random_500)]
 
-sample2.to_pickle('data/ml-dec-sample.pkl.gz', compression='gzip')
+sample2.to_pickle('data/ml-2018-03-sample.pkl.gz', compression='gzip')
