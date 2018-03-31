@@ -1844,7 +1844,7 @@ def main(run_config):
     # Retrieve and divide data
     if 'load_data' in run_config and run_config['load_data'] == True:
         # Load and divide data
-        share_data  = load_data('data/ml-dec-sample.pkl.gz')
+        share_data  = load_data(run_config['data_file'])
         gc.collect()
 
         # Divide data into symbol sand general data for training an testing
@@ -1994,6 +1994,7 @@ def main(run_config):
 if __name__ == "__main__":
     run_config = {
         'load_data': True,
+        'data_file': './data/ml-2018-03-data.pkl.gz',
         'train_pre_process': True,
         'load_and_execute_pre_process': False,
         'load_processed_data': False,
