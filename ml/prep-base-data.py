@@ -88,7 +88,7 @@ def load_data(base_path, increments):
 
 
 
-share_data = load_data(base_path='data/companyQuotes-20170820-%03d.csv.gz', increments=range(1, 62))
+share_data = load_data(base_path='data/companyQuotes-20180330-%03d.csv.gz', increments=range(1, 62))
 gc.collect()
 
 
