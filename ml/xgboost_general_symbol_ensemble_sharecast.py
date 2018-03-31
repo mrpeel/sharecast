@@ -12,22 +12,21 @@ import pandas as pd
 import numpy as np
 import xgboost as xgb
 import gc
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Imputer
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from categorical_encoder import *
 from eval_results import *
+from clr_callback import *
 #from autoencoder import *
 from compile_keras import *
 from keras.models import load_model
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
 import logging
-
-
-#import matplotlib.pyplot as plt
-
+import os
+import matplotlib.pyplot as plt
+import math
 # from memory_profiler import profile
 
 
@@ -75,31 +74,60 @@ COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBo
 
 
 LABEL_COLUMN = "Future8WeekReturn"
+
 CATEGORICAL_COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType',
                        '12WeekBollingerPrediction', '12WeekBollingerType', 'quoteDate_YEAR',
                        'quoteDate_MONTH', 'quoteDate_DAY', 'quoteDate_DAYOFWEEK']
+
 CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteDate_TIMESTAMP', 'volume', 'previousClose', 'change',
                 'changeInPercent','52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
-                'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'Price200DayAverage',
-                'Price52WeekPercChange', '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility',
+                'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow',
+                '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility',
                 '12WeekVolatility', '26WeekVolatility', '52WeekVolatility', 'allordpreviousclose', 'allordchange',
                 'allorddayshigh', 'allorddayslow', 'allordpercebtChangeFrom52WeekHigh',
                 'allordpercentChangeFrom52WeekLow', 'asxpreviousclose', 'asxchange', 'asxdayshigh',
                 'asxdayslow', 'asxpercebtChangeFrom52WeekHigh', 'asxpercentChangeFrom52WeekLow', 'exDividendRelative',
-                'exDividendPayout', '640106_A3597525W', 'AINTCOV', 'AverageVolume', 'BookValuePerShareYear',
-                'CashPerShareYear', 'DPSRecentYear', 'EBITDMargin', 'EPS', 'EPSGrowthRate10Years',
-                'EPSGrowthRate5Years', 'FIRMMCRT', 'FXRUSD', 'Float', 'GRCPAIAD', 'GRCPAISAD', 'GRCPBCAD',
+                'exDividendPayout', '640106_A3597525W', 'AINTCOV', 'BookValuePerShareYear',
+                'CashPerShareYear', 'DPSRecentYear',  'EPS',
+                'FIRMMCRT', 'FXRUSD', 'Float', 'GRCPAIAD', 'GRCPAISAD', 'GRCPBCAD',
                 'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD', 'H01_GGDPCVGDP', 'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP',
-                'IAD', 'LTDebtToEquityQuarter', 'LTDebtToEquityYear', 'MarketCap',
-                'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent', 'OperatingMargin', 'PE',
-                'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM', 'ReturnOnAssetsYear',
-                'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'ReturnOnEquityYear', 'RevenueGrowthRate10Years',
-                'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
-                'TotalDebtToEquityQuarter', 'TotalDebtToEquityYear', 'bookValue', 'earningsPerShare',
-                'ebitda', 'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
-                'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales',
+                'MarketCap',
+                'OperatingMargin', 'PE',
+                'ReturnOnEquityYear', 'TotalDebtToEquityYear',
                 '4WeekBollingerBandLower', '4WeekBollingerBandUpper', '12WeekBollingerBandLower',
-                '12WeekBollingerBandUpper', 'Beta', 'daysHigh', 'daysLow']
+                '12WeekBollingerBandUpper', 'daysHigh', 'daysLow']
+
+FUTURE_RESULTS_COLUMNS = ['Future1WeekReturn', 'Future2WeekReturn', 'Future4WeekReturn', 'Future8WeekReturn',
+                          'Future12WeekReturn', 'Future26WeekReturn', 'Future52WeekReturn', 'Future1WeekRiskAdjustedReturn',
+                          'Future2WeekRiskAdjustedReturn', 'Future4WeekRiskAdjustedReturn', 'Future8WeekRiskAdjustedReturn',
+                          'Future12WeekRiskAdjustedReturn', 'Future26WeekRiskAdjustedReturn', 'Future52WeekRiskAdjustedReturn']
+
+PAST_RESULTS_COLUMNS = ['1WeekReturn', '2WeekReturn', '4WeekReturn', '8WeekReturn', '12WeekReturn', '26WeekReturn',
+                        '52WeekReturn', '1WeekRiskAdjustedReturn', '2WeekRiskAdjustedReturn', '4WeekRiskAdjustedReturn',
+                        '8WeekRiskAdjustedReturn', '12WeekRiskAdjustedReturn', '26WeekRiskAdjustedReturn',
+                        '52WeekRiskAdjustedReturn']
+
+RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpreviousclose_T2_5P',
+                     'asxpreviousclose_T6_10P', 'asxpreviousclose_T11_20P', 'asxpreviousclose_T1P',
+                     'asxpreviousclose_T2_5P', 'asxpreviousclose_T6_10P', 'allordpreviousclose_T11_20P',
+                     'allordpreviousclose_T1P', 'allordpreviousclose_T2_5P', 'allordpreviousclose_T6_10P',
+                     'adjustedPrice_T11_20P', 'adjustedPrice_T2P', 'adjustedPrice_T3_5P', 'adjustedPrice_T6_10P',
+                     'FIRMMCRT_T11_20P', 'FIRMMCRT_T1P', 'FIRMMCRT_T2_5P', 'FIRMMCRT_T6_10P', 'FXRUSD_T11_20P',
+                     'FXRUSD_T1P', 'FXRUSD_T2_5P', 'FXRUSD_T6_10P', 'GRCPAIAD_T11_20P', 'GRCPAIAD_T1P',
+                     'GRCPAIAD_T2_5P', 'GRCPAIAD_T6_10P', 'GRCPAISAD_T1P', 'GRCPAISAD_T2_5P', 'GRCPAISAD_T6_10P',
+                     'GRCPAISAD_T11_20P', 'GRCPBCAD_T1P', 'GRCPBCAD_T2_5P', 'GRCPBCAD_T6_10P', 'GRCPBCAD_T11_20P',
+                     'GRCPBCSAD_T1P', 'GRCPBCSAD_T2_5P', 'GRCPBCSAD_T6_10P', 'GRCPBCSAD_T11_20P',
+                     'GRCPBMAD_T1P', 'GRCPBMAD_T2_5P', 'GRCPBMAD_T6_10P', 'GRCPBMAD_T11_20P', 'GRCPNRAD_T1P',
+                     'GRCPNRAD_T2_5P', 'GRCPNRAD_T6_10P', 'GRCPNRAD_T11_20P', 'GRCPRCAD_T1P', 'GRCPRCAD_T2_5P',
+                     'GRCPRCAD_T6_10P', 'GRCPRCAD_T11_20P', 'H01_GGDPCVGDPFY_T1P', 'H01_GGDPCVGDPFY_T2_5P',
+                     'H01_GGDPCVGDPFY_T6_10P', 'H01_GGDPCVGDPFY_T11_20P', 'H05_GLFSEPTPOP_T1P', 'H05_GLFSEPTPOP_T2_5P',
+                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P']
+
+
+ALL_CONTINUOUS_COLUMNS = []
+ALL_CONTINUOUS_COLUMNS.extend(CONTINUOUS_COLUMNS)
+ALL_CONTINUOUS_COLUMNS.extend(RECURRENT_COLUMNS)
+ALL_CONTINUOUS_COLUMNS.extend(PAST_RESULTS_COLUMNS)
 
 # Setup logging.
 logging.basicConfig(
@@ -304,8 +332,12 @@ def convert_date(df, column_name):
 def setup_data_columns(df):
     # Remove columns not referenced in either algorithm
     columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
+
+    # Add continuous and categorical columns
     columns_to_keep.extend(CONTINUOUS_COLUMNS)
     columns_to_keep.extend(CATEGORICAL_COLUMNS)
+    columns_to_keep.extend(FUTURE_RESULTS_COLUMNS)
+    # Drop columns not in keep list
     return_df = drop_unused_columns(df, columns_to_keep)
     return return_df
 
@@ -332,7 +364,7 @@ def load_data(file_name):
 
     # convert string difference value to integer
     df['exDividendRelative'] = df['exDividendRelative'].apply(
-        lambda x: -999 if pd.isnull(x) else x.days)
+        lambda x: np.nan if pd.isnull(x) else x.days)
 
     convert_date(df, 'quoteDate')
 
@@ -340,8 +372,8 @@ def load_data(file_name):
     #     df['quoteDate'].dt.year, \
     #     df['quoteDate'].dt.month.astype('int8')
 
-    # Remove dates columns
-    df.drop(['quoteDate', 'exDividendDate'], axis=1, inplace=True)
+    # Remove ex-dividend date
+    df.drop(['exDividendDate'], axis=1, inplace=True)
 
     df = df.dropna(subset=[LABEL_COLUMN], how='all')
 
@@ -356,10 +388,46 @@ def load_data(file_name):
     for col in CATEGORICAL_COLUMNS:
         df[col].fillna('NA', inplace=True)
 
-    # Fill N/A vals with dummy number
-    df.fillna(-999, inplace=True)
 
     return df
+
+def column_stats(df):
+    # Get number of vals in dataframe
+    num_vals = df.shape[0]
+    interpolate_cols = []
+
+    print('Column stats')
+
+    for col in df.columns.values:
+        if df[col].dtype == 'float64':
+            # Perform stats
+            num_null_vals = df[col].isnull().sum()
+            perc_null_vals = num_null_vals / num_vals * 100
+            if perc_null_vals > 20:
+                interpolate_cols.append(col)
+                print(col)
+                print('Percentage of null vals:', perc_null_vals)
+                print('Min val:', df[col].min())
+                print('Max val:', df[col].max())
+                print('Mean:', df[col].mean())
+                print('Median:', df[col].median())
+                print('Std dev:', df[col].std())
+                print(20*'-')
+
+    df.interpolate(method='slinear', inplace=True)
+    print(50 * '-')
+    for col in interpolate_cols:
+        num_null_vals = df[col].isnull().sum()
+        perc_null_vals = num_null_vals / num_vals * 100
+        print(col)
+        print('Percentage of null vals:', perc_null_vals)
+        print('Min val:', df[col].min())
+        print('Max val:', df[col].max())
+        print('Mean:', df[col].mean())
+        print('Median:', df[col].median())
+        print('Std dev:', df[col].std())
+        print(20*'-')
+
 
 # @profile
 def divide_data(share_data):
@@ -870,9 +938,29 @@ def append_recurrent_columns(symbol_df):
     temp_df = pd.DataFrame.from_dict(df_dict)
     sorted_df['H05_GLFSEPTPOP_T11_20P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
 
+    ### Add previous return columns
+    # Look back for each time period (1,2,4,8,12,26,52 weeks) and if a value exists, copy it to current row
+    indexed_df = sorted_df.set_index('quoteDate')
 
-    # Fill N/A vals with dummy number
-    sorted_df.fillna(-999, inplace=True)
+    for num_weeks in [1, 2, 4, 8, 12, 26, 52]:
+        return_name = str(num_weeks) + 'WeekReturn'
+        ra_return_name = str(num_weeks) + 'WeekRiskAdjustedReturn'
+        # Find reference date for each current date
+        sorted_df[return_name] = indexed_df['Future' + return_name].asof(indexed_df.index - pd.DateOffset(weeks=num_weeks)).values
+        sorted_df[ra_return_name] = indexed_df['Future' + ra_return_name].asof(indexed_df.index - pd.DateOffset(weeks=num_weeks)).values
+        # Remove future columns after they've been used for lookup - don't drop the label column
+        columns_to_drop = []
+
+        if ('Future' + return_name) != LABEL_COLUMN:
+            columns_to_drop.append(('Future' + return_name))
+
+        if ('Future' + ra_return_name) != LABEL_COLUMN:
+            columns_to_drop.append(('Future' + ra_return_name))
+
+        sorted_df.drop(columns_to_drop,axis=1, inplace=True)
+
+    # Remove date column now comparisons are done
+    sorted_df.drop(['quoteDate'], axis=1, inplace=True)
 
     return sorted_df
 
@@ -897,9 +985,13 @@ def execute_one_hot_symbol_encoder(x_symbols, symbol_label, symbol_one_hot):
 def train_preprocessor(train_x_df, train_y_df):
     print('Training pre-processor...')
 
+    print('Imputing missing values')
+    imputer = Imputer(strategy='median')
+    train_x_df[ALL_CONTINUOUS_COLUMNS] = imputer.fit_transform(train_x_df[ALL_CONTINUOUS_COLUMNS].values)
+
     print('Scaling data...')
     scaler = MinMaxScaler(feature_range=(0,1)) #StandardScaler()
-    train_x_df[CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[CONTINUOUS_COLUMNS].values)
+    train_x_df[ALL_CONTINUOUS_COLUMNS] = scaler.fit_transform(train_x_df[ALL_CONTINUOUS_COLUMNS].values)
 
 
     print('Encoding categorical data...')
@@ -908,19 +1000,22 @@ def train_preprocessor(train_x_df, train_y_df):
     # Transform everything except the model name
     df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
 
-
     # Write scaler and categorical encoder to files
+    save(imputer, 'models/imputer.pkl.gz')
     save(scaler, 'models/scaler.pkl.gz')
     save(ce, 'models/ce.pkl.gz')
 
-    return df_train_transform, scaler, ce
+    return df_train_transform, imputer, scaler, ce
 
 
-def execute_preprocessor(transform_df, scaler, ce):
+def execute_preprocessor(transform_df, imputer, scaler, ce):
     print('Executing pre-processor on supplied data...')
 
+    print('Imputing missing values')
+    transform_df[ALL_CONTINUOUS_COLUMNS] = imputer.transform(transform_df[ALL_CONTINUOUS_COLUMNS].values)
+
     print('Scaling data...')
-    transform_df[CONTINUOUS_COLUMNS] = scaler.transform(transform_df[CONTINUOUS_COLUMNS].values)
+    transform_df[ALL_CONTINUOUS_COLUMNS] = scaler.transform(transform_df[ALL_CONTINUOUS_COLUMNS].values)
 
     print('Encoding categorical data...')
     # Use categorical entity embedding encoder
@@ -1364,13 +1459,23 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     p_model = compile_keras_model(network, dimensions)
 
+    # clear weights file if exists
+    try:
+        os.remove('./temp/weights.hdf5')
+    except:
+        pass
+
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
     early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./temp/weights.hdf5', verbose=0, save_best_only=True)
 
     # Reorder array - get array index
     s = np.arange(train_x.shape[0])
+
+    # Vals *.85 (train / test split) / batch size * num epochs for cycle
+    step_size = math.ceil(s.shape[0] * .85 / 256) * 4
+    clr = CyclicLR(base_lr=0.001, max_lr=0.04, step_size=step_size)
     # Reshuffle index
     np.random.shuffle(s)
 
@@ -1383,10 +1488,17 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                           validation_split=0.15,
                           epochs=20000,
                           batch_size=network['batch_size'],
-                          callbacks=[reduce_lr, early_stopping, csv_logger, checkpointer],
+                          callbacks=[#reduce_lr,#
+                              early_stopping, csv_logger, checkpointer, clr],
                           verbose=0)
 
-    p_model.load_weights('weights.hdf5')
+
+    # plt.xlabel('Learning Rate')
+    # plt.ylabel('Loss')
+    # plt.title("CLR Min Max Learning - MAPE")
+    # plt.plot(clr.history['lr'], clr.history['loss'], )
+
+    p_model.load_weights('./temp/weights.hdf5')
 
     predictions = p_model.predict(test_x)
 
@@ -1414,15 +1526,28 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     model = compile_keras_model(network, dimensions)
 
-    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    # clear weights file if exists
+    try:
+        os.remove('./temp/weights.hdf5')
+    except:
+        pass
+
+    # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
     early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/log-training.log')
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./temp/weights.hdf5', verbose=0, save_best_only=True)
 
     print('Training keras mae model...')
 
     # Reorder array - get array index
     s = np.arange(train_x.shape[0])
+
+    #### Temporary get less data
+    # s = s[0:20000]
+
+    step_size = math.ceil(s.shape[0] * .85 / 512) * 100
+    clr = CyclicLR(base_lr=0.001, max_lr=0.04, step_size=step_size, mode='exp_range', gamma=0.96)
+
     # Reshuffle index
     np.random.shuffle(s)
 
@@ -1435,10 +1560,16 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
                         validation_split=0.15,
                         epochs=20000,
                         batch_size=network['batch_size'],
-                        callbacks=[reduce_lr, early_stopping, checkpointer, csv_logger],
+                        callbacks=[#reduce_lr,
+                                early_stopping, checkpointer, csv_logger, clr],
                         verbose=0)
 
-    model.load_weights('weights.hdf5')
+    # plt.xlabel('Learning Rate')
+    # plt.ylabel('Loss')
+    # plt.title("CLR Min Max Learning - MAE")
+    # plt.plot(clr.history['lr'], clr.history['loss'])
+
+    model.load_weights('./temp/weights.hdf5')
 
 
     print('Executing keras predictions...')
@@ -1491,10 +1622,21 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
 
+    # clear weights file if exists
+    try:
+        os.remove('./temp/weights.hdf5')
+    except:
+        pass
+
+
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
     csv_logger = CSVLogger('./logs/training.log')
-    checkpointer = ModelCheckpoint(filepath='weights.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./temp/weights.hdf5', verbose=0, save_best_only=True)
+    # Vals *.8 (train / test split) / batch size * num epochs for cycle
+    step_size = math.ceil(train_x_scaled.shape[0] * 0.8 / 1024) * 4
+    clr = CyclicLR(base_lr=0.001, max_lr=0.03, step_size=step_size)
+
 
     dimensions = train_x.shape[1]
 
@@ -1517,14 +1659,21 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_
 
     history = model.fit(train_x_scaled, train_y,
                         batch_size=network['batch_size'],
-                        epochs=20000,
+                        epochs=2000,
                         verbose=0,
                         validation_split=0.2,
-                        callbacks=[csv_logger, reduce_lr, early_stopping, checkpointer])
+                        callbacks=[csv_logger, clr,  #reduce_lr,
+                                   early_stopping, checkpointer])
+
+    # plt.xlabel('Learning Rate')
+    # plt.ylabel('Loss')
+    # plt.title("CLR Min Max Learning - deep bagging")
+    # plt.plot(clr.history['lr'], clr.history['loss'], )
+
 
     print('\rResults')
 
-    model.load_weights('weights.hdf5')
+    model.load_weights('./temp/weights.hdf5')
     predictions = model.predict(test_x_scaled)
     prediction_results = predictions.reshape(predictions.shape[0], )
 
@@ -1695,7 +1844,7 @@ def main(run_config):
     # Retrieve and divide data
     if 'load_data' in run_config and run_config['load_data'] == True:
         # Load and divide data
-        share_data  = load_data('data/ml-dec-data.pkl.gz')
+        share_data  = load_data('data/ml-dec-sample.pkl.gz')
         gc.collect()
 
         # Divide data into symbol sand general data for training an testing
@@ -1757,8 +1906,8 @@ def main(run_config):
 
     if 'train_pre_process' in run_config and run_config['train_pre_process'] == True:
         # Execute pre-processing trainer
-        df_all_train_x, scaler, ce = train_preprocessor(df_all_train_x, df_all_train_y)
-        df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
+        df_all_train_x, imputer, scaler, ce = train_preprocessor(df_all_train_x, df_all_train_y)
+        df_all_test_x = execute_preprocessor(df_all_test_x, imputer, scaler, ce)
 
         # Write processed data to files
         df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
@@ -1767,13 +1916,14 @@ def main(run_config):
     elif 'load_and_execute_pre_process' in run_config and run_config['load_and_execute_pre_process'] == True:
         print('Loading pre-processing models')
         # Load pre-processing models
+        imputer = load('models/imputer.pkl.gz')
         scaler = load('models/scaler.pkl.gz')
         ce = load('models/ce.pkl.gz')
 
         print('Executing pre-processing')
         # Execute pre-processing
-        df_all_train_x = execute_preprocessor(df_all_train_x, scaler, ce)
-        df_all_test_x = execute_preprocessor(df_all_test_x, scaler, ce)
+        df_all_train_x = execute_preprocessor(df_all_train_x, imputer, scaler, ce)
+        df_all_test_x = execute_preprocessor(df_all_test_x, imputer, scaler, ce)
 
         # Write processed data to files
         df_all_train_x.to_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
@@ -1844,8 +1994,6 @@ def main(run_config):
 if __name__ == "__main__":
     run_config = {
         'load_data': True,
-        'train_one_hot_encoder': True,
-        'one_hot_encode_symbols': True,
         'train_pre_process': True,
         'load_and_execute_pre_process': False,
         'load_processed_data': False,

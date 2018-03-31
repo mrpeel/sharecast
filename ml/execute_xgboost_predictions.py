@@ -47,7 +47,7 @@ def main(run_config):
     print('Starting sharecast prediction:', run_str)
 
     # Load and divide data
-    share_data = load_data('data/ml-dec-sample.pkl.gz')
+    share_data = load_data('data/ml-dec-data.pkl.gz')
     gc.collect()
 
     # Divide data into symbol sand general data for training an testing
