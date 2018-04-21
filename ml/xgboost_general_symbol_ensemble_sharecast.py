@@ -7,7 +7,7 @@ from __future__ import print_function
 import joblib
 import sys
 import glob
-import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 import xgboost as xgb
@@ -55,25 +55,8 @@ COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBo
             'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
 
 
-# returns = {
-#     '1': 'Future1WeekReturn',
-#     '2': 'Future2WeekReturn',
-#     '4': 'Future4WeekReturn',
-#     '8': 'Future8WeekReturn',
-#     '12': 'Future12WeekReturn',
-#     '26': 'Future26WeekReturn',
-#     '52': 'Future52WeekReturn',
-#     '1ra': 'Future1WeekRiskAdjustedReturn',
-#     '2ra': 'Future2WeekRiskAdjustedReturn',
-#     '4ra': 'Future4WeekRiskAdjustedReturn',
-#     '8ra': 'Future8WeekRiskAdjustedReturn',
-#     '12ra': 'Future12WeekRiskAdjustedReturn',
-#     '26ra': 'Future26WeekRiskAdjustedReturn',
-#     '52ra': 'Future52WeekRiskAdjustedReturn'
-# }
-
-
-LABEL_COLUMN = "Future8WeekReturn"
+LABEL_COLUMN = 'future_eight_week_return'
+RETURN_COLUMN = 'eight_week_total_return'
 
 CATEGORICAL_COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType',
                        '12WeekBollingerPrediction', '12WeekBollingerType', 'quoteDate_YEAR',
@@ -96,6 +79,7 @@ CONTINUOUS_COLUMNS = ['adjustedPrice', 'quoteDate_TIMESTAMP', 'volume', 'previou
                 'ReturnOnEquityYear', 'TotalDebtToEquityYear',
                 '4WeekBollingerBandLower', '4WeekBollingerBandUpper', '12WeekBollingerBandLower',
                 '12WeekBollingerBandUpper', 'daysHigh', 'daysLow']
+
 
 FUTURE_RESULTS_COLUMNS = ['Future1WeekReturn', 'Future2WeekReturn', 'Future4WeekReturn', 'Future8WeekReturn',
                           'Future12WeekReturn', 'Future26WeekReturn', 'Future52WeekReturn', 'Future1WeekRiskAdjustedReturn',
@@ -123,6 +107,16 @@ RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpre
                      'H01_GGDPCVGDPFY_T6_10P', 'H01_GGDPCVGDPFY_T11_20P', 'H05_GLFSEPTPOP_T1P', 'H05_GLFSEPTPOP_T2_5P',
                      'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P']
 
+
+HIGH_NAN_COLUMNS = ['Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume', 'EBITDMargin',
+                    'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',
+                    'LTDebtToEquityYear', 'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent',
+                    'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM', 'ReturnOnAssetsYear',
+                    'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'RevenueGrowthRate10Years',
+                    'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
+                    'TotalDebtToEquityQuarter', 'bookValue', 'earningsPerShare', 'ebitda',
+                    'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
+                    'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
 
 ALL_CONTINUOUS_COLUMNS = []
 ALL_CONTINUOUS_COLUMNS.extend(CONTINUOUS_COLUMNS)
@@ -329,38 +323,95 @@ def convert_date(df, column_name):
 
 
 # @profile
-def setup_data_columns(df):
-    # Remove columns not referenced in either algorithm
-    columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
+# def setup_data_columns(df):
+#     # # Remove columns not referenced in either algorithm
+#     # columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
+#     #
+#     # # Add continuous and categorical columns
+#     # columns_to_keep.extend(CONTINUOUS_COLUMNS)
+#     # columns_to_keep.extend(CATEGORICAL_COLUMNS)
+#     # columns_to_keep.extend(FUTURE_RESULTS_COLUMNS)
+#     # Drop columns not in keep list
+#
+#     columns_to_keep = []
+#     # Keep columns not in high nan list
+#     for col in df.columns.values:
+#         if col not in HIGH_NAN_COLUMNS:
+#             columns_to_keep.append(col)
+#
+#
+#     return_df = drop_unused_columns(df, columns_to_keep)
+#     return return_df
 
-    # Add continuous and categorical columns
-    columns_to_keep.extend(CONTINUOUS_COLUMNS)
-    columns_to_keep.extend(CATEGORICAL_COLUMNS)
-    columns_to_keep.extend(FUTURE_RESULTS_COLUMNS)
-    # Drop columns not in keep list
-    return_df = drop_unused_columns(df, columns_to_keep)
-    return return_df
+def generate_label_column(df, num_weeks, reference_date, date_col):
+    # Generate a label column for each record num_weeks in the future
+    # then reduce data set to values which occurr <= (reference_date - num_weeks)
 
+    # Retrieve unique symbols
+    symbols = df['symbol'].drop_duplicates()
+
+    date_ref_col = date_col + '_ref'
+
+    # Create empty data frame
+    output_df = pd.DataFrame()
+
+    for symbol in symbols:
+        print(80 * '-')
+        print('Generating labels for:', symbol)
+        # Retrieve data for symbol and sort by date
+        symbol_df = df.loc[df['symbol'] == symbol, :]
+        symbol_df.sort_values(by=['quoteDate'], inplace=True)
+
+        # Set the date index for the data frame
+        symbol_df[date_ref_col] = symbol_df[date_col]
+        symbol_df = symbol_df.set_index(date_ref_col)
+
+        comparison_date = symbol_df.index + pd.DateOffset(weeks=num_weeks)
+
+        # Get the future result values for number of weeks
+        ref_vals_df = pd.DataFrame()
+        # Create offset for number of weeks (this sets the index forwards as well)
+        ref_vals_df[LABEL_COLUMN] = symbol_df[RETURN_COLUMN].asof(comparison_date)
+        ref_vals_df[LABEL_COLUMN + '_date'] = comparison_date
+
+        # Reset the index value back to original dates
+        ref_vals_df.index = symbol_df.index
+
+        # concatenate the offset values with the original values
+        combined_vals = pd.concat([symbol_df, ref_vals_df], axis=1)
+
+        # Add symbol values into output set
+        output_df = pd.concat([output_df, combined_vals])
+
+    # Process data set to remove records which are too recent to have a future value
+
+    # Ensure reference is a date/time
+    converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
+    # filter dataframe
+    output_df = output_df.loc[output_df[LABEL_COLUMN + '_date'] <= converted_ref_date]
+    # Remove extra column with future date reference
+    output_df.drop([LABEL_COLUMN + '_date'], axis=1, inplace=True)
+
+    return output_df
 
 # @profile
-def load_data(file_name):
+def load_data(file_name, generate_label_weeks=None, reference_date=None, where_string=None):
     """Load pickled data and run combined prep """
-    # Return dataframe and mask to split data
-    # df = pd.read_pickle('data/ml-dec-data.pkl.gz', compression='gzip')
     df = pd.read_pickle(file_name, compression='gzip')
     gc.collect()
 
+    # if a limiting where string is provided, execute it to reduce the data set
+    if where_string:
+        df = df[where_string]
 
-    df = setup_data_columns(df)
+    # df = setup_data_columns(df)
 
     # Convert quote dates data to year and month
     df['quoteDate'] = pd.to_datetime(df['quoteDate'])
     df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], errors='coerce')
 
     # Reset dividend date as a number
-    df['exDividendRelative'] = \
-        df['exDividendDate'] - \
-        df['quoteDate']
+    df['exDividendRelative'] = df['exDividendDate'] - df['quoteDate']
 
     # convert string difference value to integer
     df['exDividendRelative'] = df['exDividendRelative'].apply(
@@ -368,20 +419,18 @@ def load_data(file_name):
 
     convert_date(df, 'quoteDate')
 
-    # df['quoteYear'], df['quoteMonth'], = \
-    #     df['quoteDate'].dt.year, \
-    #     df['quoteDate'].dt.month.astype('int8')
-
+    df.set_index('quoteDate')
     # Remove ex-dividend date
     df.drop(['exDividendDate'], axis=1, inplace=True)
 
-    df = df.dropna(subset=[LABEL_COLUMN], how='all')
+    # if labels are being generated
+    if generate_label_weeks and reference_date:
+        df = generate_label_column(df, generate_label_weeks, reference_date)
 
     # Clip to -99 to 1000 range
     df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
 
     # Add scaled value for y - using log of y
-    ############ - Double log ############################
     df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
 
     # Fill categrical vals with phrase 'NA'
@@ -472,8 +521,6 @@ def divide_data(share_data):
 
         print('Symbol:', symbol, 'num:', symbol_num, 'number of records:', len(model_data))
 
-        model_data = append_recurrent_columns(model_data)
-
         # Remove symbol as it has now been encoded separately
         #model_data.drop(['symbol'], axis=1, inplace=True)
 
@@ -523,446 +570,6 @@ def divide_data(share_data):
            df_all_test_actuals, df_all_test_y, df_all_test_x
 
 
-def append_recurrent_columns(symbol_df):
-    # Add extra columns
-    # Today's adjusted price - previous: T - median 2-5, T - median 6-10
-    # Today ALLORD - previous: T - median 2 - 5, T - median, 6 - 10
-    # Today ASX - previous: T - median 2 - 5, T - median 6 - 10
-    # FXRUSD - previous: T - 1, T - 2 - 5 median, T - median 6 - 10
-    # FIRMMCRT: T - 1
-    # GRCPAIAD: T - 1
-    # GRCPAISAD: T - 1
-    # GRCPBCAD: T - 1
-    # GRCPBCSAD: T - 1
-    # GRCPBMAD: T - 1
-    # GRCPNRAD: T - 1
-    # GRCPRCAD: T - 1
-    # H01_GGDPCVGDPFY: T - 1
-    # H05_GLFSEPTPOP: T - 1
-
-    # Sort data frame in time order to apply shifting
-    sorted_df = symbol_df.sort_values('quoteDate_TIMESTAMP', ascending=True, inplace=False)
-
-    # Add time shifted columns with proprortion of change
-
-    # Adjusted price 2 days ago, 3-5 days ago, 6-10 days ago
-    sorted_df['adjustedPrice_T2P'] = (sorted_df['adjustedPrice'] - sorted_df['adjustedPrice'].shift(2)) / sorted_df['adjustedPrice'].shift(2)
-
-    # Create median for previous days (3-5)
-    df_dict = {}
-    for x in range(3, 6):
-        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['adjustedPrice_T3_5P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
-
-    # Create median for previous days (6-10)
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['adjustedPrice_T6_10P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['adjustedPrice'].shift(x)
-
-    # Create median for previous days (6-10)
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['adjustedPrice_T11_20P'] = (sorted_df['adjustedPrice'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # All ords previous close 1 day ago, 2-5 days ago, 6-10 days ago
-    sorted_df['allordpreviousclose_T1P'] = (sorted_df['allordpreviousclose'] - sorted_df['allordpreviousclose'].shift(1)) / sorted_df['allordpreviousclose'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['allordpreviousclose_T2_5P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['allordpreviousclose_T6_10P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['allordpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['allordpreviousclose_T11_20P'] = (sorted_df['allordpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # ASX previous close 1 day ago, 2-5 days ago, 6-10 days ago
-    sorted_df['asxpreviousclose_T1P'] = (sorted_df['asxpreviousclose'] - sorted_df['asxpreviousclose'].shift(1)) / sorted_df['asxpreviousclose'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['asxpreviousclose_T2_5P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['asxpreviousclose_T6_10P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['asxpreviousclose'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['asxpreviousclose_T11_20P'] = (sorted_df['asxpreviousclose'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    ## FXRUSD
-
-    # AUD - USD exchange 1 day ago, 2-5 days ago, 6-10 days ago
-    sorted_df['FXRUSD_T1P'] = (sorted_df['FXRUSD'] - sorted_df['FXRUSD'].shift(1)) / sorted_df['FXRUSD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FXRUSD_T2_5P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FXRUSD_T6_10P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['FXRUSD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FXRUSD_T11_20P'] = (sorted_df['FXRUSD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    ## FIRMMCRT
-
-    # Other values only add in previous value
-    sorted_df['FIRMMCRT_T1P'] = (sorted_df['FIRMMCRT'] - sorted_df['FIRMMCRT'].shift(1)) / sorted_df['FIRMMCRT'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FIRMMCRT_T2_5P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FIRMMCRT_T6_10P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['FIRMMCRT'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['FIRMMCRT_T11_20P'] = (sorted_df['FIRMMCRT'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    ## GRCPAID
-
-    sorted_df['GRCPAIAD_T1P'] = (sorted_df['GRCPAIAD'] - sorted_df['GRCPAIAD'].shift(1)) / sorted_df['GRCPAIAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAIAD_T2_5P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAIAD_T6_10P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPAIAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAIAD_T11_20P'] = (sorted_df['GRCPAIAD'] - temp_df.median(axis=1)) /  temp_df.median(axis=1)
-
-    ## GRCPAISAD
-
-    sorted_df['GRCPAISAD_T1P'] = (sorted_df['GRCPAISAD'] - sorted_df['GRCPAISAD'].shift(1)) / sorted_df['GRCPAISAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAISAD_T2_5P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAISAD_T6_10P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPAISAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPAISAD_T11_20P'] = (sorted_df['GRCPAISAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## GRCPBCAD
-
-    sorted_df['GRCPBCAD_T1P'] = (sorted_df['GRCPBCAD'] - sorted_df['GRCPBCAD'].shift(1)) / sorted_df['GRCPBCAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCAD_T2_5P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCAD_T6_10P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCAD_T11_20P'] = (sorted_df['GRCPBCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## GRCBCSAD
-
-    sorted_df['GRCPBCSAD_T1P'] = (sorted_df['GRCPBCSAD'] - sorted_df['GRCPBCSAD'].shift(1)) / sorted_df['GRCPBCSAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCSAD_T2_5P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCSAD_T6_10P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPBCSAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBCSAD_T11_20P'] = (sorted_df['GRCPBCSAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## GRCBMAD
-
-    sorted_df['GRCPBMAD_T1P'] = (sorted_df['GRCPBMAD'] - sorted_df['GRCPBMAD'].shift(1)) / sorted_df['GRCPBMAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBMAD_T2_5P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBMAD_T6_10P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPBMAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPBMAD_T11_20P'] = (sorted_df['GRCPBMAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## GRCPNRAD
-
-    sorted_df['GRCPNRAD_T1P'] = (sorted_df['GRCPNRAD'] - sorted_df['GRCPNRAD'].shift(1)) / sorted_df['GRCPNRAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPNRAD_T2_5P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPNRAD_T6_10P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPNRAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPNRAD_T11_20P'] = (sorted_df['GRCPNRAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## GRCPRCAD
-
-    sorted_df['GRCPRCAD_T1P'] = (sorted_df['GRCPRCAD'] - sorted_df['GRCPRCAD'].shift(1)) / sorted_df['GRCPRCAD'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPRCAD_T2_5P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPRCAD_T6_10P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['GRCPRCAD'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['GRCPRCAD_T11_20P'] = (sorted_df['GRCPRCAD'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## H01_GGDPCVGDPFY
-
-    sorted_df['H01_GGDPCVGDPFY_T1P'] = (sorted_df['H01_GGDPCVGDPFY'] - sorted_df['H01_GGDPCVGDPFY'].shift(1)) / sorted_df['H01_GGDPCVGDPFY'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H01_GGDPCVGDPFY_T2_5P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H01_GGDPCVGDPFY_T6_10P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['H01_GGDPCVGDPFY'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H01_GGDPCVGDPFY_T11_20P'] = (sorted_df['H01_GGDPCVGDPFY'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ## H05_GLFSEPTPOP
-
-    sorted_df['H05_GLFSEPTPOP_T1P'] = (sorted_df['H05_GLFSEPTPOP'] - sorted_df['H05_GLFSEPTPOP'].shift(1)) / sorted_df['H05_GLFSEPTPOP'].shift(1)
-
-    # Create median for previous days (2-5)
-    df_dict = {}
-    for x in range(2, 6):
-        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H05_GLFSEPTPOP_T2_5P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (6-10)
-    df_dict = {}
-    for x in range(6, 11):
-        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H05_GLFSEPTPOP_T6_10P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    # Create median for previous days (11-20)
-    df_dict = {}
-    for x in range(11, 21):
-        df_dict['T' + str(x)] = sorted_df['H05_GLFSEPTPOP'].shift(x)
-
-    temp_df = pd.DataFrame.from_dict(df_dict)
-    sorted_df['H05_GLFSEPTPOP_T11_20P'] = (sorted_df['H05_GLFSEPTPOP'] - temp_df.median(axis=1)) / temp_df.median(axis=1)
-
-    ### Add previous return columns
-    # Look back for each time period (1,2,4,8,12,26,52 weeks) and if a value exists, copy it to current row
-    indexed_df = sorted_df.set_index('quoteDate')
-
-    for num_weeks in [1, 2, 4, 8, 12, 26, 52]:
-        return_name = str(num_weeks) + 'WeekReturn'
-        ra_return_name = str(num_weeks) + 'WeekRiskAdjustedReturn'
-        # Find reference date for each current date
-        sorted_df[return_name] = indexed_df['Future' + return_name].asof(indexed_df.index - pd.DateOffset(weeks=num_weeks)).values
-        sorted_df[ra_return_name] = indexed_df['Future' + ra_return_name].asof(indexed_df.index - pd.DateOffset(weeks=num_weeks)).values
-        # Remove future columns after they've been used for lookup - don't drop the label column
-        columns_to_drop = []
-
-        if ('Future' + return_name) != LABEL_COLUMN:
-            columns_to_drop.append(('Future' + return_name))
-
-        if ('Future' + ra_return_name) != LABEL_COLUMN:
-            columns_to_drop.append(('Future' + ra_return_name))
-
-        sorted_df.drop(columns_to_drop,axis=1, inplace=True)
-
-    # Remove date column now comparisons are done
-    sorted_df.drop(['quoteDate'], axis=1, inplace=True)
-
-    return sorted_df
 
 def train_one_hot_symbol_encoder(x_symbols):
     symbol_label = LabelEncoder()
@@ -1837,14 +1444,17 @@ def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
 
 def main(run_config):
     # Prepare run_str
-    run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
+    run_str = datetime.now().strftime('%Y%m%d%H%M')
 
     print('Starting sharecast run:', run_str)
 
     # Retrieve and divide data
     if 'load_data' in run_config and run_config['load_data'] == True:
         # Load and divide data
-        share_data  = load_data(run_config['data_file'])
+        if 'generate_label_weeks' in run_config and 'reference_date' in run_config:
+            share_data = load_data(run_config['data_file'], run_config['generate_label_weeks'], run_config['reference_date'])
+        else:
+            share_data  = load_data(run_config['data_file'])
         gc.collect()
 
         # Divide data into symbol sand general data for training an testing
@@ -1880,29 +1490,6 @@ def main(run_config):
     #Drop model names
     df_all_train_x = df_all_train_x.drop(['model'], axis=1)
     df_all_test_x = df_all_test_x.drop(['model'], axis=1)
-
-    # if 'train_one_hot_encoder' in run_config and run_config['train_one_hot_encoder'] == True:
-    #     print('Training symbol one hot encoder')
-    #     train_symbol_oh, symbol_label, symbol_one_hot  = train_one_hot_symbol_encoder(df_all_train_x['symbol'].values)
-    #
-    #     save(symbol_label, './models/symbol_label.pkl.gz')
-    #     save(symbol_one_hot, './models/symbol_one_hot.pkl.gz')
-    # else:
-    #     print('Loading symbol one hot encoder')
-    #     symbol_label = load('./models/symbol_label.pkl.gz')
-    #     symbol_one_hot = load('./models/symbol_one_hot.pkl.gz')
-    #     train_symbol_oh = execute_one_hot_symbol_encoder(df_all_train_x['symbol'].values, symbol_label, symbol_one_hot)
-
-    # if 'one_hot_encode_symbols' in run_config and run_config['one_hot_encode_symbols'] == True:
-    #     # Encoding symbol values
-    #     test_symbol_oh = execute_one_hot_symbol_encoder(df_all_test_x['symbol'].values, symbol_label, symbol_one_hot)
-    #     save(train_symbol_oh, './data/one_hot_symbols_train.pkl.gz')
-    #     save(test_symbol_oh, './data/one_hot_symbols_test.pkl.gz')
-    # else:
-    #     # Values already encoded and saved so load values
-    #     train_symbol_oh = load('./data/one_hot_symbols_train.pkl.gz')
-    #     test_symbol_oh = load('./data/one_hot_symbols_test.pkl.gz')
-
 
     if 'train_pre_process' in run_config and run_config['train_pre_process'] == True:
         # Execute pre-processing trainer
@@ -1994,6 +1581,8 @@ def main(run_config):
 if __name__ == "__main__":
     run_config = {
         'load_data': True,
+        'generate_label_weeks': 8,
+        'reference_date': '2018-03-30',
         'data_file': './data/ml-2018-03-data.pkl.gz',
         'train_pre_process': True,
         'load_and_execute_pre_process': False,

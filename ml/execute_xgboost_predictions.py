@@ -47,7 +47,7 @@ def main(run_config):
     print('Starting sharecast prediction:', run_str)
 
     # Load and divide data
-    share_data = load_data('data/ml-dec-data.pkl.gz')
+    share_data = load_data(run_config['data_file'])
     gc.collect()
 
     # Divide data into symbol sand general data for training an testing
@@ -65,12 +65,13 @@ def main(run_config):
 
     print('Loading pre-processing models')
     # Load pre-processing models
+    imputer = load('models/imputer.pkl.gz')
     scaler = load('models/scaler.pkl.gz')
     ce = load('models/ce.pkl.gz')
 
     print('Executing pre-processing')
     # Execute pre-processing
-    df_all_x = execute_preprocessor(df_all_x, scaler, ce)
+    df_all_x = execute_preprocessor(df_all_x, imputer, scaler, ce)
 
 
     print('Loading keras models')
@@ -109,6 +110,7 @@ def main(run_config):
 
 if __name__ == "__main__":
     run_config = {
+        'data_file': './data/ml-2018-03-data.pkl.gz',
         'eval_results': True,
     }
 
