@@ -1832,9 +1832,12 @@ def main(run_config):
 
     if 'load_processed_data' in run_config and run_config['load_processed_data'] == True:
         print('Loading pre-processed data')
-        # Write processed data to files
         df_all_train_x = pd.read_pickle('data/df_all_train_x.pkl.gz', compression='gzip')
+        df_all_train_y = pd.read_pickle('data/df_all_train_y.pkl.gz', compression='gzip')
+        df_all_train_actuals = pd.read_pickle('data/df_all_train_actuals.pkl.gz', compression='gzip')
         df_all_test_x = pd.read_pickle('data/df_all_test_x.pkl.gz', compression='gzip')
+        df_all_test_y = pd.read_pickle('data/df_all_test_y.pkl.gz', compression='gzip')
+        df_all_test_actuals = pd.read_pickle('data/df_all_test_actuals.pkl.gz', compression='gzip')
 
     if 'train_keras' in run_config and run_config['train_keras'] == True:
         # Train keras models
@@ -1897,9 +1900,9 @@ if __name__ == "__main__":
         # 'generate_label_weeks': 8,
         # 'reference_date': '2018-03-30',
         'data_file': './data/data_with_labels.pkl.gz',
-        'train_pre_process': True,
+        'train_pre_process': False,
         'load_and_execute_pre_process': False,
-        'load_processed_data': False,
+        'load_processed_data': True,
         'train_keras': True,
         'train_xgb': True,
         'train_deep_bagging': True,
