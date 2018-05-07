@@ -977,10 +977,10 @@ def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x
 
         # Retrieve only the data matching this model
         model_train_x = df_all_train_x.iloc[train_index, :]
-        model_train_y = df_all_train_y.iloc[train_index, :]
+        model_train_y = df_all_train_y.iloc[train_index]
         model_test_x = df_all_test_x.iloc[test_index, :]
-        model_test_y = df_all_test_y.iloc[test_index, :]
-        model_test_actuals = df_all_test_actuals.iloc[test_index, :]
+        model_test_y = df_all_test_y.iloc[test_index]
+        model_test_actuals = df_all_test_actuals.iloc[test_index]
 
         xgb_model_set = train_xgb_model_set(model, model_train_x, model_train_y, model_test_actuals,
                                             model_test_y, model_test_x, keras_models)
