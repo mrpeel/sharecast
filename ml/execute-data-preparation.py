@@ -334,24 +334,67 @@ def process_dataset(df):
 
     return output_df
 
+def load_data(base_path, no_files):
+    print('Loading', no_files, 'files for:', base_path)
+    # Set the file increments range
+    increments=range(1, (no_files + 1))
+    # Create empty data frame
+    loading_data = pd.DataFrame()
+    #Loop through each file and append to data frame
+    for increment in increments:
+        path = base_path % increment
+        frame = pd.read_csv(path, compression='gzip', parse_dates=['quoteDate'], infer_datetime_format=True, low_memory=False)
+        loading_data = loading_data.append(frame, ignore_index=True)
+        del frame
+        print('Loaded:', path)
 
-if __name__ == "__main__":
-    print('Loading raw data')
-    l1 = timer()
-    df = pd.read_pickle('./data/ml-2018-03-data.pkl.gz', compression='gzip')
-    l2 = timer()
-    print('Loading raw data took:', l2 - l1)
+    return loading_data
+
+
+def main(load_config):
+    if 'load_individual_data_files' in load_config and load_config['load_individual_data_files'] == True:
+        print('Loading individual data files')
+        l1 = timer()
+        df = load_data(load_cofig['base_path'], load_cofig['no_files'])
+        gc.collect()
+        print('Saving data')
+        df.to_pickle('data/ml-' + load_cofig['run_str'] + '-data.pkl.gz', compression='gzip')
+        l2 = timer()
+        print('Loading and saving individual data took:', l2 - l1)
+
+    if 'load_aggregated_data_file' in load_config and load_config['load_aggregated_data_file'] == True:
+        print('Loading aggregated data files')
+        l1 = timer()
+        df = pd.read_pickle(load_config['aggregated_file_name'], compression='gzip')
+        l2 = timer()
+        print('Loading aggregated data file took:', l2 - l1)
+    
+    # Processing data
+    print('Processing returns and recurrent columns for each symbol')
     processed_data = process_dataset(df)
 
     print('Filling categrical vals with phrase "NA"')
     for col in ALL_CATEGORICAL_COLUMNS:
         processed_data[col].fillna('NA', inplace=True)
 
-    print('Optimise categorical columns')
+    print('Optimising categorical columns')
     processed_data = optimise_df_category(processed_data)
 
-    print('Optimise continous columns')
+    print('Optimising continous columns')
     processed_data = optimise_df_continous(processed_data)
 
     print('Saving processed data')
-    processed_data.to_pickle('data/ml-2018-03-processed.pkl.gz', compression='gzip')
+    processed_data.to_pickle('data/ml-' + load_cofig['run_str'] + '-processed.pkl.gz', compression='gzip')
+
+if __name__ == "__main__":
+    run_str = datetime.now().strftime('%Y%m%d')
+
+    load_config = {
+        run_str: run_str,
+        load_individual_data_files: True,
+        base_path: 'data/companyQuotes-20180512-%03d.csv.gz',
+        no_files: 61,
+        load_aggregated_data_file: False,
+        aggregated_file_name: 'data/ml-20180512-processed.pkl.gz',
+    }
+    main(load_config)
