@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/.idea/auto_ml.iml" filepath="$USER_HOME$/anaconda/lib/python3.6/site-packages/auto_ml/.idea/auto_ml.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/ml.iml" filepath="$PROJECT_DIR$/.idea/ml.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../../neural-network-genetic-algorithm/.idea/neural-network-genetic-algorithm.iml" filepath="$PROJECT_DIR$/../../neural-network-genetic-algorithm/.idea/neural-network-genetic-algorithm.iml" />
+      <module fileurl="file://$USER_HOME$/PycharmProjects/study/.idea/study.iml" filepath="$USER_HOME$/PycharmProjects/study/.idea/study.iml" />
     </modules>
   </component>
 </project>

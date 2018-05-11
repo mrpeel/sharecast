@@ -85,8 +85,8 @@ class Categorical_encoder():
             self
         """
 
-        self.__Lcat = df_train.dtypes[df_train.dtypes == 'object'].index
-        self.__Lnum = df_train.dtypes[df_train.dtypes != 'object'].index
+        self.__Lcat = df_train.dtypes[(df_train.dtypes == 'object') | (df_train.dtypes == 'category')].index
+        self.__Lnum = df_train.dtypes[(df_train.dtypes != 'object') & (df_train.dtypes != 'category')].index
 
         if (len(self.__Lcat) == 0):
             self.__fitOK = True

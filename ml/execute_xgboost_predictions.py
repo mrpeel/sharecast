@@ -2,27 +2,26 @@ from xgboost_general_symbol_ensemble_sharecast import *
 
 # @profile
 def prepare_data_for_model(share_data):
-    symbol_models = {}
+    # symbol_models = {}
     symbols = share_data['symbol'].unique()
     # For testing only take the first 10 elements
     # symbols = symbols[:10]
-    symbol_map = {}
-    symbol_num = 0
+    # symbol_map = {}
+    # symbol_num = 0
 
-    symbol_models = []
+    # symbol_models = []
 
     print('No of symbols:', len(symbols))
 
-    df_all_x = pd.DataFrame()
-    df_all_y = pd.DataFrame()
-    df_all_actuals = pd.DataFrame()
-
+    # Array to hold completed dataframes
+    x_dfs = []
+    y_dfs = []
+    actuals_dfs = []
 
 
     # prep data for fitting into both model types
     for symbol in symbols:
         gc.collect()
-
 
         # Take copy of model data and re-set the pandas indexes
         # model_data = df_train_transform.loc[df_train_transform['symbol'] == symbol_num]
@@ -30,19 +29,32 @@ def prepare_data_for_model(share_data):
 
         print('Symbol:', symbol, 'number of records:', len(model_data))
 
-        model_data = append_recurrent_columns(model_data)
-
         model_data.loc[:, 'model'] = model_data.loc[:, 'symbol']
 
-        df_all_y = pd.concat([df_all_y, model_data[LABEL_COLUMN + '_scaled']])
-        df_all_actuals = pd.concat([df_all_actuals, model_data[LABEL_COLUMN]])
-        df_all_x = pd.concat([df_all_x, model_data.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1)])
+        y_dfs.append(model_data[LABEL_COLUMN + '_scaled'])
+        actuals_dfs.append(model_data[LABEL_COLUMN])
+        x_dfs.append(model_data.drop([LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+
+    # Create concatenated dataframes with all data
+    print('Creating concatenated dataframes')
+
+    df_all_x = pd.concat(x_dfs)
+    del x_dfs
+    gc.collect()
+
+    df_all_y = pd.concat(y_dfs)
+    del y_dfs
+    gc.collect()
+
+    df_all_actuals = pd.concat(actuals_dfs)
+    del actuals_dfs
+    gc.collect()
 
     return df_all_x, df_all_y, df_all_actuals
 
 def main(run_config):
     # Prepare run_str
-    run_str = datetime.datetime.now().strftime('%Y%m%d%H%M')
+    run_str = datetime.now().strftime('%Y%m%d%H%M')
 
     print('Starting sharecast prediction:', run_str)
 
@@ -50,7 +62,7 @@ def main(run_config):
     share_data = load_data(run_config['data_file'])
     gc.collect()
 
-    # Divide data into symbol sand general data for training an testing
+    # Divide data into symbols and general data for training an testing
     df_all_x, df_all_y, df_all_actuals = prepare_data_for_model(share_data)
 
     del share_data
@@ -65,13 +77,13 @@ def main(run_config):
 
     print('Loading pre-processing models')
     # Load pre-processing models
+    se = load('models/se.pkl.gz')
     imputer = load('models/imputer.pkl.gz')
     scaler = load('models/scaler.pkl.gz')
-    ce = load('models/ce.pkl.gz')
 
     print('Executing pre-processing')
     # Execute pre-processing
-    df_all_x = execute_preprocessor(df_all_x, imputer, scaler, ce)
+    df_all_x = execute_preprocessor(df_all_x, se, imputer, scaler)
 
 
     print('Loading keras models')
@@ -85,7 +97,8 @@ def main(run_config):
             'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
             'k_mae_mape': k_mae_mape,
         }),
-        'mae_intermediate_model': load_model('models/keras-mae-intermediate-model.h5', custom_objects={
+        'mae_intermediate_model': load_model('models/keras-mae-intermediate-model.h5',
+        custom_objects={
             'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
             'k_mae_mape': k_mae_mape,
         }),
@@ -97,9 +110,9 @@ def main(run_config):
 
     print('Loading bagging models')
     bagging_model = load_model('models/keras-bagging-model.h5', custom_objects={
-            'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
-            'k_mae_mape': k_mae_mape,
-    })
+        'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
+        'k_mae_mape': k_mae_mape,
+        })
     bagging_scaler = load('models/deep-bagging-scaler.pkl.gz')
     deep_bagged_predictions = execute_deep_bagging(bagging_model, bagging_scaler, predictions)
     predictions['deep_bagged_predictions'] = deep_bagged_predictions
@@ -110,7 +123,7 @@ def main(run_config):
 
 if __name__ == "__main__":
     run_config = {
-        'data_file': './data/ml-2018-03-data.pkl.gz',
+        'data_file': './data/data_with_labels.pkl.gz',
         'eval_results': True,
     }
 
