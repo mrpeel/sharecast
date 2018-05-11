@@ -5,6 +5,9 @@ import datetime
 import numba
 from xgboost_general_symbol_ensemble_sharecast import *
 
+# S3 copy command to retrieve data
+# aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
+
 OLD_RETURN_COLUMNS = ['Future1WeekDividend', 'Future1WeekPrice', 'Future1WeekReturn', 'Future1WeekRiskAdjustedReturn',
                       'Future2WeekDividend', 'Future2WeekPrice', 'Future2WeekReturn','Future2WeekRiskAdjustedReturn',
                      'Future4WeekDividend', 'Future4WeekPrice', 'Future4WeekReturn', 'Future4WeekRiskAdjustedReturn',

@@ -16,7 +16,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from categorical_encoder import *
-from eval_results import *
+from eval_results import eval_results, range_results
 from clr_callback import *
 # from autoencoder import *
 from compile_keras import *
@@ -405,16 +405,16 @@ def convert_date(df, column_name):
     df[column_name + "_TIMESTAMP"] = df[column_name + "_TIMESTAMP"].astype('int32', errors='ignore')
 
     df[column_name + "_YEAR"] = pd.DatetimeIndex(df[column_name]).year.astype('str')
-    df[column_name + "_YEAR"] = df[column_name + "_YEAR"].astype('int32',  errors='ignore')
+    df[column_name + "_YEAR"] = df[column_name + "_YEAR"].astype('int32', errors='ignore')
 
     df[column_name + "_MONTH"] = pd.DatetimeIndex(df[column_name]).month.astype('str')
-    df[column_name + "_MONTH"] = df[column_name + "_MONTH"].astype('int32',  errors='ignore')
+    df[column_name + "_MONTH"] = df[column_name + "_MONTH"].astype('int32', errors='ignore')
 
     df[column_name + "_DAY"] = pd.DatetimeIndex(df[column_name]).day.astype('str')
-    df[column_name + "_DAY"] = df[column_name + "_DAY"].astype('int32',  errors='ignore')
+    df[column_name + "_DAY"] = df[column_name + "_DAY"].astype('int32', errors='ignore')
 
     df[column_name + "_DAYOFWEEK"] = pd.DatetimeIndex(df[column_name]).dayofweek.astype('str')
-    df[column_name + "_DAYOFWEEK"] = df[column_name + "_DAYOFWEEK"].astype('int32',  errors='ignore')
+    df[column_name + "_DAYOFWEEK"] = df[column_name + "_DAYOFWEEK"].astype('int32', errors='ignore')
 
 
 # @profile
@@ -509,7 +509,7 @@ def generate_label_column(df, num_weeks, reference_date, date_col):
 
 
 # @profile
-def load_data(file_name, generate_label_weeks=None, reference_date=None, where_string=None):
+def load_data(file_name, generate_label_weeks=None, reference_date=None, new_file_name=None):
     """Load pickled data and run combined prep """
     print('Loading file:', file_name)
 
@@ -523,16 +523,9 @@ def load_data(file_name, generate_label_weeks=None, reference_date=None, where_s
     df['quoteDate'] = pd.to_datetime(df['quoteDate'])
     df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], errors='coerce')
 
-
-    # if a limiting where string is provided, execute it to reduce the data set
-    if where_string:
-        df = df[where_string]
-
-    # df = setup_data_columns(df)
     # Remove columns which should not be used for calculations (ignore errors if already removed)
     print('Dropping columns:', COLUMNS_TO_REMOVE)
     df.drop(COLUMNS_TO_REMOVE, axis=1, inplace=True, errors='ignore')
-
 
     # Reset dividend date as a number
     print('Making ex-dividend date a relative number')
@@ -553,15 +546,11 @@ def load_data(file_name, generate_label_weeks=None, reference_date=None, where_s
 
     print(df.info(memory_usage='deep'))
 
-
-    # print('Setting quoteDate as index')
-    # df.set_index('quoteDate')
-
-    # if labels are being generated
+    # generate labels if required
     if generate_label_weeks and reference_date:
         df = generate_label_column(df, generate_label_weeks, reference_date, 'quoteDate')
         gc.collect()
-        df.to_pickle('data/data_with_labels.pkl.gz', compression='gzip')
+        df.to_pickle(new_file_name, compression='gzip')
 
     # Drop any row which does not have the label columns
     print('Dropping rows missing the label column')
@@ -1367,14 +1356,14 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     # clear weights file if exists
     try:
-        os.remove('./temp/weights-1.hdf5')
+        os.remove('./weights/weights-1.hdf5')
     except:
         pass
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
     early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
-    checkpointer = ModelCheckpoint(filepath='./temp/weights-1.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./weights/weights-1.hdf5', verbose=0, save_best_only=True)
 
     # Reorder array - get array index
     s = np.arange(train_x.shape[0])
@@ -1403,7 +1392,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     # plt.title("CLR Min Max Learning - MAPE")
     # plt.plot(clr.history['lr'], clr.history['loss'], )
 
-    p_model.load_weights('./temp/weights-1.hdf5')
+    p_model.load_weights('./weights/weights-1.hdf5')
 
     predictions = p_model.predict(test_x)
 
@@ -1432,14 +1421,14 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     # clear weights file if exists
     try:
-        os.remove('./temp/weights-2.hdf5')
+        os.remove('./weights/weights-2.hdf5')
     except:
         pass
 
     # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
     early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/log-training.log')
-    checkpointer = ModelCheckpoint(filepath='./temp/weights-2.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./weights/weights-2.hdf5', verbose=0, save_best_only=True)
 
     print('Training keras mae model...')
 
@@ -1473,7 +1462,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     # plt.title("CLR Min Max Learning - MAE")
     # plt.plot(clr.history['lr'], clr.history['loss'])
 
-    model.load_weights('./temp/weights-2.hdf5')
+    model.load_weights('./weights/weights-2.hdf5')
 
     print('Executing keras predictions...')
 
@@ -1527,14 +1516,14 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_
 
     # clear weights file if exists
     try:
-        os.remove('./temp/weights-3.hdf5')
+        os.remove('./weights/weights-3.hdf5')
     except:
         pass
 
     reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=2)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
     csv_logger = CSVLogger('./logs/training.log')
-    checkpointer = ModelCheckpoint(filepath='./temp/weights-3.hdf5', verbose=0, save_best_only=True)
+    checkpointer = ModelCheckpoint(filepath='./weights/weights-3.hdf5', verbose=0, save_best_only=True)
     # Vals *.8 (train / test split) / batch size * num epochs for cycle
     step_size = math.ceil(train_x_scaled.shape[0] * 0.8 / 1024) * 4
     clr = CyclicLR(base_lr=0.001, max_lr=0.03, step_size=step_size)
@@ -1573,7 +1562,7 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions, test_
 
     print('\rResults')
 
-    model.load_weights('./temp/weights-3.hdf5')
+    model.load_weights('./weights/weights-3.hdf5')
     predictions = model.predict(test_x_scaled)
     prediction_results = predictions.reshape(predictions.shape[0], )
 
@@ -1753,11 +1742,11 @@ def main(run_config):
     if needs_preprocessing:
         if 'load_data' in run_config and run_config['load_data'] == True:
             # Load and divide data
-            if 'generate_label_weeks' in run_config and 'reference_date' in run_config:
-                share_data = load_data(run_config['data_file'], run_config['generate_label_weeks'],
-                                    run_config['reference_date'])
+            if 'generate_labels' in run_config['generate_labels'] == True:
+                share_data = load_data(run_config['unlabelled_data_file'], run_config['generate_label_weeks'],
+                                    run_config['reference_date'], run_config['labelled_data_file'])
             else:
-                share_data = load_data(run_config['data_file'])
+                share_data = load_data(run_config['labelled_data_file'])
             gc.collect()
 
             # Divide data into symbol sand general data for training an testing
@@ -1896,13 +1885,15 @@ def main(run_config):
 
 if __name__ == "__main__":
     run_config = {
-        'load_data': False,
-        # 'generate_label_weeks': 8,
-        # 'reference_date': '2018-03-30',
-        'data_file': './data/data_with_labels.pkl.gz',
-        'train_pre_process': False,
+        'load_data': True,
+        'generate_labels': True,
+        'generate_label_weeks': 8,
+        'reference_date': '2018-05-12',
+        'unlabelled_data_file': './data/ml-20180512-processed.pkl.gz',
+        'labelled_data_file': './data/ml-20180512-labelled.pkl.gz',
+        'train_pre_process': True,
         'load_and_execute_pre_process': False,
-        'load_processed_data': True,
+        'load_processed_data': False,
         'train_keras': True,
         'train_xgb': True,
         'train_deep_bagging': True,
