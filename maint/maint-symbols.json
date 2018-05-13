@@ -1,0 +1,1121 @@
+{
+    "symbolsToRemove": [
+        "IAA", "ISH", "RIR", "CRH", "CQO", "LLA", "AR1", "TND", "UNS", "UBJ", "MDG", "AOH", "YHL", "AVM", "RCG",
+        "SEG", "PLV", "RMR", "ALB", "GLF", "GHC", "LDW", "IXP", "WRG", "RWH", "TSO", "OVR", "ADE", "EXC", "IZZ", "CBQ", "SNE", "ZHE",
+        "WCC", "CSW", "WBAPA", "UBU", "RER", "TCH", "CTN", "USF", "ALR", "CJC", "DSB", "RNI", "QMN", "BBG", "QUR", "PPP", "CDI", "NBS",
+        "CEO", "ENZ", "UEQ", "CCQ", "MVR", "TUP", "KFG", "HFA", "SUNPC", "DVA", "TEN", "EMX", "QUAL", "TMM", "KZL", "UBP",
+        "IJP", "AUN", "SMX", "SCR", "CTR", "MVB", "PVA", "EAL", "BRM", "IHK", "MBE", "MNE", "PGO", "BPA", "CUS", "IOO", "AUK",
+        "HUA", "URI", "EPT", "GBX", "HZL", "GRA", "EYM", "TFC", "CZA", "GEG", "EXT", "KII", "MVE", "BPS", "WHFPA", "GOLD", "USG",
+        "ACU", "IOG", "SSLPA", "SOE", "EOC", "MGE", "NOE", "DYE", "HAO", "WDC", "MHG", "TSV", "ADU", "USP", "AVI", "CMT", "EUM",
+        "PHG", "IRU", "GDX", "VIF", "IVE", "BOW", "SIP", "KSM", "VAE", "WCP", "PNA", "CINPA", "NWZ", "WAK", "FGE", "OBL", "CUA",
+        "WMN", "AIK", "DSH", "DKO", "VEQ", "DM1", "MSF", "K2P", "VSC", "CER", "APN", "AFY", "CYU", "RHCPA", "CYY", "QNL", "DTX",
+        "MVW", "DUE", "NMG", "CTY", "AZT", "AWQ", "PLH", "COU", "MPE", "ROK", "AQU", "SWL", "AZX", "MOT", "UBW", "APY", "UBE",
+        "POP", "EXS", "BND", "WDS", "ATV", "AOD", "AFJ", "AJA", "VELIN", "ZML", "HGG", "BYL", "BRS", "WCB", "VGE", "LCR", "BRBCA",
+        "GGH", "HHL", "IJH", "SP1", "CRE", "IDE", "IBK", "CVO", "ESG", "NXS", "HHV", "PRG", "BKN", "NRT", "ITW", "IEU", "HUN", "TTE",
+        "VELPA", "NEN", "OOH", "QML", "MXUPA", "QUS", "VET", "AKU", "VCF", "MBN", "MOL", "CNH", "LRC", "EQU", "WSG", "MII", "HSK",
+        "VELCP", "MNM", "QOZ", "MAUCA", "TRH", "BTT", "KBU", "AKI", "AYA", "UBA", "PRR", "SVWPA", "AYJ", "NDQ", "MVS", "VGAD",
+        "IHOO", "STP", "PXUPA", "TIL", "GEAR", "AXZ", "AWE", "BGG", "CWC", "AKK", "CCU", "PEG", "NHH", "MMW", "VXL", "TGZ", "CWH",
+        "CNP", "AUG", "CNQ", "SKB", "DIV", "INL", "ILF", "ACX", "NCI", "MLA", "4WD", "ACK", "GCL", "YNB", "LFC", "NWSLV",
+        "KDL", "IVV", "BML", "RFL", "MAC", "IGR", "ISG", "LSN", "VGS", "IEM", "AQQ", "NDO", "CWK", "FGL", "IXI", "MCC", "GMPPA",
+        "IKO", "IXJ", "CR8", "EMC", "SPY", "PEZ", "NHR", "IHVV", "MVA"
+    ],
+    "symbolsToAdd": [{
+        "symbol": "14D",
+        "companyName": "1414 DEGREES LIMITED"
+    }, {
+        "symbol": "5GN",
+        "companyName": "5G NETWORKS LIMITED"
+    }, {
+        "symbol": "8CO",
+        "companyName": "8COMMON LIMITED"
+    }, {
+        "symbol": "AYI",
+        "companyName": "A1 INVESTMENTS & RESOURCES LTD"
+    }, {
+        "symbol": "AX1",
+        "companyName": "ACCENT GROUP LIMITED"
+    }, {
+        "symbol": "ACF",
+        "companyName": "ACROW FORMWORK AND CONSTRUCTION SERVICES LIMITED"
+    }, {
+        "symbol": "ADT",
+        "companyName": "ADRIATIC METALS PLC"
+    }, {
+        "symbol": "AFT",
+        "companyName": "AFT CORPORATION LIMITED"
+    }, {
+        "symbol": "APT",
+        "companyName": "AFTERPAY TOUCH GROUP LIMITED"
+    }, {
+        "symbol": "A1C",
+        "companyName": "AIC RESOURCES LIMITED"
+    }, {
+        "symbol": "AL8",
+        "companyName": "ALDERAN RESOURCES LIMITED"
+    }, {
+        "symbol": "AZI",
+        "companyName": "ALTA ZINC LIMITED"
+    }, {
+        "symbol": "ABR",
+        "companyName": "AMERICAN PACIFIC BORATE & LITHIUM LIMITED"
+    }, {
+        "symbol": "AHR",
+        "companyName": "ANCHOR RESOURCES LIMITED"
+    }, {
+        "symbol": "ATM",
+        "companyName": "ANEKA TAMBANG (PERSERO) TBK (PT)"
+    }, {
+        "symbol": "AS1",
+        "companyName": "ANGEL SEAFOOD HOLDINGS LTD"
+    }, {
+        "symbol": "AAL",
+        "companyName": "APAC COAL LIMITED"
+    }, {
+        "symbol": "ATZ",
+        "companyName": "APPETISE (HOLDINGS) LIMITED"
+    }, {
+        "symbol": "ARL",
+        "companyName": "ARDEA RESOURCES LIMITED"
+    }, {
+        "symbol": "AMD",
+        "companyName": "ARROW MINERALS LTD"
+    }, {
+        "symbol": "AM3",
+        "companyName": "ASIAN MINERAL RESOURCES LIMITED"
+    }, {
+        "symbol": "AKF",
+        "companyName": "ASK FUNDING LIMITED"
+    }, {
+        "symbol": "ATA",
+        "companyName": "ATC ALLOYS LTD"
+    }, {
+        "symbol": "AVC",
+        "companyName": "AUCTUS ALTERNATIVE INVESTMENTS LIMITED"
+    }, {
+        "symbol": "AD8",
+        "companyName": "AUDINATE GROUP LIMITED"
+    }, {
+        "symbol": "AKN",
+        "companyName": "AUKING MINING LIMITED"
+    }, {
+        "symbol": "AU8",
+        "companyName": "AUMAKE INTERNATIONAL LIMITED"
+    }, {
+        "symbol": "AUR",
+        "companyName": "AURIS MINERALS LIMITED"
+    }, {
+        "symbol": "AQJ",
+        "companyName": "AUS ASIA MINERALS LIMITED"
+    }, {
+        "symbol": "AMG",
+        "companyName": "AUSMEX MINING GROUP LIMITED"
+    }, {
+        "symbol": "AUL",
+        "companyName": "AUSTAR GOLD LIMITED"
+    }, {
+        "symbol": "AUH",
+        "companyName": "AUSTCHINA HOLDINGS LIMITED"
+    }, {
+        "symbol": "ARH",
+        "companyName": "AUSTRALASIAN RESOURCES LIMITED"
+    }, {
+        "symbol": "AYM",
+        "companyName": "AUSTRALIA UNITED MINING LIMITED"
+    }, {
+        "symbol": "ANS",
+        "companyName": "AUSTSINO RESOURCES GROUP LIMITED"
+    }, {
+        "symbol": "AWA",
+        "companyName": "AWATI RESOURCES LIMITED"
+    }, {
+        "symbol": "AYG",
+        "companyName": "AXXIS TECHNOLOGY GROUP LTD"
+    }, {
+        "symbol": "BPP",
+        "companyName": "BABYLON PUMP & POWER LIMITED"
+    }, {
+        "symbol": "BMH",
+        "companyName": "BAUMART HOLDINGS LIMITED"
+    }, {
+        "symbol": "BRI",
+        "companyName": "BIG RIVER INDUSTRIES LIMITED"
+    }, {
+        "symbol": "BTH",
+        "companyName": "BIGTINCAN HOLDINGS LIMITED"
+    }, {
+        "symbol": "BIN",
+        "companyName": "BINGO INDUSTRIES LIMITED"
+    }, {
+        "symbol": "BGT",
+        "companyName": "BIO-GENE TECHNOLOGY LTD"
+    }, {
+        "symbol": "BBM",
+        "companyName": "BIOMICS BIOPHARMA LIMITED"
+    }, {
+        "symbol": "BC8",
+        "companyName": "BLACK CAT SYNDICATE LIMITED"
+    }, {
+        "symbol": "BEM",
+        "companyName": "BLACKEARTH MINERALS NL"
+    }, {
+        "symbol": "BAH",
+        "companyName": "BOJUN AGRICULTURE HOLDINGS LIMITED"
+    }, {
+        "symbol": "BBR",
+        "companyName": "BORA BORA RESOURCES LIMITED"
+    }, {
+        "symbol": "B2Y",
+        "companyName": "BOUNTY MINING LIMITED"
+    }, {
+        "symbol": "BCB",
+        "companyName": "BOWEN COKING COAL LIMITED"
+    }, {
+        "symbol": "BRO",
+        "companyName": "BROAD INVESTMENTS LIMITED"
+    }, {
+        "symbol": "BGR",
+        "companyName": "BRONSON GROUP LIMITED"
+    }, {
+        "symbol": "BYH",
+        "companyName": "BRYAH RESOURCES LIMITED"
+    }, {
+        "symbol": "BPG",
+        "companyName": "BYTE POWER GROUP LIMITED"
+    }, {
+        "symbol": "CAI",
+        "companyName": "CALIDUS RESOURCES LIMITED"
+    }, {
+        "symbol": "CE1",
+        "companyName": "CALIMA ENERGY LIMITED"
+    }, {
+        "symbol": "CAN",
+        "companyName": "CANN GROUP LIMITED"
+    }, {
+        "symbol": "CP1",
+        "companyName": "CANNPAL ANIMAL THERAPEUTICS LIMITED"
+    }, {
+        "symbol": "CAG",
+        "companyName": "CAPE RANGE LTD"
+    }, {
+        "symbol": "CWX",
+        "companyName": "CARAWINE RESOURCES LIMITED"
+    }, {
+        "symbol": "CG1",
+        "companyName": "CARBONXT GROUP LIMITED"
+    }, {
+        "symbol": "CMD",
+        "companyName": "CASSIUS MINING LIMITED"
+    }, {
+        "symbol": "CNL",
+        "companyName": "CELAMIN HOLDINGS NL"
+    }, {
+        "symbol": "CIP",
+        "companyName": "CENTURIA INDUSTRIAL REIT"
+    }, {
+        "symbol": "CWL",
+        "companyName": "CHANT WEST HOLDINGS LIMITED"
+    }, {
+        "symbol": "CTC",
+        "companyName": "CHINA TRACK LIMITED"
+    }, {
+        "symbol": "CRO",
+        "companyName": "CIRRALTO LIMITED"
+    }, {
+        "symbol": "CPV",
+        "companyName": "CLEARVUE TECHNOLOGIES LIMITED"
+    }, {
+        "symbol": "CLL",
+        "companyName": "COLLERINA COBALT LIMITED"
+    }, {
+        "symbol": "CCG",
+        "companyName": "COMMSCHOICE GROUP LIMITED"
+    }, {
+        "symbol": "CLF",
+        "companyName": "CONCENTRATED LEADERS FUND LIMITED"
+    }, {
+        "symbol": "CDB",
+        "companyName": "CONDOR BLANCO MINES LIMITED"
+    }, {
+        "symbol": "CQG",
+        "companyName": "CONTANGO GLOBAL GROWTH LIMITED"
+    }, {
+        "symbol": "CRR",
+        "companyName": "CONVENIENCE RETAIL REIT"
+    }, {
+        "symbol": "C6C",
+        "companyName": "COPPER MOUNTAIN MINING CORPORATION"
+    }, {
+        "symbol": "CRD",
+        "companyName": "CREDIBLE LABS INC."
+    }, {
+        "symbol": "CLI",
+        "companyName": "CROPLOGIC LIMITED"
+    }, {
+        "symbol": "CSK",
+        "companyName": "CROWDSPARK LTD"
+    }, {
+        "symbol": "CY5",
+        "companyName": "CYGNUS GOLD LIMITED"
+    }, {
+        "symbol": "DW8",
+        "companyName": "DAWINE LTD"
+    }, {
+        "symbol": "DEM",
+        "companyName": "DE.MEM LIMITED"
+    }, {
+        "symbol": "DEV",
+        "companyName": "DEVEX RESOURCES LIMITED"
+    }, {
+        "symbol": "DGX",
+        "companyName": "DIPLOMA GROUP LIMITED"
+    }, {
+        "symbol": "PRZ",
+        "companyName": "DIVERSE SECURITY NEEDS LIMITED"
+    }, {
+        "symbol": "DHG",
+        "companyName": "DOMAIN HOLDINGS AUSTRALIA LIMITED."
+    }, {
+        "symbol": "DOR",
+        "companyName": "DORIEMUS PLC"
+    }, {
+        "symbol": "DRK",
+        "companyName": "DRAKE RESOURCES LIMITED"
+    }, {
+        "symbol": "DBF",
+        "companyName": "DUXTON BROADACRE FARMS LIMITED"
+    }, {
+        "symbol": "E2M",
+        "companyName": "E2 METALS LIMITED"
+    }, {
+        "symbol": "EHH",
+        "companyName": "EAGLE HEALTH HOLDINGS LIMITED"
+    }, {
+        "symbol": "EM2",
+        "companyName": "EAGLE MOUNTAIN MINING LIMITED"
+    }, {
+        "symbol": "EWE",
+        "companyName": "EAST WEST ENERGY LIMITED"
+    }, {
+        "symbol": "ETK",
+        "companyName": "EDEN HEALTH INDUSTRY HOLDINGS LIMITED"
+    }, {
+        "symbol": "EHX",
+        "companyName": "EHR RESOURCES LIMITED"
+    }, {
+        "symbol": "EDC",
+        "companyName": "EILDON CAPITAL LIMITED"
+    }, {
+        "symbol": "EXL",
+        "companyName": "ELIXINOL GLOBAL LIMITED"
+    }, {
+        "symbol": "ELO",
+        "companyName": "ELMO SOFTWARE LIMITED"
+    }, {
+        "symbol": "ELS",
+        "companyName": "ELSIGHT LIMITED"
+    }, {
+        "symbol": "EM1",
+        "companyName": "EMERGE GAMING LIMITED"
+    }, {
+        "symbol": "EMP",
+        "companyName": "EMPEROR ENERGY LIMITED"
+    }, {
+        "symbol": "EN1",
+        "companyName": "ENGAGE:BDR LIMITED"
+    }, {
+        "symbol": "E2E",
+        "companyName": "EON NRG LIMITED"
+    }, {
+        "symbol": "ESE",
+        "companyName": "ESENSE-LAB LTD"
+    }, {
+        "symbol": "ESM",
+        "companyName": "ESPERANCE MINERALS LIMITED"
+    }, {
+        "symbol": "EUC",
+        "companyName": "EUROPEAN COBALT LTD"
+    }, {
+        "symbol": "EAF",
+        "companyName": "EVANS & PARTNERS ASIA FUND"
+    }, {
+        "symbol": "ED1",
+        "companyName": "EVANS DIXON LIMITED"
+    }, {
+        "symbol": "EXP",
+        "companyName": "EXPERIENCE CO LIMITED"
+    }, {
+        "symbol": "FEI",
+        "companyName": "FE INVESTMENTS GROUP LIMITED"
+    }, {
+        "symbol": "FSG",
+        "companyName": "FIELD SOLUTIONS HOLDINGS LIMITED"
+    }, {
+        "symbol": "FIN",
+        "companyName": "FIN RESOURCES LIMITED"
+    }, {
+        "symbol": "FTC",
+        "companyName": "FINTECH CHAIN LIMITED"
+    }, {
+        "symbol": "FCC",
+        "companyName": "FIRST COBALT CORP."
+    }, {
+        "symbol": "FGO",
+        "companyName": "FLAMINGO AI LIMITED"
+    }, {
+        "symbol": "FLC",
+        "companyName": "FLUENCE CORPORATION LIMITED"
+    }, {
+        "symbol": "FRC",
+        "companyName": "FORTE CONSOLIDATED LIMITED"
+    }, {
+        "symbol": "FYA",
+        "companyName": "FORTUNE ASIA GROUP LTD"
+    }, {
+        "symbol": "FPL",
+        "companyName": "FREMONT PETROLEUM CORPORATION LIMITED"
+    }, {
+        "symbol": "FDX",
+        "companyName": "FRONTIER DIAMONDS LTD"
+    }, {
+        "symbol": "GMV",
+        "companyName": "G MEDICAL INNOVATIONS HOLDINGS LIMITED"
+    }, {
+        "symbol": "G1A",
+        "companyName": "GALENA MINING LIMITED"
+    }, {
+        "symbol": "GAL",
+        "companyName": "GALILEO MINING LTD"
+    }, {
+        "symbol": "GDG",
+        "companyName": "GENERATION DEVELOPMENT GROUP LIMITED"
+    }, {
+        "symbol": "GEO",
+        "companyName": "GEOOP LIMITED"
+    }, {
+        "symbol": "GEV",
+        "companyName": "GLOBAL ENERGY VENTURES LIMITED"
+    }, {
+        "symbol": "GFI",
+        "companyName": "GLOBAL FORTUNE INVESTMENT LIMITED"
+    }, {
+        "symbol": "GOE",
+        "companyName": "GO ENERGY GROUP LIMITED"
+    }, {
+        "symbol": "GCN",
+        "companyName": "GOCONNECT LIMITED"
+    }, {
+        "symbol": "G88",
+        "companyName": "GOLDEN MILE RESOURCES LTD"
+    }, {
+        "symbol": "GSL",
+        "companyName": "GREATCELL SOLAR LIMITED"
+    }, {
+        "symbol": "GMC",
+        "companyName": "GULF MANGANESE CORPORATION LIMITED"
+    }, {
+        "symbol": "HXP",
+        "companyName": "HAIXI PHARMACEUTICAL INTERNATIONAL HOLDINGS LIMITED"
+    }, {
+        "symbol": "HHM",
+        "companyName": "HAMPTON HILL MINING NL"
+    }, {
+        "symbol": "HDY",
+        "companyName": "HARDEY RESOURCES LIMITED"
+    }, {
+        "symbol": "HWK",
+        "companyName": "HAWKSTONE MINING LIMITED"
+    }, {
+        "symbol": "HE8",
+        "companyName": "HELIOS ENERGY LTD"
+    }, {
+        "symbol": "HGM",
+        "companyName": "HIGH GRADE METALS LIMITED"
+    }, {
+        "symbol": "HT1",
+        "companyName": "HT&E LIMITED"
+    }, {
+        "symbol": "HGL",
+        "companyName": "HUDSON INVESTMENT GROUP LIMITED"
+    }, {
+        "symbol": "HCO",
+        "companyName": "HYLEA METALS LIMITED"
+    }, {
+        "symbol": "IS3",
+        "companyName": "I SYNERGY GROUP LIMITED"
+    }, {
+        "symbol": "ICI",
+        "companyName": "ICANDY INTERACTIVE LIMITED"
+    }, {
+        "symbol": "IBX",
+        "companyName": "IMAGION BIOSYSTEMS LIMITED"
+    }, {
+        "symbol": "IMM",
+        "companyName": "IMMUTEP LIMITED"
+    }, {
+        "symbol": "IMS",
+        "companyName": "IMPELUS LIMITED"
+    }, {
+        "symbol": "IPC",
+        "companyName": "IMPERIAL PACIFIC LIMITED"
+    }, {
+        "symbol": "INP",
+        "companyName": "INCENTIAPAY LIMITED"
+    }, {
+        "symbol": "IRL",
+        "companyName": "INDIA RESOURCES LIMITED"
+    }, {
+        "symbol": "IND",
+        "companyName": "INDUS ENERGY NL"
+    }, {
+        "symbol": "INF",
+        "companyName": "INFINITY LITHIUM CORPORATION LIMITED"
+    }, {
+        "symbol": "INA",
+        "companyName": "INGENIA COMMUNITIES GROUP"
+    }, {
+        "symbol": "IGE",
+        "companyName": "INTEGRATED GREEN ENERGY SOLUTIONS LTD"
+    }, {
+        "symbol": "IHR",
+        "companyName": "INTELLIHR HOLDINGS LIMITED"
+    }, {
+        "symbol": "IEQ",
+        "companyName": "INTERNATIONAL EQUITIES CORPORATION LIMITED."
+    }, {
+        "symbol": "IGS",
+        "companyName": "INTERNATIONAL GOLDFIELDS LIMITED..."
+    }, {
+        "symbol": "IVT",
+        "companyName": "INVENTIS LIMITED"
+    }, {
+        "symbol": "IQ3",
+        "companyName": "IQ3CORP LIMITED"
+    }, {
+        "symbol": "IXU",
+        "companyName": "IXUP LIMITED"
+    }, {
+        "symbol": "JDR",
+        "companyName": "JADAR LITHIUM LIMITED"
+    }, {
+        "symbol": "JAN",
+        "companyName": "JANISON EDUCATION GROUP LIMITED"
+    }, {
+        "symbol": "JHG",
+        "companyName": "JANUS HENDERSON GROUP PLC"
+    }, {
+        "symbol": "JAY",
+        "companyName": "JAYRIDE GROUP LIMITED"
+    }, {
+        "symbol": "JJF",
+        "companyName": "JIAJIAFU MODERN AGRICULTURE LIMITED"
+    }, {
+        "symbol": "JLG",
+        "companyName": "JOHNS LYNG GROUP LIMITED"
+    }, {
+        "symbol": "JMS",
+        "companyName": "JUPITER MINES LIMITED."
+    }, {
+        "symbol": "JYG",
+        "companyName": "JYG AUSTRALIA LTD"
+    }, {
+        "symbol": "KIK",
+        "companyName": "KAIRIKI ENERGY LIMITED"
+    }, {
+        "symbol": "KLH",
+        "companyName": "KALIA LIMITED"
+    }, {
+        "symbol": "KZA",
+        "companyName": "KAZIA THERAPEUTICS LIMITED"
+    }, {
+        "symbol": "KBL",
+        "companyName": "KBL MINING LIMITED"
+    }, {
+        "symbol": "KPG",
+        "companyName": "KELLY PARTNERS GROUP HOLDINGS LIMITED"
+    }, {
+        "symbol": "KTD",
+        "companyName": "KEYTONE DAIRY CORPORATION LIMITED"
+    }, {
+        "symbol": "KLA",
+        "companyName": "KIRKLAND LAKE GOLD LTD"
+    }, {
+        "symbol": "KMT",
+        "companyName": "KOPORE METALS LIMITED"
+    }, {
+        "symbol": "KRX",
+        "companyName": "KOPPAR RESOURCES LIMITED"
+    }, {
+        "symbol": "KP2",
+        "companyName": "KORE POTASH PLC"
+    }, {
+        "symbol": "LSA",
+        "companyName": "LACHLAN STAR LIMITED"
+    }, {
+        "symbol": "LI3",
+        "companyName": "LITHIUM CONSOLIDATED MINERAL EXPLORATION LIMITED"
+    }, {
+        "symbol": "LON",
+        "companyName": "LONGTABLE GROUP LIMITED"
+    }, {
+        "symbol": "LVE",
+        "companyName": "LOVE GROUP GLOBAL LTD"
+    }, {
+        "symbol": "LRM",
+        "companyName": "LUSTRUM MINERALS LTD"
+    }, {
+        "symbol": "MAG",
+        "companyName": "MAGMATIC RESOURCES LIMITED"
+    }, {
+        "symbol": "MHH",
+        "companyName": "MAJESTIC HORIZON HOLDINGS LTD"
+    }, {
+        "symbol": "MKG",
+        "companyName": "MAKO GOLD LIMITED"
+    }, {
+        "symbol": "MDD",
+        "companyName": "MANDALONG RESOURCES LIMITED"
+    }, {
+        "symbol": "MQR",
+        "companyName": "MARQUEE RESOURCES LIMITED"
+    }, {
+        "symbol": "MZZ",
+        "companyName": "MATADOR MINING LIMITED"
+    }, {
+        "symbol": "MRL",
+        "companyName": "MAYUR RESOURCES LIMITED"
+    }, {
+        "symbol": "MCM",
+        "companyName": "MC MINING LIMITED"
+    }, {
+        "symbol": "MAS",
+        "companyName": "MESA MINERALS LIMITED"
+    }, {
+        "symbol": "ML7",
+        "companyName": "METALS 479 LTD"
+    }, {
+        "symbol": "MSE",
+        "companyName": "METALSEARCH LIMITED"
+    }, {
+        "symbol": "MTC",
+        "companyName": "METALSTECH LIMITED"
+    }, {
+        "symbol": "MEQ",
+        "companyName": "METLIFECARE LIMITED"
+    }, {
+        "symbol": "MAM",
+        "companyName": "MICROEQUITIES ASSET MANAGEMENT GROUP LIMITED"
+    }, {
+        "symbol": "MHD",
+        "companyName": "MILLENNIUM LIMITED"
+    }, {
+        "symbol": "MRR",
+        "companyName": "MINREX RESOURCES LIMITED"
+    }, {
+        "symbol": "MBT",
+        "companyName": "MISSION NEWENERGY LIMITED"
+    }, {
+        "symbol": "MMG",
+        "companyName": "MMG LIMITED"
+    }, {
+        "symbol": "MIH",
+        "companyName": "MNC MEDIA INVESTMENT LTD"
+    }, {
+        "symbol": "MBM",
+        "companyName": "MOBECOM LIMITED"
+    }, {
+        "symbol": "MOB",
+        "companyName": "MOBILICOM LIMITED"
+    }, {
+        "symbol": "MOE",
+        "companyName": "MOELIS AUSTRALIA LIMITED"
+    }, {
+        "symbol": "MKB",
+        "companyName": "MOKO SOCIAL MEDIA LIMITED"
+    }, {
+        "symbol": "MEC",
+        "companyName": "MORPHIC ETHICAL EQUITIES FUND LIMITED"
+    }, {
+        "symbol": "MPW",
+        "companyName": "MSL SOLUTIONS LIMITED"
+    }, {
+        "symbol": "MXU",
+        "companyName": "MULTIPLEX SITES TRUST"
+    }, {
+        "symbol": "MSI",
+        "companyName": "MULTISTACK INTERNATIONAL LIMITED"
+    }, {
+        "symbol": "MYL",
+        "companyName": "MYANMAR METALS LIMITED"
+    }, {
+        "symbol": "NC6",
+        "companyName": "NANOLLOSE LIMITED"
+    }, {
+        "symbol": "NSC",
+        "companyName": "NAOS SMALL CAP OPPORTUNITIES COMPANY LIMITED"
+    }, {
+        "symbol": "NGI",
+        "companyName": "NAVIGATOR GLOBAL INVESTMENTS LIMITED"
+    }, {
+        "symbol": "NES",
+        "companyName": "NELSON RESOURCES LIMITED."
+    }, {
+        "symbol": "NXR",
+        "companyName": "NEMEX RESOURCES LIMITED"
+    }, {
+        "symbol": "NWL",
+        "companyName": "NETWEALTH GROUP LIMITED"
+    }, {
+        "symbol": "NCZ",
+        "companyName": "NEW CENTURY RESOURCES LIMITED"
+    }, {
+        "symbol": "NEW",
+        "companyName": "NEW ENERGY SOLAR"
+    }, {
+        "symbol": "NWC",
+        "companyName": "NEW WORLD COBALT LIMITED"
+    }, {
+        "symbol": "NLH",
+        "companyName": "NICHELIVING HOLDINGS LTD"
+    }, {
+        "symbol": "NIO",
+        "companyName": "NICKELORE LIMITED"
+    }, {
+        "symbol": "N27",
+        "companyName": "NORTHERN COBALT LIMITED"
+    }, {
+        "symbol": "NVA",
+        "companyName": "NOVA MINERALS LIMITED"
+    }, {
+        "symbol": "NLI",
+        "companyName": "NOVO LITIO LTD"
+    }, {
+        "symbol": "NVX",
+        "companyName": "NOVONIX LIMITED"
+    }, {
+        "symbol": "NUS",
+        "companyName": "NUSANTARA RESOURCES LIMITED"
+    }, {
+        "symbol": "NZC",
+        "companyName": "NZURI COPPER LIMITED"
+    }, {
+        "symbol": "OKJ",
+        "companyName": "OAKAJEE CORPORATION LIMITED"
+    }, {
+        "symbol": "OGA",
+        "companyName": "OCEAN GROWN ABALONE LIMITED"
+    }, {
+        "symbol": "OCA",
+        "companyName": "OCEANIA HEALTHCARE LIMITED"
+    }, {
+        "symbol": "ODN",
+        "companyName": "ODIN ENERGY LIMITED"
+    }, {
+        "symbol": "ODM",
+        "companyName": "ODIN METALS LIMITED"
+    }, {
+        "symbol": "OKR",
+        "companyName": "OKAPI RESOURCES LIMITED"
+    }, {
+        "symbol": "OLH",
+        "companyName": "OLDFIELDS HOLDINGS LIMITED"
+    }, {
+        "symbol": "OLI",
+        "companyName": "OLIVER'S REAL FOOD LIMITED"
+    }, {
+        "symbol": "OMT",
+        "companyName": "OMNI MARKET TIDE LTD"
+    }, {
+        "symbol": "OMN",
+        "companyName": "ONEMARKET LIMITED"
+    }, {
+        "symbol": "ORH",
+        "companyName": "ORH LIMITED"
+    }, {
+        "symbol": "OTI",
+        "companyName": "ORIENTAL TECHNOLOGIES INVESTMENT LIMITED"
+    }, {
+        "symbol": "ONX",
+        "companyName": "ORMINEX LTD"
+    }, {
+        "symbol": "PDF",
+        "companyName": "PACIFIC DAIRIES LIMITED"
+    }, {
+        "symbol": "PCK",
+        "companyName": "PAINCHEK LTD"
+    }, {
+        "symbol": "PKD",
+        "companyName": "PARKD LTD"
+    }, {
+        "symbol": "PYG",
+        "companyName": "PAYGROUP LIMITED"
+    }, {
+        "symbol": "PG1",
+        "companyName": "PEARL GLOBAL LIMITED"
+    }, {
+        "symbol": "PDL",
+        "companyName": "PENDAL GROUP LIMITED"
+    }, {
+        "symbol": "PCG",
+        "companyName": "PENGANA CAPITAL GROUP LIMITED"
+    }, {
+        "symbol": "PIA",
+        "companyName": "PENGANA INTERNATIONAL EQUITIES LIMITED"
+    }, {
+        "symbol": "PPE",
+        "companyName": "PEOPLE INFRASTRUCTURE LTD"
+    }, {
+        "symbol": "PLL",
+        "companyName": "PIEDMONT LITHIUM LTD"
+    }, {
+        "symbol": "PZM",
+        "companyName": "PISTON MACHINERY LTD."
+    }, {
+        "symbol": "PLC",
+        "companyName": "PLC FINANCIAL SOLUTIONS LIMITED"
+    }, {
+        "symbol": "PC1",
+        "companyName": "PLUS CONNECT LIMITED"
+    }, {
+        "symbol": "POD",
+        "companyName": "PODIUM MINERALS LIMITED"
+    }, {
+        "symbol": "PXX",
+        "companyName": "POLARX LIMITED"
+    }, {
+        "symbol": "P88",
+        "companyName": "POWER ASIA LIMITED"
+    }, {
+        "symbol": "PFP",
+        "companyName": "PROPEL FUNERAL PARTNERS LIMITED"
+    }, {
+        "symbol": "PHA",
+        "companyName": "PUBLIC HOLDINGS (AUSTRALIA) LIMITED"
+    }, {
+        "symbol": "PM1",
+        "companyName": "PURE MINERALS LIMITED"
+    }, {
+        "symbol": "PO3",
+        "companyName": "PURIFLOH LIMITED"
+    }, {
+        "symbol": "PUR",
+        "companyName": "PURSUIT MINERALS LTD"
+    }, {
+        "symbol": "PLX",
+        "companyName": "PYROLYX AG"
+    }, {
+        "symbol": "QRX",
+        "companyName": "QRXPHARMA LTD"
+    }, {
+        "symbol": "QFY",
+        "companyName": "QUANTIFY TECHNOLOGY HOLDINGS LIMITED"
+    }, {
+        "symbol": "QGL",
+        "companyName": "QUANTUM GRAPHITE LIMITED"
+    }, {
+        "symbol": "QUE",
+        "companyName": "QUESTE COMMUNICATIONS LIMITED"
+    }, {
+        "symbol": "QIN",
+        "companyName": "QUINTIS LTD"
+    }, {
+        "symbol": "R3D",
+        "companyName": "R3D GLOBAL LIMITED"
+    }, {
+        "symbol": "RFR",
+        "companyName": "RAFAELLA RESOURCES LTD."
+    }, {
+        "symbol": "RDN",
+        "companyName": "RAIDEN RESOURCES LIMITED"
+    }, {
+        "symbol": "RZI",
+        "companyName": "RAIZ INVEST LIMITED"
+    }, {
+        "symbol": "RPL",
+        "companyName": "RAPTOR RESOURCES LIMITED"
+    }, {
+        "symbol": "REL",
+        "companyName": "RAVEN ENERGY LIMITED"
+    }, {
+        "symbol": "RCL",
+        "companyName": "READCLOUD LIMITED"
+    }, {
+        "symbol": "ROG",
+        "companyName": "RED SKY ENERGY LIMITED."
+    }, {
+        "symbol": "RD1",
+        "companyName": "REGISTRY DIRECT LIMITED"
+    }, {
+        "symbol": "RNX",
+        "companyName": "RENEGADE EXPLORATION LIMITED"
+    }, {
+        "symbol": "RBD",
+        "companyName": "RESTAURANT BRANDS NEW ZEALAND LIMITED"
+    }, {
+        "symbol": "RTE",
+        "companyName": "RETECH TECHNOLOGY CO., LIMITED"
+    }, {
+        "symbol": "RHY",
+        "companyName": "RHYTHM BIOSCIENCES LIMITED"
+    }, {
+        "symbol": "RCW",
+        "companyName": "RIGHTCROWD LIMITED"
+    }, {
+        "symbol": "RGL",
+        "companyName": "RIVERSGOLD LIMITED"
+    }, {
+        "symbol": "RMT",
+        "companyName": "RMA ENERGY LIMITED"
+    }, {
+        "symbol": "RY8",
+        "companyName": "RONGYU PHARMACEUTICALS LIMITED"
+    }, {
+        "symbol": "ROO",
+        "companyName": "ROOTS SUSTAINABLE AGRICULTURAL TECHNOLOGIES LTD"
+    }, {
+        "symbol": "RGI",
+        "companyName": "ROTO-GRO INTERNATIONAL LIMITED"
+    }, {
+        "symbol": "SAN",
+        "companyName": "SAGALIO ENERGY LIMITED"
+    }, {
+        "symbol": "SFM",
+        "companyName": "SANTA FE MINERALS LTD"
+    }, {
+        "symbol": "STN",
+        "companyName": "SATURN METALS LIMITED"
+    }, {
+        "symbol": "SCW",
+        "companyName": "SCENTRE GROUP TRUST 1"
+    }, {
+        "symbol": "SCL",
+        "companyName": "SCHROLE GROUP LTD"
+    }, {
+        "symbol": "SDV",
+        "companyName": "SCIDEV LTD"
+    }, {
+        "symbol": "SCT",
+        "companyName": "SCOUT SECURITY LIMITED"
+    }, {
+        "symbol": "S2G",
+        "companyName": "SECURE2GO GROUP LIMITED"
+    }, {
+        "symbol": "SWF",
+        "companyName": "SELFWEALTH LIMITED"
+    }, {
+        "symbol": "SNS",
+        "companyName": "SENSEN NETWORKS LIMITED"
+    }, {
+        "symbol": "SKO",
+        "companyName": "SERKO LIMITED"
+    }, {
+        "symbol": "S3R",
+        "companyName": "SERPENTINE TECHNOLOGIES LIMITED"
+    }, {
+        "symbol": "SVT",
+        "companyName": "SERVTECH GLOBAL HOLDINGS LTD"
+    }, {
+        "symbol": "SRR",
+        "companyName": "SHAW RIVER MANGANESE LIMITED"
+    }, {
+        "symbol": "SDX",
+        "companyName": "SIENNA CANCER DIAGNOSTICS LIMITED"
+    }, {
+        "symbol": "SIG",
+        "companyName": "SIGMA HEALTHCARE LIMITED"
+    }, {
+        "symbol": "SIS",
+        "companyName": "SIMBLE SOLUTIONS LIMITED"
+    }, {
+        "symbol": "SNV",
+        "companyName": "SINOVUS MINING LIMITED"
+    }, {
+        "symbol": "SAM",
+        "companyName": "SIV ASSET MANAGEMENT LIMITED"
+    }, {
+        "symbol": "SI6",
+        "companyName": "SIX SIGMA METALS LIMITED"
+    }, {
+        "symbol": "SIL",
+        "companyName": "SMILES INCLUSIVE LIMITED"
+    }, {
+        "symbol": "SEI",
+        "companyName": "SPECIALITY METALS INTERNATIONAL LIMITED"
+    }, {
+        "symbol": "SP3",
+        "companyName": "SPECTUR LIMITED"
+    }, {
+        "symbol": "SBX",
+        "companyName": "SPREEDBOX HOLDINGS LIMITED"
+    }, {
+        "symbol": "S66",
+        "companyName": "STAR COMBO PHARMA LIMITED"
+    }, {
+        "symbol": "GAS",
+        "companyName": "STATE GAS LIMITED"
+    }, {
+        "symbol": "SBI",
+        "companyName": "STERLING PLANTATIONS LIMITED"
+    }, {
+        "symbol": "SFS",
+        "companyName": "STIRFIRE LIMITED"
+    }, {
+        "symbol": "SDC",
+        "companyName": "SUGAR DRAGON LIMITED"
+    }, {
+        "symbol": "SNZ",
+        "companyName": "SUMMERSET GROUP HOLDINGS LIMITED"
+    }, {
+        "symbol": "SBK",
+        "companyName": "SUNCORP-METWAY LIMITED ."
+    }, {
+        "symbol": "STM",
+        "companyName": "SUNSTONE METALS LTD"
+    }, {
+        "symbol": "SUP",
+        "companyName": "SUPERIOR LAKE RESOURCES LIMITED"
+    }, {
+        "symbol": "SL1",
+        "companyName": "SYMBOL MINING LIMITED"
+    }, {
+        "symbol": "TNO",
+        "companyName": "TANDO RESOURCES LIMITED"
+    }, {
+        "symbol": "TAO",
+        "companyName": "TAO COMMODITIES LTD"
+    }, {
+        "symbol": "TLX",
+        "companyName": "TELIX PHARMACEUTICALS LIMITED"
+    }, {
+        "symbol": "TES",
+        "companyName": "TEST SECURITY"
+    }, {
+        "symbol": "DXN",
+        "companyName": "THE DATA EXCHANGE NETWORK LIMITED"
+    }, {
+        "symbol": "GO2",
+        "companyName": "THE GO2 PEOPLE LTD"
+    }, {
+        "symbol": "THC",
+        "companyName": "THE HYDROPONICS COMPANY LIMITED"
+    }, {
+        "symbol": "TB8",
+        "companyName": "TIANMEI BEVERAGE GROUP CORPORATION LIMITED"
+    }, {
+        "symbol": "TIE",
+        "companyName": "TIETTO MINERALS LIMITED"
+    }, {
+        "symbol": "TLT",
+        "companyName": "TILT RENEWABLES LIMITED."
+    }, {
+        "symbol": "TNY",
+        "companyName": "TINYBEANS GROUP LTD"
+    }, {
+        "symbol": "TTM",
+        "companyName": "TITAN MINERALS LIMITED"
+    }, {
+        "symbol": "TTT",
+        "companyName": "TITOMIC LIMITED"
+    }, {
+        "symbol": "TIN",
+        "companyName": "TNT MINES LIMITED"
+    }, {
+        "symbol": "TRT",
+        "companyName": "TODD RIVER RESOURCES LIMITED"
+    }, {
+        "symbol": "TMG",
+        "companyName": "TRIGG MINING LTD"
+    }, {
+        "symbol": "TGO",
+        "companyName": "TRIMANTIUM GROWTHOPS LIMITED"
+    }, {
+        "symbol": "TRA",
+        "companyName": "TURNERS AUTOMOTIVE GROUP LIMITED"
+    }, {
+        "symbol": "URW",
+        "companyName": "UNIBAIL-RODAMCO-WESTFIELD"
+    }, {
+        "symbol": "UBL",
+        "companyName": "UNIVERSAL BIOSECURITY LIMITED"
+    }, {
+        "symbol": "UUV",
+        "companyName": "UUV AQUABOTIX LTD"
+    }, {
+        "symbol": "VAL",
+        "companyName": "VALOR RESOURCES LIMITED"
+    }, {
+        "symbol": "VEL",
+        "companyName": "VEALLS LIMITED"
+    }, {
+        "symbol": "VP7",
+        "companyName": "VELOCITY PROPERTY GROUP LIMITED"
+    }, {
+        "symbol": "VIG",
+        "companyName": "VICTOR GROUP HOLDINGS LIMITED"
+    }, {
+        "symbol": "VTI",
+        "companyName": "VISIONEERING TECHNOLOGIES, INC."
+    }, {
+        "symbol": "VLS",
+        "companyName": "VITA LIFE SCIENCES LIMITED.."
+    }, {
+        "symbol": "VPR",
+        "companyName": "VOLT POWER GROUP LIMITED"
+    }, {
+        "symbol": "VN8",
+        "companyName": "VONEX LIMITED.."
+    }, {
+        "symbol": "VYS",
+        "companyName": "VYSARN LIMITED"
+    }, {
+        "symbol": "WGN",
+        "companyName": "WAGNERS HOLDING COMPANY LIMITED"
+    }, {
+        "symbol": "WGB",
+        "companyName": "WAM GLOBAL LIMITED"
+    }, {
+        "symbol": "WHA",
+        "companyName": "WATTLE HEALTH AUSTRALIA LIMITED"
+    }, {
+        "symbol": "WBE",
+        "companyName": "WHITEBARK ENERGY LTD"
+    }, {
+        "symbol": "WHK",
+        "companyName": "WHITEHAWK LIMITED"
+    }, {
+        "symbol": "WOA",
+        "companyName": "WIDE OPEN AGRICULTURE LTD"
+    }, {
+        "symbol": "WND",
+        "companyName": "WINDLAB LIMITED"
+    }, {
+        "symbol": "WZR",
+        "companyName": "WISR LIMITED"
+    }, {
+        "symbol": "WML",
+        "companyName": "WOOMERA MINING LIMITED"
+    }, {
+        "symbol": "WNS",
+        "companyName": "WORLD.NET SERVICES LIMITED"
+    }, {
+        "symbol": "XTV",
+        "companyName": "XTV NETWORKS LTD"
+    }, {
+        "symbol": "ZGZ",
+        "companyName": "ZAIGE WASTE MANAGEMENT HOLDING GROUP (AUS) LTD"
+    }, {
+        "symbol": "ZAM",
+        "companyName": "ZAMANCO MINERALS LIMITED"
+    }, {
+        "symbol": "ZGM",
+        "companyName": "ZAMIA METALS LIMITED"
+    }, {
+        "symbol": "ZEN",
+        "companyName": "ZENITH ENERGY LIMITED"
+    }, {
+        "symbol": "Z1P",
+        "companyName": "ZIP CO LIMITED."
+    }, {
+        "symbol": "ZNO",
+        "companyName": "ZOONO GROUP LIMITED"
+    }]
+}

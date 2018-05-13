@@ -9,16 +9,16 @@ let client = new AWS.DynamoDB.DocumentClient();
 let dynamoTables = {};
 
 /** Sets access to AWS for local execution
-*/
-let setLocalAccessConfig = function() {
+ */
+let setLocalAccessConfig = function () {
   AWS.config.loadFromPath('../credentials/aws.json');
   client = new AWS.DynamoDB.DocumentClient();
 };
 
 /** Gets all the dynamo tables and records their provisioned capacity
-* @return {Boolean} whether the get info worked
-*/
-let getTableInfo = asyncify(function() {
+ * @return {Boolean} whether the get info worked
+ */
+let getTableInfo = asyncify(function () {
   // Check if already done`
   if (!Object.keys(dynamoTables).length) {
     let db = new AWS.DynamoDB();
@@ -43,15 +43,15 @@ let getTableInfo = asyncify(function() {
 });
 
 /** Returns tab;le info from dynamo
-* @param {Object} db - dynamo db reference
-* @param {String} tableName - name of table to describe
-* @return {Promise} promise with table info
-*/
-let describeTable = function(db, tableName) {
-  return new Promise(function(resolve, reject) {
+ * @param {Object} db - dynamo db reference
+ * @param {String} tableName - name of table to describe
+ * @return {Promise} promise with table info
+ */
+let describeTable = function (db, tableName) {
+  return new Promise(function (resolve, reject) {
     db.describeTable({
       TableName: tableName,
-    }, function(err, data) {
+    }, function (err, data) {
       if (err) {
         reject(err);
       } else {
@@ -62,12 +62,12 @@ let describeTable = function(db, tableName) {
 };
 
 /** Returns a list of dynamo db tables
-* @param {Object} db - dynamo db reference
-* @return {Array} table names
-*/
-let listTables = function(db) {
-  return new Promise(function(resolve, reject) {
-    db.listTables({}, function(err, data) {
+ * @param {Object} db - dynamo db reference
+ * @return {Array} table names
+ */
+let listTables = function (db) {
+  return new Promise(function (resolve, reject) {
+    db.listTables({}, function (err, data) {
       if (err) {
         reject(err);
       } else {
@@ -100,8 +100,8 @@ let listTables = function(db) {
 *   message: error message (optional)
 * }
 */
-let insertRecord = asyncify(function(insertDetails) {
-  return new Promise(function(resolve, reject) {
+let insertRecord = asyncify(function (insertDetails) {
+  return new Promise(function (resolve, reject) {
     // Set-up item details for insert
     let item = {};
     let backoff = 1;
@@ -139,9 +139,9 @@ let insertRecord = asyncify(function(insertDetails) {
     console.log('Put table request: ', insertDetails.tableName,
       ' ', JSON.stringify(keyVals));
 
-    let onPut = asyncify(function(err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
-        && backoff < 20) {
+    let onPut = asyncify(function (err, data) {
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
+        backoff < 20) {
         let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
@@ -196,8 +196,8 @@ let insertRecord = asyncify(function(insertDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let queryTable = asyncify(function(queryDetails) {
-  return new Promise(function(resolve, reject) {
+let queryTable = asyncify(function (queryDetails) {
+  return new Promise(function (resolve, reject) {
     let queryDataItems = [];
     let params = {
       TableName: queryDetails.tableName,
@@ -251,9 +251,9 @@ let queryTable = asyncify(function(queryDetails) {
 
     console.log('Query table request: ', JSON.stringify(params));
 
-    let onQuery = asyncify(function(err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
-        && backoff < 20) {
+    let onQuery = asyncify(function (err, data) {
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
+        backoff < 20) {
         let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
@@ -302,8 +302,8 @@ let queryTable = asyncify(function(queryDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let scanTable = asyncify(function(scanDetails) {
-  return new Promise(function(resolve, reject) {
+let scanTable = asyncify(function (scanDetails) {
+  return new Promise(function (resolve, reject) {
     let scanDataItems = [];
     let params = {
       TableName: scanDetails.tableName,
@@ -338,9 +338,9 @@ let scanTable = asyncify(function(scanDetails) {
 
     console.log('Scan table request: ', JSON.stringify(params));
 
-    let onScan = asyncify(function(err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
-        && backoff < 20) {
+    let onScan = asyncify(function (err, data) {
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
+        backoff < 20) {
         let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
@@ -386,8 +386,8 @@ let scanTable = asyncify(function(scanDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let getTable = asyncify(function(tableDetails) {
-  return new Promise(function(resolve, reject) {
+let getTable = asyncify(function (tableDetails) {
+  return new Promise(function (resolve, reject) {
     let params = {
       TableName: tableDetails.tableName,
     };
@@ -417,9 +417,9 @@ let getTable = asyncify(function(tableDetails) {
 
     console.log('Get table request: ', JSON.stringify(params));
 
-    let onScan = asyncify(function(err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
-        && backoff < 20) {
+    let onScan = asyncify(function (err, data) {
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
+        backoff < 20) {
         let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
@@ -475,8 +475,8 @@ let getTable = asyncify(function(tableDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let updateRecord = asyncify(function(updateDetails) {
-  return new Promise(function(resolve, reject) {
+let updateRecord = asyncify(function (updateDetails) {
+  return new Promise(function (resolve, reject) {
     let params = {
       TableName: updateDetails.tableName,
       Key: updateDetails.key,
@@ -511,10 +511,10 @@ let updateRecord = asyncify(function(updateDetails) {
     console.log('Update table request: ', updateDetails.tableName,
       ' ', JSON.stringify(params.Key));
 
-    let onUpdate = asyncify(function(err, data) {
+    let onUpdate = asyncify(function (err, data) {
       // Check for throughput exceeded
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException'
-        && backoff < 20) {
+      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
+        backoff < 20) {
         let backoffTime = (backoff * getRandomInt(250, 750));
         console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
         awaitify(sleep(backoffTime));
@@ -551,9 +551,9 @@ let updateRecord = asyncify(function(updateDetails) {
 * @param {Object} deleteDetails - an object with all the details for insert
 * deleteDetails = {
 *  tableName: 'companies',
-*  key: [
-*    'companySymbol',
-*  ],
+*  key: {
+    symbol: 'JBH'
+  },
 *  conditionExpression: 'attribute_exists(symbol)' (optional expression to
   perform delete)
   expressionAttributeValues: {
@@ -569,8 +569,8 @@ let updateRecord = asyncify(function(updateDetails) {
 *   message: error message (optional)
 * }
 */
-let deleteRecord = asyncify(function(deleteDetails) {
-  return new Promise(function(resolve, reject) {
+let deleteRecord = asyncify(function (deleteDetails) {
+  return new Promise(function (resolve, reject) {
     // Set-up item details for insert
     let params = {
       TableName: deleteDetails.tableName,
@@ -593,7 +593,7 @@ let deleteRecord = asyncify(function(deleteDetails) {
 
     console.log('Delete item request: ', JSON.stringify(params));
 
-    client.delete(params, function(err, data) {
+    client.delete(params, function (err, data) {
       if (err) {
         console.error(`Unable to delete ${deleteDetails.key}`,
           '. Error JSON:', JSON.stringify(err, null, 2));
@@ -611,7 +611,7 @@ let deleteRecord = asyncify(function(deleteDetails) {
   });
 });
 
-let sleep = function(ms) {
+let sleep = function (ms) {
   if (!ms) {
     ms = 1;
   }
@@ -620,7 +620,7 @@ let sleep = function(ms) {
   });
 };
 
-let getRandomInt = function(min, max) {
+let getRandomInt = function (min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   // The maximum is exclusive and the minimum is inclusive

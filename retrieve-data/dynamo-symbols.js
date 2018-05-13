@@ -5,8 +5,8 @@ const awaitify = require('asyncawait/await');
 const dynamodb = require('./dynamodb');
 
 
-let getCompanies = asyncify(function() {
-  return new Promise(function(resolve, reject) {
+let getCompanies = asyncify(function () {
+  return new Promise(function (resolve, reject) {
     try {
       let companies = [];
       let getDetails = {
@@ -29,7 +29,7 @@ let getCompanies = asyncify(function() {
   });
 });
 
-let addCompany = asyncify(function(companyDetails) {
+let addCompany = asyncify(function (companyDetails) {
   if (!companyDetails.symbol) {
     console.error('companyDetails missing symbol: ' +
       JSON.stringify(companyDetails));
@@ -43,7 +43,7 @@ let addCompany = asyncify(function(companyDetails) {
     }
 
     if (!companyDetails.symbolGoogle) {
-      companyDetails.symbolGoogle = companyDetails.symbol + ':AX';
+      companyDetails.symbolGoogle = 'ASX:' + companyDetails.symbol;
     }
 
     let insertDetails = {
@@ -58,8 +58,28 @@ let addCompany = asyncify(function(companyDetails) {
   }
 });
 
-let getIndices = asyncify(function() {
-  return new Promise(function(resolve, reject) {
+let removeCompany = asyncify(function (companySymbol) {
+  if (!companySymbol) {
+    console.error('Missing symbol');
+    return 'Missing symbol';
+  }
+
+  try {
+    let deleteDetails = {
+      tableName: 'companies',
+      key: {
+        symbol: companySymbol,
+      },
+    };
+
+    awaitify(dynamodb.deleteRecord(deleteDetails));
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+let getIndices = asyncify(function () {
+  return new Promise(function (resolve, reject) {
     try {
       let companies = [];
       let getDetails = {
@@ -87,4 +107,5 @@ module.exports = {
   getCompanies: getCompanies,
   getIndices: getIndices,
   addCompany: addCompany,
+  removeCompany: removeCompany,
 };
