@@ -66,20 +66,20 @@ const indiceFields = {
 const companyFieldsToRetrieve = utils.createFieldArray(fields); */
 
 /**  Retrieve company and index symbols and sets them up for retrieval
-* @return {Object} coninating values in the format:
-*  {
-*    indexLookup: {Object}, (object to match index symbol with lookup
-*                          symbol, e.g. ^ALLORD: ALLORD)
-*    indices: [], (array of symbols to use during retrieval)
-*    companyLookup: {Object},  (object to match company symbol with lookup
-*                          symbol ^AAD: AAD)
-*    companies: [], (array of symbols to use during retrieval)
-*    symbolLookup: {Object}, (object to match lookup with real index / company
-*                          symbol)
-*    indexSymbols: [], (array of the index symbols used)
-*  }
-*/
-let setupSymbols = asyncify(function(indicesOnly) {
+ * @return {Object} coninating values in the format:
+ *  {
+ *    indexLookup: {Object}, (object to match index symbol with lookup
+ *                          symbol, e.g. ^ALLORD: ALLORD)
+ *    indices: [], (array of symbols to use during retrieval)
+ *    companyLookup: {Object},  (object to match company symbol with lookup
+ *                          symbol ^AAD: AAD)
+ *    companies: [], (array of symbols to use during retrieval)
+ *    symbolLookup: {Object}, (object to match lookup with real index / company
+ *                          symbol)
+ *    indexSymbols: [], (array of the index symbols used)
+ *  }
+ */
+let setupSymbols = asyncify(function (indicesOnly) {
   try {
     console.log('----- Start setup symbols -----');
     let indexValues = awaitify(symbols.getIndices());
@@ -129,12 +129,12 @@ let setupSymbols = asyncify(function(indicesOnly) {
 });
 
 /**  Call yahoo quote and map values to known structure
-* @param {Array} symbols - a string or array of strings with yahoo symbols to
-*                         look up
-* @param {String} type - 'index' or 'company' symbol
-* @return {Array} an array of results
-*/
-let retrieveSnapshot = function(symbols, type) {
+ * @param {Array} symbols - a string or array of strings with yahoo symbols to
+ *                         look up
+ * @param {String} type - 'index' or 'company' symbol
+ * @return {Array} an array of results
+ */
+let retrieveSnapshot = function (symbols, type) {
   if (!symbols) {
     console.error('retrieveSnapshot error: no symbols supplied');
     return;
@@ -145,7 +145,7 @@ let retrieveSnapshot = function(symbols, type) {
     return;
   }
 
-  return new Promise(function(resolve, reject) {
+  return new Promise(function (resolve, reject) {
     let retrieveResults = [];
     let returnResults = [];
     // If a single value, convert to an array
@@ -169,15 +169,16 @@ let retrieveSnapshot = function(symbols, type) {
   });
 };
 /**  Return current quote information from yahoo finance
-* @param {Array} symbol - a string or array of strings with yahoo symbols to
-*                         look up
-* @return {Array} an array of results
-*/
-let retrieveQuote = function(symbol) { // }, fields) {
-  return new Promise(function(resolve, reject) {
+ * @param {Array} symbol - a string or array of strings with yahoo symbols to
+ *                         look up
+ * @return {Array} an array of results
+ */
+let retrieveQuote = function (symbol) { // }, fields) {
+  return new Promise(function (resolve, reject) {
     let quoteOptions = {
       modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
-        'financialData'],
+        'financialData'
+      ],
     };
     quoteOptions.symbol = symbol;
 
@@ -186,17 +187,17 @@ let retrieveQuote = function(symbol) { // }, fields) {
     }).catch((err) => {
       console.log(err);
       resolve([]);
-    // reject(err);
+      // reject(err);
     });
   });
 };
 
 /**  Map the return from the update yahoo API to the previous quote structure
-* @param {Object} quote - the quote object from Yahoo
-* @param {String} symbolType - index or company symbol
-* @return {Object} quote restructured into previous format
-*/
-let mapFields = function(quote, symbolType) {
+ * @param {Object} quote - the quote object from Yahoo
+ * @param {String} symbolType - index or company symbol
+ * @return {Object} quote restructured into previous format
+ */
+let mapFields = function (quote, symbolType) {
   let updatedQuote;
   let quotePrice;
 
@@ -260,8 +261,8 @@ let mapFields = function(quote, symbolType) {
     if (updatedQuote['52WeekHigh']) {
       updatedQuote['changeFrom52WeekHigh'] = quotePrice - updatedQuote['52WeekHigh'];
       updatedQuote['percebtChangeFrom52WeekHigh'] = (quotePrice -
-      updatedQuote['52WeekHigh']) /
-      updatedQuote['52WeekHigh'];
+          updatedQuote['52WeekHigh']) /
+        updatedQuote['52WeekHigh'];
     } else {
       updatedQuote['percebtChangeFrom52WeekHigh'] = 0;
       updatedQuote['changeFrom52WeekHigh'] = 0;
@@ -269,8 +270,8 @@ let mapFields = function(quote, symbolType) {
     if (updatedQuote['52WeekLow']) {
       updatedQuote['changeFrom52WeekLow'] = quotePrice - updatedQuote['52WeekLow'];
       updatedQuote['percentChangeFrom52WeekLow'] = (quotePrice -
-      updatedQuote['52WeekLow']) /
-      updatedQuote['52WeekLow'];
+          updatedQuote['52WeekLow']) /
+        updatedQuote['52WeekLow'];
     } else {
       updatedQuote['percentChangeFrom52WeekLow'] = 0;
       updatedQuote['changeFrom52WeekLow'] = 0;
@@ -281,12 +282,12 @@ let mapFields = function(quote, symbolType) {
 };
 
 /**  Process an array of index quote results
-* @param {Array} results - an array with index quote values
-*                         look up or  a single index quote value
-* @param {Array} symbolLookup - an array of key/value pairs to translate
-*                               the symbols yahoo uses to the normal symbol
-*/
-let processIndexResults = asyncify(function(results, symbolLookup) {
+ * @param {Array} results - an array with index quote values
+ *                         look up or  a single index quote value
+ * @param {Array} symbolLookup - an array of key/value pairs to translate
+ *                               the symbols yahoo uses to the normal symbol
+ */
+let processIndexResults = asyncify(function (results, symbolLookup) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
@@ -302,12 +303,12 @@ let processIndexResults = asyncify(function(results, symbolLookup) {
 });
 
 /**  Process a a single index quote result and insert in dynamo.  Fields are
-*     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
-* @param {Object} result - the result values
-* @param {Array} symbolLookup - an array of key/value pairs to translate
-*                               the symbols yahoo uses to the normal symbol
-*/
-let processResult = asyncify(function(result, symbolLookup) {
+ *     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
+ * @param {Object} result - the result values
+ * @param {Array} symbolLookup - an array of key/value pairs to translate
+ *                               the symbols yahoo uses to the normal symbol
+ */
+let processResult = asyncify(function (result, symbolLookup) {
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
 
@@ -322,12 +323,12 @@ let processResult = asyncify(function(result, symbolLookup) {
 });
 
 /**  Process an array of company quote results
-* @param {Array} results - an array with index quote values
-*                         look up or  a single index quote value
-* @param {Array} symbolLookup - an array of key/value pairs to translate
-*                               the symbols yahoo uses to the normal symbol
-*/
-let processCompanyResults = asyncify(function(results, symbolLookup,
+ * @param {Array} results - an array with index quote values
+ *                         look up or  a single index quote value
+ * @param {Array} symbolLookup - an array of key/value pairs to translate
+ *                               the symbols yahoo uses to the normal symbol
+ */
+let processCompanyResults = asyncify(function (results, symbolLookup,
   dataToAppend, dividends) {
   if (results) {
     // Check if multi-dimensional
@@ -346,12 +347,12 @@ let processCompanyResults = asyncify(function(results, symbolLookup,
 });
 
 /**  Process a a single company quote result and insert in dynamo.  Fields are
-*     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
-* @param {Object} result - the result values
-* @param {Array} symbolLookup - an array of key/value pairs to translate
-*                               the symbols yahoo uses to the normal symbol
-*/
-let processCompanyResult = asyncify(function(result, symbolLookup,
+ *     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
+ * @param {Object} result - the result values
+ * @param {Array} symbolLookup - an array of key/value pairs to translate
+ *                               the symbols yahoo uses to the normal symbol
+ */
+let processCompanyResult = asyncify(function (result, symbolLookup,
   dataToAppend, dividends) {
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
@@ -384,15 +385,15 @@ let processCompanyResult = asyncify(function(result, symbolLookup,
 });
 
 /**  Return an array of dividens results from yahoo finance for a specified
-*     time period
-* @param {Array} symbol - a string or array of strings with yahoo symbols to
-*                         look up
-* @param {String} startDate - the start of the timer period
-* @param {String} endDate - the end of the timer period
-* @return {Array} an array of results
-*/
-let retrieveDividends = function(symbol, startDate, endDate) {
-  return new Promise(function(resolve, reject) {
+ *     time period
+ * @param {Array} symbol - a string or array of strings with yahoo symbols to
+ *                         look up
+ * @param {String} startDate - the start of the timer period
+ * @param {String} endDate - the end of the timer period
+ * @return {Array} an array of results
+ */
+let retrieveDividends = function (symbol, startDate, endDate) {
+  return new Promise(function (resolve, reject) {
     let historyOptions = {
       from: startDate,
       to: endDate,
@@ -406,20 +407,20 @@ let retrieveDividends = function(symbol, startDate, endDate) {
       historyOptions.symbol = symbol;
     }
 
-    yahooFinance.historical(historyOptions).then(function(result) {
+    yahooFinance.historical(historyOptions).then(function (result) {
       resolve(result);
-    }).catch(function(err) {
+    }).catch(function (err) {
       reject(err);
     });
   });
 };
 
 /**  Write an index quote record to dynamodb.
-*    Converts lastTradeDate -> quoteDate and checks and removes anu invalid
-*     values are.
-* @param {Object} indexQuote - the index quote to write
-*/
-let writeIndexQuote = asyncify(function(indexQuote) {
+ *    Converts lastTradeDate -> quoteDate and checks and removes anu invalid
+ *     values are.
+ * @param {Object} indexQuote - the index quote to write
+ */
+let writeIndexQuote = asyncify(function (indexQuote) {
   // console.log('----- Write index quote  -----');
   try {
     // Set up the basic insert structure for dynamo
@@ -438,8 +439,8 @@ let writeIndexQuote = asyncify(function(indexQuote) {
 
     // Check through for values with null and remove from object
     Object.keys(indexQuote).forEach((field) => {
-      if (indexQuote[field] === null || indexQuote[field] === 'Infinity'
-        || indexQuote[field] === '-Infinity') {
+      if (indexQuote[field] === null || indexQuote[field] === 'Infinity' ||
+        indexQuote[field] === '-Infinity') {
         delete indexQuote[field];
       }
     });
@@ -468,7 +469,7 @@ let writeIndexQuote = asyncify(function(indexQuote) {
  *      ...
  *    }
  */
-let convertIndexDatatoAppendData = function(indexData) {
+let convertIndexDatatoAppendData = function (indexData) {
   let returnVal = {};
 
   indexData.forEach((indexRow) => {
@@ -497,7 +498,7 @@ let convertIndexDatatoAppendData = function(indexData) {
  *      ...
  *    }
  */
-let returnIndexDataForDate = function(dateVal) {
+let returnIndexDataForDate = function (dateVal) {
   if (!utils.isDate(dateVal)) {
     console.error(`Invalid dateVal: ${dateVal}`);
     return;
@@ -544,7 +545,7 @@ let returnIndexDataForDate = function(dateVal) {
  * @param {Object} object2
  * @return {Object}  a new object with all the properties
  */
-let addObjectProperties = function(object1, object2) {
+let addObjectProperties = function (object1, object2) {
   let returnObj = {};
 
   Object.keys(object1).forEach((key) => {
@@ -562,11 +563,11 @@ let addObjectProperties = function(object1, object2) {
 };
 
 /**  Write a conpany quote record to dynamodb.
-*    Converts lastTradeDate -> quoteDate, copies lastTradePriceOnly ->
-*     adjustedPrice, and checks and removes any invalid values.
-* @param {Object} quoteData - the company quote to write
-*/
-let writeCompanyQuoteData = asyncify(function(quoteData) {
+ *    Converts lastTradeDate -> quoteDate, copies lastTradePriceOnly ->
+ *     adjustedPrice, and checks and removes any invalid values.
+ * @param {Object} quoteData - the company quote to write
+ */
+let writeCompanyQuoteData = asyncify(function (quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['lastTradeDate']) {
     return;
@@ -590,8 +591,8 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
 
   // Check through for values with null and remove from object
   Object.keys(quoteData).forEach((field) => {
-    if (quoteData[field] === null || quoteData[field] === ''
-      || quoteData[field] === 'Infinity' || quoteData[field] === '-Infinity') {
+    if (quoteData[field] === null || quoteData[field] === '' ||
+      quoteData[field] === 'Infinity' || quoteData[field] === '-Infinity') {
       delete quoteData[field];
     }
   });
@@ -613,7 +614,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
 *      }
 *     This would process from record index 100 to 199 in the symbols list
 */
-let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
+let updateQuotesWithMetrics = asyncify(function (symbols, quoteDate, recLimits) {
   if (!symbols) {
     console.log('updateQuotesWithMetrics error: no symbols supplied');
     return;
@@ -717,11 +718,11 @@ let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
 });
 
 /**  Find the most recent date which quotes were retrieved for.  Because
-*     inidividual companies may or may not have a quote for a given date, it
-*     uses the last date for the All Ordinaries index
-* @return {String} the most recent date found in format YYYY-MM-DD
-*/
-let getCurrentExecutionDate = asyncify(function() {
+ *     inidividual companies may or may not have a quote for a given date, it
+ *     uses the last date for the All Ordinaries index
+ * @return {String} the most recent date found in format YYYY-MM-DD
+ */
+let getCurrentExecutionDate = asyncify(function () {
   // Get current dat based on last index quote for All Ordinaries
   let queryDetails = {
     tableName: 'indexQuotes',
@@ -743,16 +744,16 @@ let getCurrentExecutionDate = asyncify(function() {
 });
 
 /**  Executes the retrieval and storage of the latest financial indicator
-*     information
-*/
-let executeFinancialIndicators = asyncify(function() {
+ *     information
+ */
+let executeFinancialIndicators = asyncify(function () {
   awaitify(finIndicators.updateIndicatorValues());
 });
 
 /**  Executes the retrieval and storage of the latest company metrics
-*     information
-*/
-let executeCompanyMetrics = asyncify(function(recLimits) {
+ *     information
+ */
+let executeCompanyMetrics = asyncify(function (recLimits) {
   // let symbolResult = awaitify(setupSymbols());
   // let mCompanies = symbolResult.companies;
 
@@ -760,9 +761,9 @@ let executeCompanyMetrics = asyncify(function(recLimits) {
 });
 
 /**  Executes the retrieval and storage of the latest index quote
-*     information
-*/
-let executeIndexQuoteRetrieval = asyncify(function() {
+ *     information
+ */
+let executeIndexQuoteRetrieval = asyncify(function () {
   let symbolResult = awaitify(setupSymbols(true));
 
   let symbolLookup = symbolResult.symbolLookup;
@@ -788,7 +789,7 @@ let executeIndexQuoteRetrieval = asyncify(function() {
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
+let executeCompanyQuoteRetrieval = asyncify(function (recLimits) {
   let dataToAppend = {};
   let symbolGroups = [];
   let symbolResult = awaitify(setupSymbols());
@@ -825,20 +826,22 @@ let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
 
   /* Split companies into groups of 15 to ensure request doesn't exceed api
       url length */
-  for (let companyCounter = startRec; companyCounter < endRec;
-    companyCounter += 15) {
+  for (let companyCounter = startRec; companyCounter < endRec; companyCounter += 15) {
     symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
   }
 
   symbolGroups.forEach((symbolGroup) => {
     try {
+      console.log('Retrieving symbol group');
       let result = awaitify(retrieveSnapshot(symbolGroup,
         'company'));
 
       // Retrieve dividends
+      console.log('Retrieving dividends for group');
       let dividends = awaitify(getDividendsforDate(symbolGroup,
         todayString, symbolLookup));
 
+      console.log('Processing results');
       awaitify(processCompanyResults(result, symbolLookup,
         dataToAppend, dividends));
     } catch (err) {
@@ -848,21 +851,21 @@ let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
 });
 
 /**  Executes the retrieval and return of current company dividend
-*      information for the date specified
-* @param {Array} symbolGroup  one or more yahoo symbols to look up for dividend
-* @param {String} retrievalDate - the date to retrieve dividends for
-* @param {Array} symbolLookup - an array of key/value pairs to translate
-*                               the symbols yahoo uses to the normal symbol
-* @return {Object} an object for each company which has relevant dividend
-*     information for the specified date in the form of:
-*   {
-*   'JBH': {
-*           'exDividendDate': '2017-02-23',
-*           'exDividendPayout': 1.02344,
-*           },
-*   }
-*/
-let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
+ *      information for the date specified
+ * @param {Array} symbolGroup  one or more yahoo symbols to look up for dividend
+ * @param {String} retrievalDate - the date to retrieve dividends for
+ * @param {Array} symbolLookup - an array of key/value pairs to translate
+ *                               the symbols yahoo uses to the normal symbol
+ * @return {Object} an object for each company which has relevant dividend
+ *     information for the specified date in the form of:
+ *   {
+ *   'JBH': {
+ *           'exDividendDate': '2017-02-23',
+ *           'exDividendPayout': 1.02344,
+ *           },
+ *   }
+ */
+let getDividendsforDate = asyncify(function (symbolGroup, retrievalDate,
   symbolLookup) {
   if (!symbolGroup) {
     console.error('getDividendsforDate error: no symbolGroup supplied');
@@ -906,9 +909,9 @@ let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
   }
 
   /** Check if dividend record is the latest record for each symbol.  If it is
-  *    pdate the recorded dividend
-  * @param {Object} dividendRecord record to process
-  */
+   *    pdate the recorded dividend
+   * @param {Object} dividendRecord record to process
+   */
   function processDividend(dividendRecord) {
     let symbol = symbolLookup[dividendRecord.symbol];
     let exDividendDate = utils.returnDateAsString(dividendRecord['date']);
@@ -936,7 +939,7 @@ let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeMetricsUpdate = asyncify(function(recLimits) {
+let executeMetricsUpdate = asyncify(function (recLimits) {
   // Get current dat based on last index quote for All Ordinaries
   let metricsDate = awaitify(getCurrentExecutionDate());
   let companies = [];
