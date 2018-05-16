@@ -1,24 +1,24 @@
 import pandas as pd
 from timeit import default_timer as timer
 import math
-import datetime
 import numba
 from xgboost_general_symbol_ensemble_sharecast import *
+from optimise_dataframe import *
 
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
 
 OLD_RETURN_COLUMNS = ['Future1WeekDividend', 'Future1WeekPrice', 'Future1WeekReturn', 'Future1WeekRiskAdjustedReturn',
-                      'Future2WeekDividend', 'Future2WeekPrice', 'Future2WeekReturn','Future2WeekRiskAdjustedReturn',
-                     'Future4WeekDividend', 'Future4WeekPrice', 'Future4WeekReturn', 'Future4WeekRiskAdjustedReturn',
-                     'Future8WeekDividend', 'Future8WeekPrice', 'Future8WeekReturn', 'Future8WeekRiskAdjustedReturn',
-                     'Future12WeekDividend', 'Future12WeekPrice', 'Future12WeekReturn', 'Future12WeekRiskAdjustedReturn',
-                     'Future26WeekDividend', 'Future26WeekPrice', 'Future26WeekReturn', 'Future26WeekRiskAdjustedReturn',
-                     'Future52WeekDividend', 'Future52WeekPrice', 'Future52WeekReturn', 'Future52WeekRiskAdjustedReturn',
-                     '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility', '12WeekVolatility',
-                     '26WeekVolatility', '52WeekVolatility', '4WeekBollingerBandLower', '4WeekBollingerBandUpper',
-                     '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerBandLower', '12WeekBollingerBandUpper',
-                     '12WeekBollingerPrediction', '12WeekBollingerType'
+                      'Future2WeekDividend', 'Future2WeekPrice', 'Future2WeekReturn', 'Future2WeekRiskAdjustedReturn',
+                      'Future4WeekDividend', 'Future4WeekPrice', 'Future4WeekReturn', 'Future4WeekRiskAdjustedReturn',
+                      'Future8WeekDividend', 'Future8WeekPrice', 'Future8WeekReturn', 'Future8WeekRiskAdjustedReturn',
+                      'Future12WeekDividend', 'Future12WeekPrice', 'Future12WeekReturn', 'Future12WeekRiskAdjustedReturn',
+                      'Future26WeekDividend', 'Future26WeekPrice', 'Future26WeekReturn', 'Future26WeekRiskAdjustedReturn',
+                      'Future52WeekDividend', 'Future52WeekPrice', 'Future52WeekReturn', 'Future52WeekRiskAdjustedReturn',
+                      '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility', '12WeekVolatility',
+                      '26WeekVolatility', '52WeekVolatility', '4WeekBollingerBandLower', '4WeekBollingerBandUpper',
+                      '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerBandLower', '12WeekBollingerBandUpper',
+                      '12WeekBollingerPrediction', '12WeekBollingerType'
                       ]
 
 
@@ -32,8 +32,10 @@ def calculate_week_stats(num_weeks, df, price_col):
     df[prefix + '_week_mean'] = rolling_window.mean()
     df[prefix + '_week_median'] = rolling_window.median()
     df[prefix + '_week_std'] = rolling_window.std()
-    df[prefix + '_week_bollinger_upper'] = rolling_window.mean() + (2 * rolling_window.std())
-    df[prefix + '_week_bollinger_lower'] = rolling_window.mean() - (2 * rolling_window.std())
+    df[prefix + '_week_bollinger_upper'] = rolling_window.mean() + \
+        (2 * rolling_window.std())
+    df[prefix + '_week_bollinger_lower'] = rolling_window.mean() - \
+        (2 * rolling_window.std())
 
     # Set bollinger predictions: above -> within = falling, below -> within = rising
     bollinger_types = []
@@ -41,7 +43,8 @@ def calculate_week_stats(num_weeks, df, price_col):
     bollinger_previous_value = ''
 
     # Create bollinger values dataframe
-    bollinger_df = df[[price_col, prefix + '_week_bollinger_upper', prefix + '_week_bollinger_lower']]
+    bollinger_df = df[[price_col, prefix +
+                       '_week_bollinger_upper', prefix + '_week_bollinger_lower']]
 
     # Loop through, calulcate bollinger value predictors and compare to previous result
     for row in bollinger_df.itertuples():
@@ -75,6 +78,7 @@ def calculate_week_stats(num_weeks, df, price_col):
 
     return df
 
+
 @numba.jit
 def calculate_week_price_return(num_weeks, df, price_col):
     df_col = df[price_col]
@@ -84,7 +88,8 @@ def calculate_week_price_return(num_weeks, df, price_col):
 
     # Create offset for number of weeks - this resets the index value
     ref_vals_df = pd.DataFrame()
-    ref_vals_df[prefix + '_week_comparison_' + price_col] = df_col.asof(comparison_date)
+    ref_vals_df[prefix + '_week_comparison_' +
+                price_col] = df_col.asof(comparison_date)
     ref_vals_df[prefix + '_week_comparison_date'] = comparison_date
 
     # Reset the index value back to original
@@ -98,6 +103,7 @@ def calculate_week_price_return(num_weeks, df, price_col):
         price_col] * 100
 
     return combined_vals
+
 
 @numba.jit
 def calculate_period_dividends(df, dividend_date_col, dividend_payout_col, start_date, end_date):
@@ -117,14 +123,16 @@ def calculate_period_dividends(df, dividend_date_col, dividend_payout_col, start
 
     return total_dividends
 
+
 @numba.jit
 def return_dividends(dividend_period_start, dividend_period_end, unique_dividends):
-    period_dividends = unique_dividends.loc[dividend_period_start : dividend_period_end]
+    period_dividends = unique_dividends.loc[dividend_period_start: dividend_period_end]
     dividends = period_dividends['exDividendPayout'].sum()
     if math.isnan(dividends):
         return 0
     else:
         return dividends
+
 
 @numba.jit
 def calculate_dividend_returns(num_weeks, df, price_col, dividend_date_col, dividend_payout_col, unique_dividends):
@@ -135,7 +143,8 @@ def calculate_dividend_returns(num_weeks, df, price_col, dividend_date_col, divi
 
     # Create reference table with start and end dates for period
     dividend_dates = pd.DataFrame()
-    dividend_dates['dividend_period_start'] = ref_vals_df.index - pd.DateOffset(weeks=num_weeks)
+    dividend_dates['dividend_period_start'] = ref_vals_df.index - \
+        pd.DateOffset(weeks=num_weeks)
     dividend_dates['dividend_period_end'] = ref_vals_df.index
 
     # Iterate through rows and add vals to dividend list
@@ -149,9 +158,11 @@ def calculate_dividend_returns(num_weeks, df, price_col, dividend_date_col, divi
 
     transformed_df = df
     transformed_df[prefix + '_week_dividend_value'] = dividend_column
-    transformed_df[prefix + '_week_dividend_return'] = transformed_df[prefix + '_week_dividend_value'] / transformed_df[price_col] * 100
+    transformed_df[prefix + '_week_dividend_return'] = transformed_df[prefix +
+                                                                      '_week_dividend_value'] / transformed_df[price_col] * 100
 
     return transformed_df
+
 
 @numba.jit
 def generate_range_median(days_from, days_to, range_series):
@@ -165,6 +176,7 @@ def generate_range_median(days_from, days_to, range_series):
     temp_df = pd.DataFrame.from_dict(df_dict)
     return temp_df.median(axis=1)
 
+
 @numba.jit
 def append_recurrent_columns(df):
     # Add extra columns for previous values, previous day, 2-5 day median, 6 - 10 median, 11-20 day median
@@ -173,23 +185,26 @@ def append_recurrent_columns(df):
                          'GRCPAIAD', 'GRCPAISAD', 'GRCPBCAD', 'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD',
                          'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP']
 
-    #### Add time shifted columns with proportion of change ####
+    # Add time shifted columns with proportion of change ####
     for rec_col in recurrent_columns:
         # Value yesterday
-        rec_df[rec_col + '_T1P'] = (rec_df[rec_col] - rec_df[rec_col].shift(1)) / rec_df[rec_col].shift(1)
+        rec_df[rec_col + '_T1P'] = (rec_df[rec_col] -
+                                    rec_df[rec_col].shift(1)) / rec_df[rec_col].shift(1)
 
         # Create median for previous days (2-5)
         median_val = generate_range_median(2, 5, rec_df[rec_col])
-        rec_df[rec_col + '_T2_5P'] = (rec_df[rec_col] - median_val) /  median_val
+        rec_df[rec_col + '_T2_5P'] = (rec_df[rec_col] -
+                                      median_val) / median_val
 
         # Create median for previous days (6-10)
         median_val = generate_range_median(6, 10, rec_df[rec_col])
-        rec_df[rec_col + '_T6_10P'] = (rec_df[rec_col] - median_val) /  median_val
+        rec_df[rec_col +
+               '_T6_10P'] = (rec_df[rec_col] - median_val) / median_val
 
         # Create median for previous days (11-20)
         median_val = generate_range_median(11, 20, rec_df[rec_col])
-        rec_df[rec_col + '_T11_20P'] = (rec_df[rec_col] - median_val) /  median_val
-
+        rec_df[rec_col +
+               '_T11_20P'] = (rec_df[rec_col] - median_val) / median_val
 
     return rec_df
 
@@ -226,24 +241,26 @@ def add_stats_and_returns(num_weeks, df, price_col, dividend_date_col, dividend_
 
     return stats_df
 
+
 def return_prefix(week_num):
     # Change number to correct word prefix
-    if week_num==1:
+    if week_num == 1:
         return 'one'
-    elif week_num==2:
+    elif week_num == 2:
         return 'two'
-    elif week_num==4:
+    elif week_num == 4:
         return 'four'
-    elif week_num==8:
+    elif week_num == 8:
         return 'eight'
-    elif week_num==12:
+    elif week_num == 12:
         return 'twelve'
-    elif week_num==26:
+    elif week_num == 26:
         return 'twenty_six'
-    elif week_num==52:
+    elif week_num == 52:
         return 'fifty_two'
     else:
         return str(week_num)
+
 
 @numba.jit
 def transform_symbol_returns(df, symbol):
@@ -254,7 +271,6 @@ def transform_symbol_returns(df, symbol):
     price_col = 'adjustedPrice'
     dividend_date_col = 'exDividendDate'
     dividend_payout_col = 'exDividendPayout'
-
 
     print('Processing symbol: ', symbol)
     t1 = timer()
@@ -272,7 +288,8 @@ def transform_symbol_returns(df, symbol):
     # print('Setting index for ' + symbol + ' took: ', t2a - t2)
 
     # Create reference table of unique dividends
-    unique_dividends = transformed_df[[dividend_date_col, dividend_payout_col]].drop_duplicates()
+    unique_dividends = transformed_df[[
+        dividend_date_col, dividend_payout_col]].drop_duplicates()
     unique_dividends.set_index(['exDividendDate'])
 
     # Add stats and return columns by num of weeks
@@ -287,10 +304,12 @@ def transform_symbol_returns(df, symbol):
     # Add recurrent return columns
     transformed_df = append_recurrent_columns(transformed_df)
 
+    transformed_df = optimise_df(transformed_df)
 
     t3 = timer()
     print('Processing symbol ' + symbol + ' took:', t3 - t1)
     return transformed_df
+
 
 def process_dataset(df):
     print('Dropping unused columns and setting date/time types and index')
@@ -298,7 +317,8 @@ def process_dataset(df):
     columns_to_drop.extend(HIGH_NAN_COLUMNS)
     df.drop(columns_to_drop, axis=1, inplace=True)
     df['quoteDate'] = pd.to_datetime(df['quoteDate'], errors='coerce')
-    df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], errors='coerce')
+    df['exDividendDate'] = pd.to_datetime(
+        df['exDividendDate'], errors='coerce')
 
     symbols = df['symbol'].drop_duplicates()
 
@@ -326,27 +346,34 @@ def process_dataset(df):
             s2 = timer()
             elapsed = s2 - s1
             print(80*'-')
-            print(str(symbol_count) + ' of ' + str(num_symbols) + ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
+            print(str(symbol_count) + ' of ' + str(num_symbols) +
+                  ' completed.  Elapsed time: ' + str(elapsed))
+            #   ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
             print(80 * '-')
 
     # Create empty data frame
     output_df = pd.concat(symbol_dfs)
 
+    output_df = optimise_df(output_df)
+
     # Remove extra columns created during calculations
-    df.drop(PAST_RESULTS_DATE_REF_COLUMNS, axis=1, inplace=True, errors='ignore')
+    df.drop(PAST_RESULTS_DATE_REF_COLUMNS,
+            axis=1, inplace=True, errors='ignore')
 
     return output_df
+
 
 def load_data(base_path, no_files):
     print('Loading', no_files, 'files for:', base_path)
     # Set the file increments range
-    increments=range(1, (no_files + 1))
+    increments = range(1, (no_files + 1))
     # Create empty data frame
     loading_data = pd.DataFrame()
-    #Loop through each file and append to data frame
+    # Loop through each file and append to data frame
     for increment in increments:
         path = base_path % increment
-        frame = pd.read_csv(path, compression='gzip', parse_dates=['quoteDate'], infer_datetime_format=True, low_memory=False)
+        frame = pd.read_csv(path, compression='gzip', parse_dates=[
+                            'quoteDate', 'exDividendDate'], infer_datetime_format=True, low_memory=False)
         loading_data = loading_data.append(frame, ignore_index=True)
         del frame
         print('Loaded:', path)
@@ -355,49 +382,52 @@ def load_data(base_path, no_files):
 
 
 def main(load_config):
-    if 'load_individual_data_files' in load_config and load_config['load_individual_data_files'] == True:
+    run_loader = False
+
+    if load_config['load_individual_data_files'] is True:
+        run_loader = True
+
+    if run_loader:
         print('Loading individual data files')
         l1 = timer()
-        df = load_data(load_cofig['base_path'], load_cofig['no_files'])
+        df = load_data(load_config['base_path'], load_config['no_files'])
         gc.collect()
+        print('Optimising data')
+        df = optimise_df(df)
         print('Saving data')
-        df.to_pickle('data/ml-' + load_cofig['run_str'] + '-data.pkl.gz', compression='gzip')
+        df.to_pickle(
+            'data/ml-' + load_config['run_str'] + '-data.pkl.gz', compression='gzip')
         l2 = timer()
         print('Loading and saving individual data took:', l2 - l1)
-
-    if 'load_aggregated_data_file' in load_config and load_config['load_aggregated_data_file'] == True:
+    else:
         print('Loading aggregated data files')
         l1 = timer()
-        df = pd.read_pickle(load_config['aggregated_file_name'], compression='gzip')
+        df = pd.read_pickle(
+            'data/ml-' + load_config['run_str'] + '-data.pkl.gz', compression='gzip')
         l2 = timer()
         print('Loading aggregated data file took:', l2 - l1)
-    
+
     # Processing data
     print('Processing returns and recurrent columns for each symbol')
     processed_data = process_dataset(df)
 
-    print('Filling categrical vals with phrase "NA"')
-    for col in ALL_CATEGORICAL_COLUMNS:
-        processed_data[col].fillna('NA', inplace=True)
-
-    print('Optimising categorical columns')
-    processed_data = optimise_df_category(processed_data)
-
-    print('Optimising continous columns')
-    processed_data = optimise_df_continous(processed_data)
-
     print('Saving processed data')
-    processed_data.to_pickle('data/ml-' + load_cofig['run_str'] + '-processed.pkl.gz', compression='gzip')
+    processed_data.to_pickle(
+        'data/ml-' + load_config['run_str'] + '-processed.pkl.gz', compression='gzip')
+
+    print(80*'-')
+    print('Data processing finished')
+
 
 if __name__ == "__main__":
-    run_str = datetime.now().strftime('%Y%m%d')
+    # run_str = datetime.now().strftime('%Y%m%d')
+    run_str = '20180512'
 
     load_config = {
-        run_str: run_str,
-        load_individual_data_files: True,
-        base_path: 'data/companyQuotes-20180512-%03d.csv.gz',
-        no_files: 61,
-        load_aggregated_data_file: False,
-        aggregated_file_name: 'data/ml-20180512-processed.pkl.gz',
+        'run_str': run_str,
+        'load_individual_data_files': False,
+        'base_path': 'data/companyQuotes-20180512-%03d.csv.gz',
+        'no_files': 64,
     }
+
     main(load_config)
