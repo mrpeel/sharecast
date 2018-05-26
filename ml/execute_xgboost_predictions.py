@@ -1,4 +1,5 @@
 from xgboost_general_symbol_ensemble_sharecast import *
+from print_logger import *
 
 # @profile
 
@@ -59,13 +60,7 @@ def main(run_config):
     # Prepare run_str
     run_str = datetime.now().strftime('%Y%m%d%H%M')
 
-    # Setup logging.
-    logging.basicConfig(
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%d/%m/%Y %I:%M:%S %p',
-        level=logging.DEBUG,
-        filename='logs/execution-' + run_str + '.log'
-    )
+    initialise_print_logger('logs/execution-' + run_str + '.log')
 
     print('Starting sharecast prediction:', run_str)
 

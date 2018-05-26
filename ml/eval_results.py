@@ -2,7 +2,7 @@ from __future__ import print_function
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error, explained_variance_score, r2_score, median_absolute_error
-
+from print_logger import *
 
 
 # @profile
@@ -18,10 +18,13 @@ def safe_mape(actual_y, prediction_y):
     prediction_y = prediction_y.reshape(prediction_y.shape[0], 1)
     actual_y = actual_y.reshape(actual_y.shape[0], 1)
 
-    diff = np.absolute((actual_y - prediction_y) / np.clip(np.absolute(actual_y), 1., None))
+    diff = np.absolute((actual_y - prediction_y) /
+                       np.clip(np.absolute(actual_y), 1., None))
     return 100. * np.mean(diff)
 
 # @profile
+
+
 def range_results(predictions, actuals):
     """
     :param predictions: a dictionary with values {
@@ -40,7 +43,8 @@ def range_results(predictions, actuals):
     """
     overall_results_output = pd.DataFrame()
 
-    result_ranges = [-50, -25, -10, -5, -0.25, 0.25, 1, 2, 5, 10, 20, 50, 100, 1001]
+    result_ranges = [-50, -25, -10, -5, -0.25,
+                     0.25, 1, 2, 5, 10, 20, 50, 100, 1001]
     lower_range = -100
 
     for upper_range in result_ranges:
@@ -55,7 +59,8 @@ def range_results(predictions, actuals):
         for prediction_name in predictions:
             all_predictions = predictions[prediction_name]
             # Reshape array - being sent in a dictionary loses the shape
-            all_predictions = all_predictions.reshape(all_predictions.shape[0], 1)
+            all_predictions = all_predictions.reshape(
+                all_predictions.shape[0], 1)
             range_predictions = all_predictions[range_mask]
 
             if len(range_predictions) > 0:
@@ -74,7 +79,8 @@ def range_results(predictions, actuals):
                 }
 
         # Print results
-        print('Results: %s to %s, number of instances %s'  % (lower_range, upper_range, len(range_predictions)))
+        print('Results: %s to %s, number of instances %s' %
+              (lower_range, upper_range, len(range_predictions)))
 
         pd_dict = {
             'lower_range': [lower_range],
@@ -84,21 +90,25 @@ def range_results(predictions, actuals):
         for result in range_results:
             print('  ' + result)
             print('    Mean absolute error: ', range_results[result]['mae'])
-            print('    Mean absolute percentage error: ', range_results[result]['mape'])
-            print('    Median absolute error: ', range_results[result]['medae'])
+            print('    Mean absolute percentage error: ',
+                  range_results[result]['mape'])
+            print('    Median absolute error: ',
+                  range_results[result]['medae'])
 
             pd_dict[result + '_mae'] = [range_results[result]['mae']]
             pd_dict[result + '_mape'] = [range_results[result]['mape']]
             pd_dict[result + '_medae'] = [range_results[result]['medae']]
 
-
-        overall_results_output = overall_results_output.append(pd.DataFrame.from_dict(pd_dict))
+        overall_results_output = overall_results_output.append(
+            pd.DataFrame.from_dict(pd_dict))
 
         lower_range = upper_range
 
     return overall_results_output
 
 # @profile
+
+
 def eval_results(predictions):
     """
     :param predictions: a dictionary with values {
@@ -175,6 +185,5 @@ def eval_results(predictions):
                 'medae': medae,
                 'num_vals': num_vals,
             }
-
 
     return results

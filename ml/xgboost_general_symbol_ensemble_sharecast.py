@@ -17,12 +17,12 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # from categorical_encoder import *
 from eval_results import eval_results, range_results
+from print_logger import *
 from clr_callback import *
 # from autoencoder import *
 from compile_keras import *
 from keras.models import load_model
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
-import logging
 import os
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -191,18 +191,6 @@ column_types = {
 
 
 xgb_set_path = './models/xgb-sets/'
-
-
-def print(*log_line_vals):
-    """
-        Prints and logs a string with an arbitrary set of values
-    """
-    log_line = ''
-    for arg in log_line_vals:
-        log_line = log_line + str(arg) + ' '
-
-    sys.stdout.write(log_line.strip() + '\n')
-    logging.info(log_line.strip())
 
 
 def save(object, filename):
@@ -1711,7 +1699,7 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
             'mean_predicted_val': [mean_predicted_val],
             'median_predicted_val': [median_predicted_val],
         }
-
+        # Add results values 
         for key in symbol_results[symbol]:
             symbol_dict[key] = [symbol_results[symbol][key]]
 
@@ -1801,13 +1789,7 @@ def main(run_config):
     # Prepare run_str
     run_str = datetime.now().strftime('%Y%m%d%H%M')
 
-    # Setup logging.
-    logging.basicConfig(
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%d/%m/%Y %I:%M:%S %p',
-        level=logging.DEBUG,
-        filename='logs/training-' + run_str + '.log'
-    )
+    initialise_print_logger('logs/training-' + run_str + '.log')
 
     print('Starting sharecast run:', run_str)
 
