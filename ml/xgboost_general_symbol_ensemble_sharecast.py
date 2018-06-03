@@ -440,8 +440,9 @@ def convert_date(df, column_name):
 
 @numba.jit
 def generate_label_column(df, num_weeks, reference_date, date_col):
-    # Generate a label column for each record num_weeks in the future
-    # then reduce data set to values which occurr <= (reference_date - num_weeks)
+    """ Generate a label column for each record num_weeks in the future
+        then reduce data set to values which occurr <= (reference_date - num_weeks)
+     """
 
     # Retrieve unique symbols
     symbols = df['symbol'].drop_duplicates()
@@ -510,10 +511,50 @@ def generate_label_column(df, num_weeks, reference_date, date_col):
     return output_df
 
 
+@numba.jit
+def remove_labelled_data(df, num_weeks, reference_date):
+    """
+        Remove all data which is before the referenece period.
+        Keep quotes > (reference_date - num_weeks)
+    """
+
+    print('Removing labelled data, reference_date:',
+          reference_date, ', num_weeks:', num_weeks)
+
+    output_df = df
+    weeks_delta = timedelta(weeks=num_weeks)
+    converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
+    comparison_date = converted_ref_date - weeks_delta
+    print('Calculated comparison date:', comparison_date)
+
+    output_df = output_df.loc[output_df.index > comparison_date]
+    print('Retaining', len(output_df.index), 'records')
+
+    return output_df
+
+
 # @profile
-def load_data(file_name, generate_label_weeks=None, reference_date=None, new_file_name=None):
-    """Load pickled data and run combined prep """
+def load_data(file_name, **kwargs):
+    """Load pickled data and run combined prep
+        Arguments:
+        file_name
+        drop_unlabelled=True
+        drop_labelled=False
+        generate_labels=False
+        label_weeks=None
+        reference_date=None
+        labelled_file_name=None
+        unlabelled_file_name=None
+    """
     print('Loading file:', file_name)
+
+    drop_unlabelled = kwargs.get('drop_unlabelled', True)
+    generate_labels = kwargs.get('generate_labels', False)
+    drop_labelled = kwargs.get('drop_labelled', False)
+    label_weeks = kwargs.get('label_weeks', None)
+    reference_date = kwargs.get('reference_date', None)
+    labelled_file_name = kwargs.get('labelled_file_name', None)
+    unlabelled_file_name = kwargs.get('unlabelled_file_name', None)
 
     df = pd.read_pickle(file_name, compression='gzip')
     gc.collect()
@@ -542,11 +583,23 @@ def load_data(file_name, generate_label_weeks=None, reference_date=None, new_fil
         'int32', errors='ignore')
 
     # generate labels if required
-    if generate_label_weeks and reference_date:
+    if generate_labels and label_weeks and reference_date:
         df = generate_label_column(
-            df, generate_label_weeks, reference_date, 'quoteDate')
+            df, label_weeks, reference_date, 'quoteDate')
         gc.collect()
-        df.to_pickle(new_file_name, compression='gzip')
+        # save as new file
+        if labelled_file_name:
+            df.to_pickle(labelled_file_name, compression='gzip')
+
+    # Remobe labelled data
+    if drop_labelled and label_weeks and reference_date:
+        df = remove_labelled_data(
+            df, label_weeks, reference_date)
+        gc.collect()
+
+        # save as new file
+        if unlabelled_file_name:
+            df.to_pickle(unlabelled_file_name, compression='gzip')
 
     print('Converting quoteDate to numeric types')
     convert_date(df, 'quoteDate')
@@ -557,18 +610,19 @@ def load_data(file_name, generate_label_weeks=None, reference_date=None, new_fil
 
     print(df.info(memory_usage='deep'))
 
-    # Drop any row which does not have the label columns
-    print('Dropping rows missing the label column')
-    # df.dropna(subset=[LABEL_COLUMN], inplace=True)
-    df = df[np.isfinite(df[LABEL_COLUMN].values)]
+    if drop_unlabelled is True:
+        # Drop any row which does not have the label columns
+        print('Dropping rows missing the label column')
+        # df.dropna(subset=[LABEL_COLUMN], inplace=True)
+        df = df[np.isfinite(df[LABEL_COLUMN].values)]
 
-    # Clip to -99 to 1000 range
-    print('Clipping label column to (-99, 1000)')
-    df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
+        # Clip to -99 to 1000 range
+        print('Clipping label column to (-99, 1000)')
+        df[LABEL_COLUMN] = df[LABEL_COLUMN].clip(-99, 1000)
 
-    # Add scaled value for y - using log of y
-    print('Creating scaled log label column')
-    df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
+        # Add scaled value for y - using log of y
+        print('Creating scaled log label column')
+        df[LABEL_COLUMN + '_scaled'] = safe_log(df[LABEL_COLUMN].values)
 
     return df
 
@@ -793,7 +847,7 @@ def train_symbol_encoder(df):
         temp_df['eight_week_dividend_return']
 
     se_lookup = pd.DataFrame(temp_df.groupby(['symbol'])[
-                             'ra_total_return'].mean().reset_index(name="symbol_encoded"))
+        'ra_total_return'].mean().reset_index(name="symbol_encoded"))
 
     ret_df = execute_symbol_encoder(df, se_lookup)
 
@@ -1203,25 +1257,30 @@ def execute_xgb_predictions(x_df, x_model_names, xgb_models, keras_models):
 
         xgb_model_set = load(xgb_models[model])
 
+        print('Executing xgb ' + model + ' predictions ...')
         model_log_y_predictions = xgb_model_set['log_y_model'].predict(x_data)
         model_log_y_predictions = safe_exp(model_log_y_predictions)
 
+        print('Executing keras mae predictions ...')
         model_keras_mae_predictions = xgb_model_set['keras_mae_model'].predict(
             x_stacked_vals)
         model_keras_mae_predictions = safe_exp(model_keras_mae_predictions)
 
+        print('Executing keras log mae predictions ...')
         model_keras_log_mae_predictions = xgb_model_set['keras_log_mae_model'].predict(
             x_stacked_vals)
         model_keras_log_mae_predictions = safe_exp(
             safe_exp(model_keras_log_mae_predictions))
 
         # Update overall arrays
+        print('Updating prediction results ...')
         np.put(log_y_predictions, pred_index, model_log_y_predictions)
         np.put(keras_mae_predictions, pred_index, model_keras_mae_predictions)
         np.put(keras_log_mae_predictions, pred_index,
                model_keras_log_mae_predictions)
 
     # Return array values
+    print('Returning xgb log, keras mae and keras log results')
     return {
         'log_y_predictions': log_y_predictions,
         'keras_mae_predictions': keras_mae_predictions,
@@ -1699,7 +1758,7 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
             'mean_predicted_val': [mean_predicted_val],
             'median_predicted_val': [median_predicted_val],
         }
-        # Add results values 
+        # Add results values
         for key in symbol_results[symbol]:
             symbol_dict[key] = [symbol_results[symbol][key]]
 
@@ -1796,24 +1855,30 @@ def main(run_config):
     # Check whether we can skip all preprocessing steps
     needs_preprocessing = False
 
-    if run_config['use_previous_training_weights']:
+    if run_config.get('use_previous_training_weights') is True:
         use_previous_training_weights = True
     else:
         use_previous_training_weights = False
 
-    if 'load_data' in run_config and run_config['load_data'] is True:
+    if run_config.get('load_data') is True:
         needs_preprocessing = True
 
-    if 'train_pre_process' in run_config and run_config['train_pre_process'] is True:
+    if run_config.get('train_pre_process') is True:
         needs_preprocessing = True
 
     # Retrieve and divide data
     if needs_preprocessing:
-        if 'load_data' in run_config and run_config['load_data'] is True:
+        if run_config.get('load_data') is True:
             # Load and divide data
-            if 'generate_labels' in run_config and run_config['generate_labels'] is True:
-                share_data = load_data(run_config['unlabelled_data_file'], run_config['generate_label_weeks'],
-                                       run_config['reference_date'], run_config['labelled_data_file'])
+            if run_config.get('generate_labels') is True:
+                share_data = load_data(run_config['unlabelled_data_file'],
+                                       drop_unlabelled=True,
+                                       drop_labelled=False,
+                                       generate_labels=True,
+                                       label_weeks=run_config['generate_label_weeks'],
+                                       reference_date=run_config['reference_date'],
+                                       labelled_file_name=run_config['labelled_data_file']
+                                       )
             else:
                 share_data = load_data(run_config['labelled_data_file'])
             gc.collect()
@@ -1870,7 +1935,7 @@ def main(run_config):
         df_all_train_x.info()
         df_all_test_x.info()
 
-        if 'train_pre_process' in run_config and run_config['train_pre_process'] is True:
+        if run_config.get('train_pre_process') is True:
             # Execute pre-processing trainer
             df_all_train_x, se, imputer, scaler = train_preprocessor(
                 df_all_train_x, df_all_train_y)
@@ -1883,7 +1948,7 @@ def main(run_config):
             df_all_test_x.to_pickle(
                 'data/df_all_test_x.pkl.gz', compression='gzip')
 
-        if 'load_and_execute_pre_process' in run_config and run_config['load_and_execute_pre_process'] is True:
+        if run_config.get('load_and_execute_pre_process') is True:
             print('Loading pre-processing models')
             # Load pre-processing models
             se = load('models/se.pkl.gz')
@@ -1908,7 +1973,7 @@ def main(run_config):
         train_x_model_names = load('data/train_x_model_names.pkl.gz')
         test_x_model_names = load('data/test_x_model_names.pkl.gz')
 
-    if 'load_processed_data' in run_config and run_config['load_processed_data'] is True:
+    if run_config.get('load_processed_data') is True:
         print('Loading pre-processed data')
         df_all_train_x = pd.read_pickle(
             'data/df_all_train_x.pkl.gz', compression='gzip')
@@ -1923,7 +1988,7 @@ def main(run_config):
         df_all_test_actuals = pd.read_pickle(
             'data/df_all_test_actuals.pkl.gz', compression='gzip')
 
-    if 'train_keras' in run_config and run_config['train_keras'] is True:
+    if run_config.get('train_keras') is True:
         # Train keras models
         keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
                                       df_all_test_y, df_all_test_x, use_previous_training_weights)
@@ -1945,7 +2010,7 @@ def main(run_config):
             }),
         }
 
-    if 'train_xgb' in run_config and run_config['train_xgb'] is True:
+    if run_config.get('train_xgb') is True:
         # Train the general models
         # gen_models = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y,
         #                                  df_all_test_x, keras_models)
@@ -1961,7 +2026,7 @@ def main(run_config):
                                                                          test_x_model_names, df_all_test_actuals,
                                                                          xgb_models, keras_models)
 
-    if 'train_deep_bagging' in run_config and run_config['train_deep_bagging'] is True:
+    if run_config.get('train_deep_bagging') is True:
         bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
                                                                                     df_all_train_actuals,
                                                                                     test_predictions,

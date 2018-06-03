@@ -4,7 +4,7 @@ from print_logger import *
 # @profile
 
 
-def prepare_data_for_model(share_data):
+def prepare_data_for_model(share_data, include_y=True):
     # symbol_models = {}
     symbols = share_data['symbol'].unique()
     # For testing only take the first 10 elements
@@ -33,10 +33,13 @@ def prepare_data_for_model(share_data):
 
         model_data.loc[:, 'model'] = model_data.loc[:, 'symbol']
 
-        y_dfs.append(model_data[LABEL_COLUMN + '_scaled'])
-        actuals_dfs.append(model_data[LABEL_COLUMN])
         x_dfs.append(model_data.drop(
-            [LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1))
+            [LABEL_COLUMN, LABEL_COLUMN + '_scaled'], axis=1, errors='ignore'))
+
+        if include_y is True:
+            # Only include label data if it is part of the data set
+            y_dfs.append(model_data[LABEL_COLUMN + '_scaled'])
+            actuals_dfs.append(model_data[LABEL_COLUMN])
 
     # Create concatenated dataframes with all data
     print('Creating concatenated dataframes')
@@ -45,15 +48,41 @@ def prepare_data_for_model(share_data):
     del x_dfs
     gc.collect()
 
-    df_all_y = pd.concat(y_dfs)
-    del y_dfs
-    gc.collect()
+    symbol_date_df = pd.DataFrame()
+    symbol_date_df['symbol'] = df_all_x['symbol']
+    symbol_date_df['prediction_date'] = df_all_x.index
 
-    df_all_actuals = pd.concat(actuals_dfs)
-    del actuals_dfs
-    gc.collect()
+    if include_y is True:
+        df_all_y = pd.concat(y_dfs)
+        del y_dfs
+        gc.collect()
 
-    return df_all_x, df_all_y, df_all_actuals
+        df_all_actuals = pd.concat(actuals_dfs)
+        del actuals_dfs
+        gc.collect()
+
+    if include_y is True:
+        return df_all_x, df_all_y, df_all_actuals, symbol_date_df
+    else:
+        return df_all_x, symbol_date_df
+
+
+def output_predictions(predictions, df_symbol_date, file_name):
+    """ 
+        Generate output file for predictions as csv
+    """
+
+    # Retrieve baaged prediction
+    pred_df = predictions['deep_bagged_predictions']
+
+    # Create  dataframe by resetting the index to allow columns to be concatenated
+    output_df = pd.concat([df_symbol_date.reset_index(
+        drop=True), pred_df.reset_index(drop=True)], axis=1)
+
+    # Save output to file
+    pred_file_location = './results/predictions-' + file_name + '.csv'
+    print('Writing predictions to', pred_file_location)
+    output_df.to_csv(pred_file_location)
 
 
 def main(run_config):
@@ -65,16 +94,34 @@ def main(run_config):
     print('Starting sharecast prediction:', run_str)
 
     # Load and divide data
-    if 'generate_labels' in run_config and run_config['generate_labels'] is True:
-        share_data = load_data(run_config['data_file'], run_config['generate_label_weeks'],
-                               run_config['reference_date'], run_config['label_file_name'])
+    if run_config.get('generate_labels') is True:
+        share_data = load_data(run_config['data_file'],
+                               generate_labels=True,
+                               label_weeks=run_config['label_weeks'],
+                               reference_date=run_config['reference_date'],
+                               labelled_file_name=run_config['labelled_file_name']
+                               )
+    elif run_config.get('predict_unlabelled') is True:
+        share_data = load_data(run_config['data_file'],
+                               drop_unlabelled=False,
+                               drop_labelled=True,
+                               generate_labels=False,
+                               label_weeks=run_config['label_weeks'],
+                               reference_date=run_config['reference_date'],
+                               unlabelled_file_name=run_config.get('unlabelled_file_name'))
     else:
         share_data = load_data(run_config['data_file'])
 
     gc.collect()
 
     # Divide data into symbols and general data for training an testing
-    df_all_x, df_all_y, df_all_actuals = prepare_data_for_model(share_data)
+    if run_config.get('predict_unlabelled') is True:
+        # Only return x values
+        df_all_x, df_symbol_date = prepare_data_for_model(share_data, False)
+    else:
+        # Return x and y values
+        df_all_x, df_all_y, df_all_actuals, df_symbol_date = prepare_data_for_model(
+            share_data, True)
 
     del share_data
     gc.collect()
@@ -129,20 +176,26 @@ def main(run_config):
         bagging_model, bagging_scaler, predictions)
     predictions['deep_bagged_predictions'] = deep_bagged_predictions
 
-    if 'eval_results' in run_config and run_config['eval_results'] is True:
+    if run_config.get('eval_results') is True:
         assess_results(predictions, x_model_names, df_all_actuals, run_str)
+
+    if run_config.get('output_predictions') is True:
+        output_predictions(predictions, df_symbol_date, run_str)
 
     print('Prediction completed')
 
 
 if __name__ == "__main__":
     run_config = {
-        'data_file': './data/ml-20180512-labelled.pkl.gz',
+        'data_file': './data/ml-20180512-processed.pkl.gz',
         'generate_labels': False,
-        'generate_label_weeks': 8,
+        'predict_unlabelled': True,
+        'label_weeks': 8,
         'reference_date': '2018-05-12',
-        'label_file_name': '',
-        'eval_results': True,
+        'labelled_file_name': '',
+        'unlabelled_file_name': './data/ml-20180512-unlabelled.pkl.gz',
+        'output_predictions': True,
+        'eval_results': False,
     }
 
     main(run_config)
