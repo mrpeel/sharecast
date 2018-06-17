@@ -320,7 +320,7 @@ def process_dataset(df):
     df['exDividendDate'] = pd.to_datetime(
         df['exDividendDate'], errors='coerce')
 
-    symbols = df['symbol'].drop_duplicates()
+    symbols = df['symbol'].unique()
 
     # ######## TEMP ###########
     # symbols = symbols.head(20)
@@ -363,6 +363,14 @@ def process_dataset(df):
     return output_df
 
 
+def add_industry_categories(df, catgories_df):
+    print('Adding industry categories to data set')
+    output_df = df.merge(catgories_df, left_on='symbol',
+                         right_on='symbol', how='left')
+
+    return output_df
+
+
 def load_data(base_path, no_files):
     print('Loading', no_files, 'files for:', base_path)
     # Set the file increments range
@@ -382,30 +390,32 @@ def load_data(base_path, no_files):
 
 
 def main(load_config):
-    run_loader = False
-
-    if load_config['load_individual_data_files'] is True:
-        run_loader = True
-
-    if run_loader:
+    # Check whether to load individual files or an aggregated file
+    if load_config.get('load_individual_data_files') is True:
         print('Loading individual data files')
         l1 = timer()
-        df = load_data(load_config['base_path'], load_config['no_files'])
+        df = load_data(load_config.get('base_path'),
+                       load_config.get('no_files'))
         gc.collect()
         print('Optimising data')
         df = optimise_df(df)
         print('Saving data')
         df.to_pickle(
-            'data/ml-' + load_config['run_str'] + '-data.pkl.gz', compression='gzip')
+            'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
         l2 = timer()
         print('Loading and saving individual data took:', l2 - l1)
     else:
         print('Loading aggregated data files')
         l1 = timer()
         df = pd.read_pickle(
-            'data/ml-' + load_config['run_str'] + '-data.pkl.gz', compression='gzip')
+            'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
         l2 = timer()
         print('Loading aggregated data file took:', l2 - l1)
+
+    # Load the industry-symbol values
+    if load_config.get('add_industry_categories') is True:
+        categories_df = pd.read_csv(load_config.get('symbol_industry_path'))
+        df = add_industry_categories(df, categories_df)
 
     # Processing data
     print('Processing returns and recurrent columns for each symbol')
@@ -413,7 +423,7 @@ def main(load_config):
 
     print('Saving processed data')
     processed_data.to_pickle(
-        'data/ml-' + load_config['run_str'] + '-processed.pkl.gz', compression='gzip')
+        'data/ml-' + load_config.get('run_str') + '-processed.pkl.gz', compression='gzip')
 
     print(80*'-')
     print('Data processing finished')
@@ -427,6 +437,8 @@ if __name__ == "__main__":
         'run_str': run_str,
         'load_individual_data_files': False,
         'base_path': 'data/companyQuotes-20180512-%03d.csv.gz',
+        'add_industry_categories': True,
+        'symbol_industry_path': 'data/symbol-industry-lookup.csv',
         'no_files': 64,
     }
 

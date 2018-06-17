@@ -814,7 +814,7 @@ def execute_one_hot_string_encoder(df, cols):  # , gs):
     return df
 
 
-def train_symbol_encoder(df):
+def train_rar_encoder(df, column_name):
     # Calculate risk adjusted return
     temp_df = pd.DataFrame()
 
@@ -834,38 +834,36 @@ def train_symbol_encoder(df):
 
     # Convert to multiplication factor to adjust return
     print('Calculating multiplication factors')
-    temp_df['mult_factor'] = 1 - \
-        (temp_df['eight_week_std'] / temp_df['adjustedPrice'])
+    temp_df['mult_factor'] = 1 - (temp_df['eight_week_std'] / temp_df['adjustedPrice'])
     temp_df.loc[less_than_zero, 'mult_factor'] = 1 + (
         temp_df.loc[less_than_zero, 'eight_week_std'] / temp_df.loc[less_than_zero, 'adjustedPrice'])
 
     # Calulate risk adjusted returns
     print('Calculating risk adjusted returns')
-    temp_df['ra_price_return'] = temp_df['eight_week_price_return'] * \
-        temp_df['mult_factor']
-    temp_df['ra_total_return'] = temp_df['ra_price_return'] + \
-        temp_df['eight_week_dividend_return']
+    temp_df['ra_price_return'] = temp_df['eight_week_price_return'] * temp_df['mult_factor']
+    temp_df['ra_total_return'] = temp_df['ra_price_return'] + temp_df['eight_week_dividend_return']
 
-    se_lookup = pd.DataFrame(temp_df.groupby(['symbol'])[
-        'ra_total_return'].mean().reset_index(name="symbol_encoded"))
+    rar_lookup = pd.DataFrame(temp_df.groupby([column_name])[
+        'ra_total_return'].mean().reset_index(name=column_name + '_encoded'))
 
-    ret_df = execute_symbol_encoder(df, se_lookup)
+    ret_df = execute_rar_encoder(df, rar_lookup, column_name)
 
-    return ret_df, se_lookup
+    return ret_df, rar_lookup
 
 
-def execute_symbol_encoder(df, se_df):
-    # Merge symbol encodeded values
-    print('Merging encoded symbol with dataframe')
-    ret_df = df.merge(se_df, left_on='symbol', right_on='symbol')
+def execute_rar_encoder(df, rar_df, column_name):
+    # Merge encodeded values
+    print('Merging encoded', column_name, 'with dataframe')
+    ret_df = df.merge(rar_df, left_on=column_name, right_on=column_name, how='left')
 
     # Remove symbol column
-    print('Dropping symbol column')
-    ret_df.drop(['symbol'], axis=1, inplace=True)
+    print('Dropping', column_name, 'column')
+    ret_df.drop([column_name], axis=1, inplace=True)
 
-    # Impute any missing values for symbol (can happen when predictions include new symbols)
-    ret_df['symbol_encoded'].fillna(
-        (ret_df['symbol_encoded'].median()), inplace=True)
+    # Impute any missing values for encoded column (can happen when predictions include new values)
+    encoded_column = column_name + '_encoded'
+    ret_df[encoded_column].fillna(
+        (ret_df[encoded_column].median()), inplace=True)
 
     return ret_df
 
@@ -962,7 +960,7 @@ def train_preprocessor(train_x_df, train_y_df):
     gc.collect()
 
     print('Encoding symbol values')
-    train_x_df, se = train_symbol_encoder(train_x_df)
+    train_x_df, se = train_symbol_rar(train_x_df, 'symbol')
     gc.collect()
 
     print('Imputing missing values')
@@ -998,7 +996,7 @@ def execute_preprocessor(transform_df, se, imputer, scaler):
     gc.collect()
 
     print('Encoding symbol values')
-    transform_df = execute_symbol_encoder(transform_df, se)
+    transform_df = execute_rar_encoder(transform_df, se, 'symbol')
     gc.collect()
 
     print('Imputing missing values')

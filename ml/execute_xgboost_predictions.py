@@ -80,7 +80,7 @@ def output_predictions(predictions, df_symbol_date, file_name):
         drop=True), pred_df.reset_index(drop=True)], axis=1)
 
     # Save output to file
-    pred_file_location = './results/predictions-' + file_name + '.csv'
+    pred_file_location = './predictions/' + file_name + '.csv'
     print('Writing predictions to', pred_file_location)
     output_df.to_csv(pred_file_location)
 
