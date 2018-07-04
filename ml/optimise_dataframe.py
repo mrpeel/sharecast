@@ -32,21 +32,18 @@ def is_date_col(df_col):
 def is_category_col(df_col):
     """
         Checks whether an object (string) column should be converted to a category.
-        If on average there are two values for every category, column should be 
+        If on average there are two values for every category, column should be
         a category.
     """
     num_unique_values = len(df_col.unique())
     num_total_values = len(df_col)
     # Check we will get at least half the values removed by changing to category
-    if (num_unique_values / num_total_values) < 0.5:
-        return True
-    else:
-        return False
+    return bool((num_unique_values / num_total_values) < 0.5)
 
 
 def is_int8_col(df_col):
     """ Checks a numeric column only contains 0s and 1s """
-    return df_col.isin([0, 1])
+    return df_col.isin([0, 1]).all()
 
 
 def optimise_df(df):
@@ -105,12 +102,12 @@ def get_col_type(df_col):
             calculated_col_type = 'date'
         elif is_category_col(df_col):
             calculated_col_type = 'category'
-    elif col_data_type == 'int64' or col_type == 'float64':
+    elif col_data_type == 'int64' or col_data_type == 'float64':
         if is_int8_col(df_col):
             calculated_col_type = 'int8'
-        elif col_data_type = 'int64':
+        elif col_data_type == 'int64':
             calculated_col_type = 'int32'
-        elif col_data_type = 'float64':
+        elif col_data_type == 'float64':
             calculated_col_type = 'float32'
 
     return calculated_col_type

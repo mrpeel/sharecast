@@ -8,17 +8,49 @@ from optimise_dataframe import *
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
 
-OLD_RETURN_COLUMNS = ['Future1WeekDividend', 'Future1WeekPrice', 'Future1WeekReturn', 'Future1WeekRiskAdjustedReturn',
-                      'Future2WeekDividend', 'Future2WeekPrice', 'Future2WeekReturn', 'Future2WeekRiskAdjustedReturn',
-                      'Future4WeekDividend', 'Future4WeekPrice', 'Future4WeekReturn', 'Future4WeekRiskAdjustedReturn',
-                      'Future8WeekDividend', 'Future8WeekPrice', 'Future8WeekReturn', 'Future8WeekRiskAdjustedReturn',
-                      'Future12WeekDividend', 'Future12WeekPrice', 'Future12WeekReturn', 'Future12WeekRiskAdjustedReturn',
-                      'Future26WeekDividend', 'Future26WeekPrice', 'Future26WeekReturn', 'Future26WeekRiskAdjustedReturn',
-                      'Future52WeekDividend', 'Future52WeekPrice', 'Future52WeekReturn', 'Future52WeekRiskAdjustedReturn',
-                      '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility', '12WeekVolatility',
-                      '26WeekVolatility', '52WeekVolatility', '4WeekBollingerBandLower', '4WeekBollingerBandUpper',
-                      '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerBandLower', '12WeekBollingerBandUpper',
-                      '12WeekBollingerPrediction', '12WeekBollingerType'
+OLD_RETURN_COLUMNS = ['Future1WeekDividend',
+                      'Future1WeekPrice',
+                      'Future1WeekReturn',
+                      'Future1WeekRiskAdjustedReturn',
+                      'Future2WeekDividend',
+                      'Future2WeekPrice',
+                      'Future2WeekReturn',
+                      'Future2WeekRiskAdjustedReturn',
+                      'Future4WeekDividend',
+                      'Future4WeekPrice',
+                      'Future4WeekReturn',
+                      'Future4WeekRiskAdjustedReturn',
+                      'Future8WeekDividend',
+                      'Future8WeekPrice',
+                      'Future8WeekReturn',
+                      'Future8WeekRiskAdjustedReturn',
+                      'Future12WeekDividend',
+                      'Future12WeekPrice',
+                      'Future12WeekReturn',
+                      'Future12WeekRiskAdjustedReturn',
+                      'Future26WeekDividend',
+                      'Future26WeekPrice',
+                      'Future26WeekReturn',
+                      'Future26WeekRiskAdjustedReturn',
+                      'Future52WeekDividend',
+                      'Future52WeekPrice',
+                      'Future52WeekReturn',
+                      'Future52WeekRiskAdjustedReturn',
+                      '1WeekVolatility',
+                      '2WeekVolatility',
+                      '4WeekVolatility',
+                      '8WeekVolatility',
+                      '12WeekVolatility',
+                      '26WeekVolatility',
+                      '52WeekVolatility',
+                      '4WeekBollingerBandLower',
+                      '4WeekBollingerBandUpper',
+                      '4WeekBollingerPrediction',
+                      '4WeekBollingerType',
+                      '12WeekBollingerBandLower',
+                      '12WeekBollingerBandUpper',
+                      '12WeekBollingerPrediction',
+                      '12WeekBollingerType'
                       ]
 
 
@@ -326,7 +358,7 @@ def process_dataset(df):
     # symbols = symbols.head(20)
     # ########################
 
-    num_symbols = symbols.count()
+    num_symbols = symbols.shape[0]
     symbol_count = 0
 
     # Create list for symbol results
@@ -431,15 +463,15 @@ def main(load_config):
 
 if __name__ == "__main__":
     # run_str = datetime.now().strftime('%Y%m%d')
-    run_str = '20180512'
+    RUN_STR = '20180512'
 
-    load_config = {
-        'run_str': run_str,
-        'load_individual_data_files': False,
+    LOAD_CONFIG = {
+        'run_str': RUN_STR,
+        'load_individual_data_files': True,
         'base_path': 'data/companyQuotes-20180512-%03d.csv.gz',
         'add_industry_categories': True,
         'symbol_industry_path': 'data/symbol-industry-lookup.csv',
         'no_files': 64,
     }
 
-    main(load_config)
+    main(LOAD_CONFIG)

@@ -191,6 +191,7 @@ column_types = {
 
 
 xgb_set_path = './models/xgb-sets/'
+industry_xgb_set_path = './models/xgb-industry-models/'
 
 
 def save(object, filename):
@@ -821,9 +822,9 @@ def train_rar_encoder(df, column_name):
     # Copy values to new dataframe
     print('Copying return data')
     temp_df[
-        ['symbol', 'adjustedPrice', 'eight_week_price_return', 'eight_week_dividend_return', 'eight_week_total_return',
+        [column_name, 'adjustedPrice', 'eight_week_price_return', 'eight_week_dividend_return', 'eight_week_total_return',
          'eight_week_std']] = df[
-        ['symbol', 'adjustedPrice', 'eight_week_price_return', 'eight_week_dividend_return', 'eight_week_total_return',
+        [column_name, 'adjustedPrice', 'eight_week_price_return', 'eight_week_dividend_return', 'eight_week_total_return',
          'eight_week_std']].dropna()
     less_than_zero = temp_df['eight_week_total_return'] < 0
 
@@ -834,14 +835,17 @@ def train_rar_encoder(df, column_name):
 
     # Convert to multiplication factor to adjust return
     print('Calculating multiplication factors')
-    temp_df['mult_factor'] = 1 - (temp_df['eight_week_std'] / temp_df['adjustedPrice'])
+    temp_df['mult_factor'] = 1 - \
+        (temp_df['eight_week_std'] / temp_df['adjustedPrice'])
     temp_df.loc[less_than_zero, 'mult_factor'] = 1 + (
         temp_df.loc[less_than_zero, 'eight_week_std'] / temp_df.loc[less_than_zero, 'adjustedPrice'])
 
     # Calulate risk adjusted returns
     print('Calculating risk adjusted returns')
-    temp_df['ra_price_return'] = temp_df['eight_week_price_return'] * temp_df['mult_factor']
-    temp_df['ra_total_return'] = temp_df['ra_price_return'] + temp_df['eight_week_dividend_return']
+    temp_df['ra_price_return'] = temp_df['eight_week_price_return'] * \
+        temp_df['mult_factor']
+    temp_df['ra_total_return'] = temp_df['ra_price_return'] + \
+        temp_df['eight_week_dividend_return']
 
     rar_lookup = pd.DataFrame(temp_df.groupby([column_name])[
         'ra_total_return'].mean().reset_index(name=column_name + '_encoded'))
@@ -854,7 +858,8 @@ def train_rar_encoder(df, column_name):
 def execute_rar_encoder(df, rar_df, column_name):
     # Merge encodeded values
     print('Merging encoded', column_name, 'with dataframe')
-    ret_df = df.merge(rar_df, left_on=column_name, right_on=column_name, how='left')
+    ret_df = df.merge(rar_df, left_on=column_name,
+                      right_on=column_name, how='left')
 
     # Remove symbol column
     print('Dropping', column_name, 'column')
@@ -872,11 +877,11 @@ def train_imputer(df):
     print('Training imputer')
     imputer = [Imputer(strategy='median'), Imputer(
         strategy='median'), Imputer(strategy='median')]
-    print(' continous columns')
+    print('-- continous columns')
     imputer[0].fit(df[CONTINUOUS_COLUMNS].values)
-    print(' past results continous columns')
+    print('-- past results continous columns')
     imputer[1].fit(df[PAST_RESULTS_CONTINUOUS_COLUMNS].values)
-    print(' recurrent columns')
+    print('-- recurrent columns')
     imputer[2].fit(df[RECURRENT_COLUMNS].values)
 
     ret_df = execute_imputer(df, imputer)
@@ -887,17 +892,17 @@ def train_imputer(df):
 def execute_imputer(df, imputer):
     print('Executing imputer')
     ret_df = df
-    print(' continuous columns')
+    print('-- continuous columns')
     ret_df[CONTINUOUS_COLUMNS] = imputer[0].transform(
         ret_df[CONTINUOUS_COLUMNS].values)
     ret_df[CONTINUOUS_COLUMNS] = ret_df[CONTINUOUS_COLUMNS].astype(
         'float32', errors='ignore')
-    print(' past results continous columns')
+    print('-- past results continous columns')
     ret_df[PAST_RESULTS_CONTINUOUS_COLUMNS] = imputer[1].transform(
         ret_df[PAST_RESULTS_CONTINUOUS_COLUMNS].values)
     ret_df[PAST_RESULTS_CONTINUOUS_COLUMNS] = ret_df[PAST_RESULTS_CONTINUOUS_COLUMNS].astype(
         'float32', errors='ignore')
-    print(' recurrent columns')
+    print('-- recurrent columns')
     ret_df[RECURRENT_COLUMNS] = imputer[2].transform(
         ret_df[RECURRENT_COLUMNS].values)
     ret_df[RECURRENT_COLUMNS] = ret_df[RECURRENT_COLUMNS].astype(
@@ -910,13 +915,13 @@ def train_scaler(df):
     print('Training scaler')
     scaler = [MinMaxScaler(feature_range=(0, 1)), MinMaxScaler(feature_range=(0, 1)),
               MinMaxScaler(feature_range=(0, 1)), MinMaxScaler(feature_range=(0, 1))]
-    print(' continuous columns')
+    print('-- continuous columns')
     scaler[0].fit(df[CONTINUOUS_COLUMNS].values)
-    print(' past results continuous columns')
+    print('-- past results continuous columns')
     scaler[1].fit(df[PAST_RESULTS_CONTINUOUS_COLUMNS].values)
-    print(' recurrent columns')
+    print('-- recurrent columns')
     scaler[2].fit(df[RECURRENT_COLUMNS].values)
-    print(' categorical columns')
+    print('-- categorical columns')
     scaler[3].fit(df[CATEGORICAL_COLUMNS].values)
 
     ret_df = execute_scaler(df, scaler)
@@ -926,23 +931,23 @@ def train_scaler(df):
 
 def execute_scaler(df, scaler):
     print('Executing scaler')
-    print(' continuous columns')
+    print('-- continuous columns')
     df[CONTINUOUS_COLUMNS] = scaler[0].transform(df[CONTINUOUS_COLUMNS].values)
     df[CONTINUOUS_COLUMNS] = df[CONTINUOUS_COLUMNS].astype(
         'float32', errors='ignore')
 
-    print(' past results continuous columns')
+    print('-- past results continuous columns')
     df[PAST_RESULTS_CONTINUOUS_COLUMNS] = scaler[1].transform(
         df[PAST_RESULTS_CONTINUOUS_COLUMNS].values)
     df[PAST_RESULTS_CONTINUOUS_COLUMNS] = df[PAST_RESULTS_CONTINUOUS_COLUMNS].astype(
         'float32', errors='ignore')
 
-    print(' recurrent columns')
+    print('-- recurrent columns')
     df[RECURRENT_COLUMNS] = scaler[2].transform(df[RECURRENT_COLUMNS].values)
     df[RECURRENT_COLUMNS] = df[RECURRENT_COLUMNS].astype(
         'float32', errors='ignore')
 
-    print(' categorical columns')
+    print('-- categorical columns')
     df[CATEGORICAL_COLUMNS] = scaler[3].transform(
         df[CATEGORICAL_COLUMNS].values)
     df[CATEGORICAL_COLUMNS] = df[CATEGORICAL_COLUMNS].astype(
@@ -960,7 +965,7 @@ def train_preprocessor(train_x_df, train_y_df):
     gc.collect()
 
     print('Encoding symbol values')
-    train_x_df, se = train_symbol_rar(train_x_df, 'symbol')
+    train_x_df, se = train_rar_encoder(train_x_df, 'symbol')
     gc.collect()
 
     print('Imputing missing values')
@@ -1018,18 +1023,23 @@ def execute_preprocessor(transform_df, se, imputer, scaler):
 
 
 # @profile
-def load_xgb_models():
+def load_xgb_models(model_type='symbol'):
     all_xgb_models = {}
 
-    print('Loading files from', xgb_set_path)
+    if model_type == 'symbol':
+        model_path = xgb_set_path
+    else:
+        model_path = industry_xgb_set_path
+
+    print('Loading files from', model_path)
     # Return files in path
-    file_list = glob.glob(xgb_set_path + '*.model.gz')
+    file_list = glob.glob(model_path + '*.model.gz')
 
     # load each model set
     for file_name in file_list:
         # remove leading path and trailing file extension
         model_name = file_name.replace(
-            xgb_set_path, '').replace('.model.gz', '')
+            model_path, '').replace('.model.gz', '')
 
         # create model property and load model set into it
         all_xgb_models[model_name] = file_name
@@ -1039,9 +1049,16 @@ def load_xgb_models():
 
 # @profile
 def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x_model_names,
-                     df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models):
+                     df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models,
+                     model_type='symbol'):
+
+    if model_type == 'symbol':
+        model_path = xgb_set_path
+    else:
+        model_path = industry_xgb_set_path
+
     # clear previous models
-    files = glob.glob(xgb_set_path + '*.model.gz')
+    files = glob.glob(model_path + '*.model.gz')
     for f in files:
         os.remove(f)
 
@@ -1066,7 +1083,7 @@ def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x
 
         # Save model set
         print('Saving model set for ', model)
-        save(xgb_model_set, xgb_set_path + model + '.model.gz')
+        save(xgb_model_set, model_path + model + '.model.gz')
 
 
 # @profile
@@ -1770,9 +1787,10 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
     df_results.to_csv('./results/' + run_str + '.csv')
 
 
-def execute_train_test_predictions(df_all_train_x, train_x_model_names, df_all_train_actuals,
-                                   df_all_test_x, test_x_model_names, df_all_test_actuals,
-                                   xgb_models, keras_models):
+def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_GICSIndustryGroup,
+                                   df_all_train_actuals, df_all_test_x, test_x_model_names,
+                                   test_x_GICSIndustryGroup, df_all_test_actuals, xgb_models,
+                                   xgb_industry_models, keras_models):
     print('Executing and exporting predictions data...')
     # export results
     df_all_test_actuals.to_pickle(
@@ -1780,13 +1798,16 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, df_all_t
     df_all_train_actuals.to_pickle(
         'data/train_actuals.pkl.gz', compression='gzip')
 
-    train_y_predictions = execute_model_predictions(
-        df_all_train_x, train_x_model_names, xgb_models, keras_models)
-    test_y_predictions = execute_model_predictions(
-        df_all_test_x, test_x_model_names, xgb_models, keras_models)
+    train_y_predictions = execute_model_predictions(df_all_train_x, train_x_model_names,
+                                                    train_x_GICSIndustryGroup, xgb_models,
+                                                    xgb_industry_models, keras_models)
+    test_y_predictions = execute_model_predictions(df_all_test_x, test_x_model_names,
+                                                   test_x_GICSIndustryGroup, xgb_models,
+                                                   xgb_industry_models, keras_models)
 
     train_predictions = pd.DataFrame.from_dict({
         'xgboost_log': train_y_predictions['xgboost_log'],
+        'xgboost_industry_log': train_y_predictions['xgboost_industry_log'],
         'keras_mape': train_y_predictions['keras_mape'],
         'keras_log': train_y_predictions['keras_log'],
         'xgboost_keras_log': train_y_predictions['xgboost_keras_log'],
@@ -1797,6 +1818,7 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, df_all_t
 
     test_predictions = pd.DataFrame.from_dict({
         'xgboost_log': test_y_predictions['xgboost_log'],
+        'xgboost_industry_log': test_y_predictions['xgboost_industry_log'],
         'keras_mape': test_y_predictions['keras_mape'],
         'keras_log': test_y_predictions['keras_log'],
         'xgboost_keras_log': test_y_predictions['xgboost_keras_log'],
@@ -1808,14 +1830,19 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, df_all_t
     return train_predictions, test_predictions
 
 
-def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
-    print('Executing xgb predictions')
+def execute_model_predictions(df_x, x_model_names, x_GICSIndustryGroup, xgb_models, xgb_industry_models,
+                              keras_models):
+    print('Executing xgb symbol predictions')
     xgb_predictions = execute_xgb_predictions(
         df_x, x_model_names, xgb_models, keras_models)
-
     gen_predictions = xgb_predictions['log_y_predictions']
     xgboost_keras_gen_predictions = xgb_predictions['keras_mae_predictions']
     xgboost_keras_log_predictions = xgb_predictions['keras_log_mae_predictions']
+
+    print('Executing xgb industry predictions')
+    xgb_industry_predictions = execute_xgb_predictions(df_x, x_GICSIndustryGroup, xgb_industry_models,
+                                                       keras_models)
+    gen_industry_predictions = xgb_industry_predictions['log_y_predictions']
 
     print('Executing keras predictions')
     data_x = df_x.values
@@ -1833,6 +1860,7 @@ def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
 
     predictions_df = pd.DataFrame.from_dict({
         'xgboost_log': flatten_array(gen_predictions),
+        'xgboost_industry_log': flatten_array(gen_industry_predictions),
         'keras_mape': flatten_array(keras_mape_predictions),
         'keras_log': flatten_array(keras_log_predictions),
         'xgboost_keras_log': flatten_array(xgboost_keras_gen_predictions),
@@ -1840,6 +1868,30 @@ def execute_model_predictions(df_x, x_model_names, xgb_models, keras_models):
     })
 
     return predictions_df
+
+
+def convert_file_string(original_name):
+    output_str = original_name.replace('&', 'And')
+    output_str = output_str.replace(',', '')
+    output_str = output_str.replace('-', '')
+    output_str = output_str.replace('(', '')
+    output_str = output_str.replace(')', '')
+    output_str = output_str.replace(' ', '')
+    return output_str
+
+
+def fix_categorical(categorical_data):
+    unique_vals = categorical_data.unique()
+    category_renamer = {}
+
+    for index in range(0, len(unique_vals)):
+        category_renamer[unique_vals[index]
+                         ] = convert_file_string(unique_vals[index])
+
+    print('Converting categories')
+    print(category_renamer)
+
+    return categorical_data.rename_categories(category_renamer)
 
 
 def main(run_config):
@@ -1921,14 +1973,38 @@ def main(run_config):
         # Retain model names for train and test
         print('Retaining model name data')
         train_x_model_names = df_all_train_x['model'].values
+        train_x_GICSSector = df_all_train_x['GICSSector'].values
+        train_x_GICSIndustryGroup = df_all_train_x['GICSIndustryGroup'].values
+        train_x_GICSIndustry = df_all_train_x['GICSIndustry'].values
+
         test_x_model_names = df_all_test_x['model'].values
+        test_x_GICSSector = df_all_test_x['GICSSector'].values
+        test_x_GICSIndustryGroup = df_all_test_x['GICSIndustryGroup'].values
+        test_x_GICSIndustry = df_all_test_x['GICSIndustry'].values
+
+        # Fix the names used in the GICS data - remove '&' ',' and ' '
+        train_x_GICSSector = fix_categorical(train_x_GICSSector)
+        train_x_GICSIndustryGroup = fix_categorical(train_x_GICSIndustryGroup)
+        train_x_GICSIndustry = fix_categorical(train_x_GICSIndustry)
+        test_x_GICSSector = fix_categorical(test_x_GICSSector)
+        test_x_GICSIndustryGroup = fix_categorical(test_x_GICSIndustryGroup)
+        test_x_GICSIndustry = fix_categorical(test_x_GICSIndustry)
 
         save(train_x_model_names, 'data/train_x_model_names.pkl.gz')
-        save(test_x_model_names, 'data/test_x_model_names.pkl.gz')
+        save(train_x_GICSSector, 'data/train_x_GICSSector.pkl.gz')
+        save(train_x_GICSIndustryGroup, 'data/train_x_GICSIndustryGroup.pkl.gz')
+        save(train_x_GICSIndustry, 'data/train_x_GICSIndustry.pkl.gz')
 
-        # Drop model names
-        df_all_train_x = df_all_train_x.drop(['model'], axis=1)
-        df_all_test_x = df_all_test_x.drop(['model'], axis=1)
+        save(test_x_model_names, 'data/test_x_model_names.pkl.gz')
+        save(test_x_GICSSector, 'data/test_x_GICSSector.pkl.gz')
+        save(test_x_GICSIndustryGroup, 'data/test_x_GICSIndustryGroup.pkl.gz')
+        save(test_x_GICSIndustry, 'data/test_x_GICSIndustry.pkl.gz')
+
+        # Drop model names and GICS values
+        df_all_train_x = df_all_train_x.drop(
+            ['model', 'GICSSector', 'GICSIndustryGroup', 'GICSIndustry'], axis=1)
+        df_all_test_x = df_all_test_x.drop(
+            ['model', 'GICSSector', 'GICSIndustryGroup', 'GICSIndustry'], axis=1)
 
         df_all_train_x.info()
         df_all_test_x.info()
@@ -1970,6 +2046,13 @@ def main(run_config):
         print('Load model name data')
         train_x_model_names = load('data/train_x_model_names.pkl.gz')
         test_x_model_names = load('data/test_x_model_names.pkl.gz')
+        train_x_GICSSector = load('data/train_x_GICSSector.pkl.gz')
+        train_x_GICSIndustryGroup = load(
+            'data/train_x_GICSIndustryGroup.pkl.gz')
+        train_x_GICSIndustry = load('data/train_x_GICSIndustry.pkl.gz')
+        test_x_GICSSector = load('data/test_x_GICSSector.pkl.gz')
+        test_x_GICSIndustryGroup = load('data/test_x_GICSIndustryGroup.pkl.gz')
+        test_x_GICSIndustry = load('data/test_x_GICSIndustry.pkl.gz')
 
     if run_config.get('load_processed_data') is True:
         print('Loading pre-processed data')
@@ -2009,20 +2092,31 @@ def main(run_config):
         }
 
     if run_config.get('train_xgb') is True:
-        # Train the general models
-        # gen_models = train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_all_test_y,
-        #                                  df_all_test_x, keras_models)
         train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x_model_names,
-                         df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models)
+                         df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models, 'symbol')
 
-    print('Loading xgboost model list')
-    xgb_models = load_xgb_models()
+    print('Loading xgboost symbol model list')
+    xgb_models = load_xgb_models('symbol')
+
+    if run_config.get('train_industry_xgb') is True:
+        train_xgb_models(df_all_train_x, df_all_train_y, train_x_GICSIndustryGroup, test_x_GICSIndustryGroup,
+                         df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models, 'industry')
+
+    print('Loading xgboost industry model list')
+    xgb_industry_models = load_xgb_models('industry')
 
     # Export data prior to bagging
-    train_predictions, test_predictions = execute_train_test_predictions(df_all_train_x, train_x_model_names,
-                                                                         df_all_train_actuals, df_all_test_x,
-                                                                         test_x_model_names, df_all_test_actuals,
-                                                                         xgb_models, keras_models)
+    train_predictions, test_predictions = execute_train_test_predictions(df_all_train_x,
+                                                                         train_x_model_names,
+                                                                         train_x_GICSIndustryGroup,
+                                                                         df_all_train_actuals,
+                                                                         df_all_test_x,
+                                                                         test_x_model_names,
+                                                                         test_x_GICSIndustryGroup,
+                                                                         df_all_test_actuals,
+                                                                         xgb_models,
+                                                                         xgb_industry_models,
+                                                                         keras_models)
 
     if run_config.get('train_deep_bagging') is True:
         bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
@@ -2058,8 +2152,9 @@ if __name__ == "__main__":
         'load_and_execute_pre_process': False,
         'load_processed_data': True,
         'train_keras': False,
-        'use_previous_training_weights': True,
+        'use_previous_training_weights': False,
         'train_xgb': False,
+        'train_industry_xgb': False,
         'train_deep_bagging': True,
     }
 
