@@ -1,10 +1,20 @@
-from xgboost_general_symbol_ensemble_sharecast import *
-from print_logger import *
+import gc
+from datetime import datetime
+import pandas as pd
+from keras.models import load_model
+from print_logger import initialise_print_logger, print
+from processing_constants import LABEL_COLUMN
+from ensemble_processing import load_data, load
+from ensemble_processing import fix_categorical
+from ensemble_processing import execute_preprocessor
+from ensemble_processing import load_xgb_models
+from ensemble_processing import execute_model_predictions
+from ensemble_processing import execute_deep_bagging
+from ensemble_processing import assess_results
+from stats_operations import k_mean_absolute_percentage_error, k_mae_mape
 
-# @profile
 
-
-def prepare_data_for_model(share_data, include_y=True):
+def prepare_data_for_model(share_data: pd.DataFrame, include_y=True):
     # symbol_models = {}
     symbols = share_data['symbol'].unique()
     # For testing only take the first 10 elements
@@ -50,6 +60,9 @@ def prepare_data_for_model(share_data, include_y=True):
 
     symbol_date_df = pd.DataFrame()
     symbol_date_df['symbol'] = df_all_x['symbol']
+    symbol_date_df['GICSSector'] = df_all_x['GICSSector']
+    symbol_date_df['GICSIndustryGroup'] = df_all_x['GICSIndustryGroup']
+    symbol_date_df['GICSIndustry'] = df_all_x['GICSIndustry']
     symbol_date_df['prediction_date'] = df_all_x.index
 
     if include_y is True:
@@ -68,7 +81,7 @@ def prepare_data_for_model(share_data, include_y=True):
 
 
 def output_predictions(predictions, df_symbol_date, file_name):
-    """ 
+    """
         Generate output file for predictions as csv
     """
 
@@ -123,25 +136,36 @@ def main(run_config):
         df_all_x, df_all_y, df_all_actuals, df_symbol_date = prepare_data_for_model(
             share_data, True)
 
+        del df_all_y
+
     del share_data
     gc.collect()
 
     # Retain model names for train and test
     print('Retaining model name data')
-    x_model_names = df_all_x['model'].values
+    model_names = df_all_x['model'].values
+    gics_sectors = df_all_x['GICSSector'].values
+    gics_industry_groups = df_all_x['GICSIndustryGroup'].values
+    gics_industries = df_all_x['GICSIndustry'].values
 
-    # Drop model names
-    df_all_x = df_all_x.drop(['model'], axis=1)
+    # Fix the names used in the GICS data - remove '&' ',' and ' '
+    gics_sectors = fix_categorical(gics_sectors)
+    gics_industry_groups = fix_categorical(gics_industry_groups)
+    gics_industries = fix_categorical(gics_industries)
+
+    # Drop model names and GICS values
+    df_all_x = df_all_x.drop(
+        ['model', 'GICSSector', 'GICSIndustryGroup', 'GICSIndustry'], axis=1)
 
     print('Loading pre-processing models')
     # Load pre-processing models
-    se = load('models/se.pkl.gz')
+    symbol_encoder = load('models/se.pkl.gz')
     imputer = load('models/imputer.pkl.gz')
     scaler = load('models/scaler.pkl.gz')
 
     print('Executing pre-processing')
     # Execute pre-processing
-    df_all_x = execute_preprocessor(df_all_x, se, imputer, scaler)
+    df_all_x = execute_preprocessor(df_all_x, symbol_encoder, imputer, scaler)
 
     print('Loading keras models')
     # Load keras models
@@ -163,8 +187,12 @@ def main(run_config):
 
     print('Loading xgboost model list')
     xgb_models = load_xgb_models()
+
+    print('Loading xgboost industry model list')
+    xgb_industry_models = load_xgb_models('industry')
+
     predictions = execute_model_predictions(
-        df_all_x, x_model_names, xgb_models, keras_models)
+        df_all_x, model_names, gics_industry_groups, xgb_models, xgb_industry_models, keras_models)
 
     print('Loading bagging models')
     bagging_model = load_model('models/keras-bagging-model.h5', custom_objects={
@@ -177,7 +205,7 @@ def main(run_config):
     predictions['deep_bagged_predictions'] = deep_bagged_predictions
 
     if run_config.get('eval_results') is True:
-        assess_results(predictions, x_model_names, df_all_actuals, run_str)
+        assess_results(predictions, model_names, df_all_actuals, run_str)
 
     if run_config.get('output_predictions') is True:
         output_predictions(predictions, df_symbol_date, run_str)
@@ -186,16 +214,16 @@ def main(run_config):
 
 
 if __name__ == "__main__":
-    run_config = {
+    RUN_CONFIG = {
         'data_file': './data/ml-20180512-processed.pkl.gz',
-        'generate_labels': False,
-        'predict_unlabelled': True,
+        'generate_labels': True,
+        'predict_unlabelled': False,
         'label_weeks': 8,
         'reference_date': '2018-05-12',
-        'labelled_file_name': '',
+        'labelled_file_name': './data/ml-20180512-labelled.pkl.gz',
         'unlabelled_file_name': './data/ml-20180512-unlabelled.pkl.gz',
         'output_predictions': True,
-        'eval_results': False,
+        'eval_results': True,
     }
 
-    main(run_config)
+    main(RUN_CONFIG)

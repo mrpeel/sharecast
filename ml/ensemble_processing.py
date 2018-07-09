@@ -1,376 +1,49 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import joblib
-import sys
 import glob
 from datetime import datetime, timedelta
+import gc
+import os
+from pathlib import Path
+import math
+
+import joblib
 import pandas as pd
 import numpy as np
 import numba
 import xgboost as xgb
-import gc
-from sklearn.preprocessing import MinMaxScaler, MaxAbsScaler, Imputer
+from sklearn.preprocessing import MinMaxScaler, Imputer
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
-# from categorical_encoder import *
+from keras import Model
+from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
+
 from eval_results import eval_results, range_results
-from print_logger import *
-from clr_callback import *
-# from autoencoder import *
-from compile_keras import *
-from keras.models import load_model
-from keras.callbacks import EarlyStopping, ReduceLROnPlateau, CSVLogger, ModelCheckpoint
-import os
-from pathlib import Path
-import matplotlib.pyplot as plt
-import math
+from print_logger import print
+from stats_operations import safe_log, safe_exp
+from stats_operations import flatten_array
 
-# from memory_profiler import profile
+from clr_callback import CyclicLR
+from compile_keras import compile_keras_model
+# import matplotlib.pyplot as plt
 
-
-COLUMNS = ['symbol', '4WeekBollingerPrediction', '4WeekBollingerType', '12WeekBollingerPrediction',
-           '12WeekBollingerType', 'adjustedPrice', 'quoteMonth', 'volume', 'previousClose', 'change',
-           'changeInPercent', '52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
-           'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'Price200DayAverage',
-           'Price52WeekPercChange', '1WeekVolatility', '2WeekVolatility', '4WeekVolatility', '8WeekVolatility',
-           '12WeekVolatility', '26WeekVolatility', '52WeekVolatility', 'allordpreviousclose', 'allordchange',
-           'allorddayshigh', 'allorddayslow', 'allordpercebtChangeFrom52WeekHigh',
-           'allordpercentChangeFrom52WeekLow', 'asxpreviousclose', 'asxchange', 'asxdayshigh',
-           'asxdayslow', 'asxpercebtChangeFrom52WeekHigh', 'asxpercentChangeFrom52WeekLow', 'exDividendRelative',
-           'exDividendPayout', '640106_A3597525W', 'AINTCOV', 'AverageVolume', 'BookValuePerShareYear',
-           'CashPerShareYear', 'DPSRecentYear', 'EBITDMargin', 'EPS', 'EPSGrowthRate10Years',
-           'EPSGrowthRate5Years', 'FIRMMCRT', 'FXRUSD', 'Float', 'GRCPAIAD', 'GRCPAISAD', 'GRCPBCAD',
-           'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD', 'H01_GGDPCVGDP', 'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP',
-           'IAD', 'LTDebtToEquityQuarter', 'LTDebtToEquityYear', 'MarketCap',
-           'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent', 'OperatingMargin', 'PE',
-           'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM', 'ReturnOnAssetsYear',
-           'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'ReturnOnEquityYear', 'RevenueGrowthRate10Years',
-           'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
-           'TotalDebtToEquityQuarter', 'TotalDebtToEquityYear', 'bookValue', 'earningsPerShare',
-           'ebitda', 'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
-           'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
-
-LABEL_COLUMN = 'future_eight_week_return'
-RETURN_COLUMN = 'eight_week_total_return'
-
-CATEGORICAL_COLUMNS = ['symbol_encoded', 'quoteDate_YEAR',
-                       'quoteDate_MONTH', 'quoteDate_DAY', 'quoteDate_DAYOFWEEK']
-
-CONTINUOUS_COLUMNS = ['lastTradePriceOnly', 'adjustedPrice', 'quoteDate_TIMESTAMP', 'volume', 'previousClose',
-                      'change', 'changeInPercent',
-                      '52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
-                      'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'allordpreviousclose',
-                      'allordchange', 'allorddayshigh', 'allorddayslow', 'allordpercebtChangeFrom52WeekHigh',
-                      'allordpercentChangeFrom52WeekLow', 'asxpreviousclose', 'asxchange', 'asxdayshigh',
-                      'asxdayslow', 'asxpercebtChangeFrom52WeekHigh', 'asxpercentChangeFrom52WeekLow',
-                      'exDividendRelative', 'exDividendPayout', '640106_A3597525W', 'AINTCOV', 'Beta',
-                      'BookValuePerShareYear', 'CashPerShareYear', 'DPSRecentYear', 'EPS', 'FIRMMCRT', 'FXRUSD',
-                      'Float', 'GRCPAIAD', 'GRCPAISAD', 'GRCPBCAD', 'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD',
-                      'H01_GGDPCVGDP', 'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP', 'MarketCap', 'OperatingMargin', 'PE',
-                      'QuoteLast', 'ReturnOnEquityYear', 'TotalDebtToEquityYear', 'daysHigh', 'daysLow']
+from processing_constants import LABEL_COLUMN, RETURN_COLUMN
+from processing_constants import CONTINUOUS_COLUMNS, PAST_RESULTS_CONTINUOUS_COLUMNS
+from processing_constants import CATEGORICAL_COLUMNS, PAST_RESULTS_CATEGORICAL_COLUMNS
+from processing_constants import COLUMNS_TO_REMOVE, RECURRENT_COLUMNS
+from processing_constants import XGB_SET_PATH, INDUSTRY_XGB_SET_PATH
 
 
-PAST_RESULTS_CONTINUOUS_COLUMNS = ['one_week_min', 'one_week_max', 'one_week_mean', 'one_week_median', 'one_week_std',
-                                   'one_week_bollinger_upper', 'one_week_bollinger_lower',
-                                   'one_week_comparison_adjustedPrice', 'one_week_price_change',
-                                   'one_week_price_return',
-                                   'one_week_dividend_value', 'one_week_dividend_return',
-                                   'one_week_total_return', 'two_week_min', 'two_week_max',
-                                   'two_week_mean', 'two_week_median', 'two_week_std',
-                                   'two_week_bollinger_upper', 'two_week_bollinger_lower',
-                                   'two_week_comparison_adjustedPrice',
-                                   'two_week_price_change', 'two_week_price_return',
-                                   'two_week_dividend_value', 'two_week_dividend_return',
-                                   'two_week_total_return', 'four_week_min', 'four_week_max',
-                                   'four_week_mean', 'four_week_median', 'four_week_std',
-                                   'four_week_bollinger_upper', 'four_week_bollinger_lower',
-                                   'four_week_comparison_adjustedPrice',
-                                   'four_week_price_change', 'four_week_price_return',
-                                   'four_week_dividend_value', 'four_week_dividend_return',
-                                   'four_week_total_return', 'eight_week_min', 'eight_week_max',
-                                   'eight_week_mean', 'eight_week_median', 'eight_week_std',
-                                   'eight_week_bollinger_upper', 'eight_week_bollinger_lower',
-                                   'eight_week_comparison_adjustedPrice',
-                                   'eight_week_price_change',
-                                   'eight_week_price_return', 'eight_week_dividend_value',
-                                   'eight_week_dividend_return', 'eight_week_total_return',
-                                   'twelve_week_min', 'twelve_week_max', 'twelve_week_mean',
-                                   'twelve_week_median', 'twelve_week_std',
-                                   'twelve_week_bollinger_upper', 'twelve_week_bollinger_lower',
-                                   'twelve_week_comparison_adjustedPrice',
-                                   'twelve_week_price_change',
-                                   'twelve_week_price_return', 'twelve_week_dividend_value',
-                                   'twelve_week_dividend_return', 'twelve_week_total_return',
-                                   'twenty_six_week_min', 'twenty_six_week_max',
-                                   'twenty_six_week_mean', 'twenty_six_week_median',
-                                   'twenty_six_week_std', 'twenty_six_week_bollinger_upper',
-                                   'twenty_six_week_bollinger_lower',
-                                   'twenty_six_week_comparison_adjustedPrice',
-                                   'twenty_six_week_price_change',
-                                   'twenty_six_week_price_return', 'twenty_six_week_dividend_value',
-                                   'twenty_six_week_dividend_return', 'twenty_six_week_total_return',
-                                   'fifty_two_week_min', 'fifty_two_week_max', 'fifty_two_week_mean',
-                                   'fifty_two_week_median', 'fifty_two_week_std',
-                                   'fifty_two_week_bollinger_upper', 'fifty_two_week_bollinger_lower',
-                                   'fifty_two_week_comparison_adjustedPrice',
-                                   'fifty_two_week_price_change',
-                                   'fifty_two_week_price_return', 'fifty_two_week_dividend_value',
-                                   'fifty_two_week_dividend_return', 'fifty_two_week_total_return']
-
-PAST_RESULTS_CATEGORICAL_COLUMNS = ['one_week_bollinger_type', 'one_week_bollinger_prediction',
-                                    'two_week_bollinger_type', 'two_week_bollinger_prediction',
-                                    'four_week_bollinger_type', 'four_week_bollinger_prediction',
-                                    'eight_week_bollinger_type', 'eight_week_bollinger_prediction',
-                                    'twelve_week_bollinger_type', 'twelve_week_bollinger_prediction',
-                                    'twenty_six_week_bollinger_type', 'twenty_six_week_bollinger_prediction',
-                                    'fifty_two_week_bollinger_type', 'fifty_two_week_bollinger_prediction']
-
-RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpreviousclose_T2_5P',
-                     'asxpreviousclose_T6_10P', 'asxpreviousclose_T11_20P', 'asxpreviousclose_T1P',
-                     'asxpreviousclose_T2_5P', 'asxpreviousclose_T6_10P', 'allordpreviousclose_T11_20P',
-                     'allordpreviousclose_T1P', 'allordpreviousclose_T2_5P', 'allordpreviousclose_T6_10P',
-                     'adjustedPrice_T11_20P', 'adjustedPrice_T1P', 'adjustedPrice_T2_5P', 'adjustedPrice_T6_10P',
-                     'FIRMMCRT_T11_20P', 'FIRMMCRT_T1P', 'FIRMMCRT_T2_5P', 'FIRMMCRT_T6_10P', 'FXRUSD_T11_20P',
-                     'FXRUSD_T1P', 'FXRUSD_T2_5P', 'FXRUSD_T6_10P', 'GRCPAIAD_T11_20P', 'GRCPAIAD_T1P',
-                     'GRCPAIAD_T2_5P', 'GRCPAIAD_T6_10P', 'GRCPAISAD_T1P', 'GRCPAISAD_T2_5P', 'GRCPAISAD_T6_10P',
-                     'GRCPAISAD_T11_20P', 'GRCPBCAD_T1P', 'GRCPBCAD_T2_5P', 'GRCPBCAD_T6_10P', 'GRCPBCAD_T11_20P',
-                     'GRCPBCSAD_T1P', 'GRCPBCSAD_T2_5P', 'GRCPBCSAD_T6_10P', 'GRCPBCSAD_T11_20P',
-                     'GRCPBMAD_T1P', 'GRCPBMAD_T2_5P', 'GRCPBMAD_T6_10P', 'GRCPBMAD_T11_20P', 'GRCPNRAD_T1P',
-                     'GRCPNRAD_T2_5P', 'GRCPNRAD_T6_10P', 'GRCPNRAD_T11_20P', 'GRCPRCAD_T1P', 'GRCPRCAD_T2_5P',
-                     'GRCPRCAD_T6_10P', 'GRCPRCAD_T11_20P', 'H01_GGDPCVGDPFY_T1P', 'H01_GGDPCVGDPFY_T2_5P',
-                     'H01_GGDPCVGDPFY_T6_10P', 'H01_GGDPCVGDPFY_T11_20P', 'H05_GLFSEPTPOP_T1P', 'H05_GLFSEPTPOP_T2_5P',
-                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P']
-
-HIGH_NAN_COLUMNS = ['Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume', 'EBITDMargin',
-                    'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',
-                    'LTDebtToEquityYear', 'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent',
-                    'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM', 'ReturnOnAssetsYear',
-                    'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'RevenueGrowthRate10Years',
-                    'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
-                    'TotalDebtToEquityQuarter', 'bookValue', 'earningsPerShare', 'ebitda',
-                    'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
-                    'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
-
-PAST_RESULTS_DATE_REF_COLUMNS = ['one_week_comparison_date', 'two_week_comparison_date', 'four_week_comparison_date',
-                                 'eight_week_comparison_date', 'twelve_week_comparison_date',
-                                 'twenty_six_week_comparison_date', 'fifty_two_week_comparison_date']
-
-ALL_CONTINUOUS_COLUMNS = []
-ALL_CONTINUOUS_COLUMNS.extend(CONTINUOUS_COLUMNS)
-ALL_CONTINUOUS_COLUMNS.extend(PAST_RESULTS_CONTINUOUS_COLUMNS)
-ALL_CONTINUOUS_COLUMNS.extend(RECURRENT_COLUMNS)
-
-ALL_CATEGORICAL_COLUMNS = []
-ALL_CATEGORICAL_COLUMNS.extend(CATEGORICAL_COLUMNS)
-ALL_CATEGORICAL_COLUMNS.extend(PAST_RESULTS_CATEGORICAL_COLUMNS)
-
-COLUMNS_TO_REMOVE = []
-COLUMNS_TO_REMOVE.extend(HIGH_NAN_COLUMNS)
-COLUMNS_TO_REMOVE.extend(PAST_RESULTS_DATE_REF_COLUMNS)
-
-column_types = {
-    'symbol': 'category',
-    'one_week_bollinger_type': 'category',
-    'one_week_bollinger_prediction': 'category',
-    'two_week_bollinger_type': 'category',
-    'two_week_bollinger_prediction': 'category',
-    'four_week_bollinger_type': 'category',
-    'four_week_bollinger_prediction': 'category',
-    'eight_week_bollinger_type': 'category',
-    'eight_week_bollinger_prediction': 'category',
-    'twelve_week_bollinger_type': 'category',
-    'twelve_week_bollinger_prediction': 'category',
-    'twenty_six_week_bollinger_type': 'category',
-    'twenty_six_week_bollinger_prediction': 'category',
-    'fifty_two_week_bollinger_type': 'category',
-    'fifty_two_week_bollinger_prediction': 'category',
-}
-
-
-xgb_set_path = './models/xgb-sets/'
-industry_xgb_set_path = './models/xgb-industry-models/'
-
-
-def save(object, filename):
+def save(save_object, filename):
     """Saves a compressed object to disk
        """
-    # with gzip.open(filename, 'wb') as f:
-    #     f.write(pickle.dumps(object, protocol))
-    joblib.dump(object, filename)
+    joblib.dump(save_object, filename)
 
 
 # @profile
 def load(filename):
     """Loads a compressed object from disk
     """
-    # with gzip.open(filename, 'rb') as f:
-    #     file_content = f.read()
-    #
-    # object = pickle.loads(file_content)
-    # return object
     model_object = joblib.load(filename)
     return model_object
-
-
-def round_down(num, divisor):
-    return num - (num % divisor)
-
-
-# @profile
-@numba.jit
-def safe_log(input_array):
-    return_vals = input_array.copy()
-    neg_mask = return_vals < 0
-    return_vals = np.log1p(np.absolute(return_vals))
-    return_vals[neg_mask] *= -1.
-    return return_vals
-
-# @profile
-
-
-@numba.jit
-def safe_exp(input_array):
-    return_vals = input_array.copy()
-    neg_mask = return_vals < 0
-    return_vals = np.expm1(np.clip(np.absolute(return_vals), -7, 7))
-    return_vals[neg_mask] *= -1.
-    return return_vals
-
-
-@numba.jit
-def y_scaler(input_array):
-    transformed_array = safe_log(input_array)
-    scaler = MaxAbsScaler()
-    # transformed_array = scaler.fit_transform(transformed_array)
-    return transformed_array, scaler
-
-
-@numba.jit
-def y_inverse_scaler(prediction_array):
-    # scaler.inverse_transform(prediction_array)
-    transformed_array = prediction_array
-    transformed_array = safe_exp(transformed_array)
-    return transformed_array
-
-
-# @profile
-@numba.jit
-def mle(actual_y, prediction_y):
-    """
-    Compute the Root Mean  Log Error
-
-    Args:
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-    """
-
-    return np.mean(np.absolute(safe_log(prediction_y) - safe_log(actual_y)))
-
-
-# @profile
-@numba.jit
-def mle_eval(actual_y, eval_y):
-    """
-    Used during xgboost training
-
-    Args:
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
-    """
-    prediction_y = eval_y.get_label()
-    assert len(actual_y) == len(prediction_y)
-    return 'error', np.mean(np.absolute(safe_log(actual_y) - safe_log(prediction_y)))
-
-
-# @profile
-@numba.jit
-def mae_eval(y, y0):
-    y0 = y0.get_label()
-    assert len(y) == len(y0)
-    # return 'error', np.sqrt(np.mean(np.square(np.log(y + 1) - np.log(y0 + 1))))
-    return 'error', np.mean(np.absolute(y - y0)), False
-
-
-# @profile
-@numba.jit
-def safe_mape(actual_y, prediction_y):
-    """
-    Calculate mean absolute percentage error
-
-    Args:
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
-    """
-    # Ensure data shape is correct
-    actual_y = actual_y.reshape(actual_y.shape[0], )
-    prediction_y = prediction_y.reshape(prediction_y.shape[0], )
-    # Calculate MAPE
-    diff = np.absolute((actual_y - prediction_y) /
-                       np.clip(np.absolute(actual_y), 1., None))
-    return 100. * np.mean(diff)
-
-
-# @profile
-@numba.jit
-def mape_eval(actual_y, eval_y):
-    """
-    Used during xgboost training
-
-    Args:
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
-    """
-    prediction_y = eval_y.get_label()
-    assert len(actual_y) == len(prediction_y)
-    return 'error', safe_mape(actual_y, prediction_y)
-
-
-# @profile
-@numba.jit
-def mape_log_y(actual_y, prediction_y):
-    inverse_actual = actual_y.copy()
-    inverse_actual = y_inverse_scaler(inverse_actual)
-
-    inverse_prediction = prediction_y.copy()
-    inverse_prediction = y_inverse_scaler(inverse_prediction)
-
-    return safe_mape(inverse_actual, inverse_prediction)
-
-
-# @profile
-@numba.jit
-def mape_log_y_eval(actual_y, eval_y):
-    prediction_y = eval_y.get_label()
-    assert len(actual_y) == len(prediction_y)
-    return 'error', mape_log_y(actual_y, prediction_y)
-
-
-@numba.jit
-def mae_mape(actual_y, prediction_y):
-    mape = safe_mape(actual_y, prediction_y)
-    mae = mean_absolute_error(actual_y, prediction_y)
-    return mape * mae
-
-
-def flatten_array(np_array):
-    if np_array.ndim > 1:
-        new_array = np.concatenate(np_array)
-    else:
-        new_array = np_array
-
-    return new_array
-
-
-# @profile
-@numba.jit
-def sc_mean_absolute_percentage_error(y_true, y_pred):
-    diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            1.,
-                                            None))
-    return 100. * K.mean(diff, axis=-1)
 
 
 # @profile
@@ -418,27 +91,6 @@ def convert_date(df, column_name):
                                         "_DAYOFWEEK"].astype('int32', errors='ignore')
 
 
-# @profile
-# def setup_data_columns(df):
-#     # # Remove columns not referenced in either algorithm
-#     # columns_to_keep = [LABEL_COLUMN, 'quoteDate', 'exDividendDate']
-#     #
-#     # # Add continuous and categorical columns
-#     # columns_to_keep.extend(CONTINUOUS_COLUMNS)
-#     # columns_to_keep.extend(CATEGORICAL_COLUMNS)
-#     # columns_to_keep.extend(FUTURE_RESULTS_COLUMNS)
-#     # Drop columns not in keep list
-#
-#     columns_to_keep = []
-#     # Keep columns not in high nan list
-#     for col in df.columns.values:
-#         if col not in HIGH_NAN_COLUMNS:
-#             columns_to_keep.append(col)
-#
-#
-#     return_df = drop_unused_columns(df, columns_to_keep)
-#     return return_df
-
 @numba.jit
 def generate_label_column(df, num_weeks, reference_date, date_col):
     """ Generate a label column for each record num_weeks in the future
@@ -453,13 +105,6 @@ def generate_label_column(df, num_weeks, reference_date, date_col):
 
     # Array to hold completed dataframes
     symbol_dfs = []
-
-    # ### TEMP DEBUG ##############
-    # symbols = symbols.head(10)
-    # ####################
-
-    # Create empty data frame
-    # output_df = pd.DataFrame()
 
     for symbol in symbols:
         gc.collect()
@@ -687,13 +332,6 @@ def divide_data(share_data):
     test_y_dfs = []
     test_actuals_dfs = []
 
-    # symbols_train_x = {}
-    # symbols_train_y = {}
-    # symbols_train_actuals = {}
-    # symbols_test_x = {}
-    # symbols_test_y = {}
-    # symbols_test_actuals = {}
-
     # Shuffle symbols into random order
     np.random.shuffle(symbols)
 
@@ -716,9 +354,9 @@ def divide_data(share_data):
         # df_test.reset_index()
 
         # Make sure a minimum number of rows are present in sample for symbol
-        if (len(df_train) > 50):
+        if len(df_train) > 50:
             # Check whether this will have its own model or the generic model
-            if (len(df_train) > 150):
+            if len(df_train) > 150:
                 df_train.loc[:, 'model'] = df_train.loc[:, 'symbol']
                 df_test.loc[:, 'model'] = df_test.loc[:, 'symbol']
                 symbol_models.append(symbol)
@@ -740,10 +378,6 @@ def divide_data(share_data):
             symbol_map[symbol] = symbol_num
 
         symbol_num += 1
-
-        # ### TEMP DEBUG ##############
-        # if symbol_num >= 100:
-        #     break
 
     # Create concatenated dataframes with all data
     print('Creating concatenated dataframes')
@@ -778,25 +412,7 @@ def divide_data(share_data):
     print('Saving symbol-models-list')
     save(symbol_models, 'models/symbol-models-list.pkl.gz')
 
-    # return symbol_map, symbols_train_y, symbols_train_actuals, symbols_train_x, symbols_test_actuals, \
-    #        symbols_test_y, symbols_test_x, df_all_train_y, df_all_train_actuals, df_all_train_x, \
-    #        df_all_test_actuals, df_all_test_y, df_all_test_x
-
     return symbol_map, df_all_train_y, df_all_train_actuals, df_all_train_x, df_all_test_actuals, df_all_test_y, df_all_test_x
-
-
-# def train_one_hot_string_encoder(df, cols):
-#     gs = Smarties()
-
-#     # Create one hot encoded columns
-#     new_cols = gs.fit_transform(df[cols])
-
-#     # Drop original value columns
-#     df.drop(cols, axis=1, inplace=True, errors='ignore')
-#     df = pd.concat([df, new_cols])
-
-#     # Return dataframe and encoder
-#     return df, gs
 
 
 def execute_one_hot_string_encoder(df, cols):  # , gs):
@@ -956,7 +572,7 @@ def execute_scaler(df, scaler):
     return df
 
 
-def train_preprocessor(train_x_df, train_y_df):
+def train_preprocessor(train_x_df):
     print('Training pre-processor...')
 
     print('One hot encoding past results categorical columns')
@@ -965,7 +581,7 @@ def train_preprocessor(train_x_df, train_y_df):
     gc.collect()
 
     print('Encoding symbol values')
-    train_x_df, se = train_rar_encoder(train_x_df, 'symbol')
+    train_x_df, symbol_encoder = train_rar_encoder(train_x_df, 'symbol')
     gc.collect()
 
     print('Imputing missing values')
@@ -976,23 +592,16 @@ def train_preprocessor(train_x_df, train_y_df):
     train_x_df, scaler = train_scaler(train_x_df)
     gc.collect()
 
-    # print('Encoding categorical data...')
-    # # Use categorical entity embedding encoder
-    #
-    # ce = Categorical_encoder(strategy="entity_embedding", verbose=True)
-    # # Transform everything except the model name
-    # df_train_transform = ce.fit_transform(train_x_df, train_y_df[0])
-
     # Write one hot encoder, symbol encoder, scaler and categorical encoder to files
-    save(se, 'models/se.pkl.gz')
+    save(symbol_encoder, 'models/se.pkl.gz')
     save(imputer, 'models/imputer.pkl.gz')
     save(scaler, 'models/scaler.pkl.gz')
     # save(ce, 'models/ce.pkl.gz')
 
-    return train_x_df, se, imputer, scaler
+    return train_x_df, symbol_encoder, imputer, scaler
 
 
-def execute_preprocessor(transform_df, se, imputer, scaler):
+def execute_preprocessor(transform_df, symbol_encoder, imputer, scaler):
     print('Executing pre-processor on supplied data...')
 
     print('One hot encoding past results categorical columns')
@@ -1001,7 +610,7 @@ def execute_preprocessor(transform_df, se, imputer, scaler):
     gc.collect()
 
     print('Encoding symbol values')
-    transform_df = execute_rar_encoder(transform_df, se, 'symbol')
+    transform_df = execute_rar_encoder(transform_df, symbol_encoder, 'symbol')
     gc.collect()
 
     print('Imputing missing values')
@@ -1015,10 +624,6 @@ def execute_preprocessor(transform_df, se, imputer, scaler):
     transform_df = execute_scaler(transform_df, scaler)
     gc.collect()
 
-    # print('Encoding categorical data...')
-    # # Use categorical entity embedding encoder
-    # transform_df = ce.transform(transform_df)
-
     return transform_df
 
 
@@ -1027,9 +632,9 @@ def load_xgb_models(model_type='symbol'):
     all_xgb_models = {}
 
     if model_type == 'symbol':
-        model_path = xgb_set_path
+        model_path = XGB_SET_PATH
     else:
-        model_path = industry_xgb_set_path
+        model_path = INDUSTRY_XGB_SET_PATH
 
     print('Loading files from', model_path)
     # Return files in path
@@ -1053,14 +658,14 @@ def train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x
                      model_type='symbol'):
 
     if model_type == 'symbol':
-        model_path = xgb_set_path
+        model_path = XGB_SET_PATH
     else:
-        model_path = industry_xgb_set_path
+        model_path = INDUSTRY_XGB_SET_PATH
 
     # clear previous models
     files = glob.glob(model_path + '*.model.gz')
-    for f in files:
-        os.remove(f)
+    for file in files:
+        os.remove(file)
 
     # Retrieve model name list
     model_names = np.unique(train_x_model_names)
@@ -1110,7 +715,7 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     all_test_actuals = df_all_test_actuals.values
     all_test_y = df_all_test_y.values
     all_test_x = df_all_test_x.values
-    all_test_log_y = safe_log(all_test_y)
+    # all_test_log_y = safe_log(all_test_y)
 
     print('Training xgboost log of y model for', model_set_name)
     x_train, x_test, y_train, y_test = train_test_split(
@@ -1129,9 +734,6 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     log_y_model = load('./temp/xgb-log-y.model.gz')
 
     gc.collect()
-
-    # output feature importances
-    # print(log_y_model.feature_importances_)
 
     predictions = log_y_model.predict(all_test_x)
     inverse_scaled_predictions = safe_exp(predictions)
@@ -1174,9 +776,6 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
 
     gc.collect()
 
-    # output feature importances
-    # print(keras_mae_model.feature_importances_)
-
     keras_log_predictions = keras_mae_model.predict(stacked_vals_test)
     # ### Double exp #######
     keras_inverse_scaled_predictions = safe_exp(keras_log_predictions)
@@ -1210,9 +809,6 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     keras_log_mae_model = load('./temp/xgb-keras-log-mae.model.gz')
 
     gc.collect()
-
-    # output feature importances
-    # print(keras_log_mae_model.feature_importances_)
 
     keras_log_log_predictions = keras_log_mae_model.predict(stacked_vals_test)
     # ### Double exp #######
@@ -1324,7 +920,7 @@ def train_general_model(df_all_train_x, df_all_train_y, df_all_test_actuals, df_
     all_test_actuals = df_all_test_actuals.values
     all_test_y = df_all_test_y.values
     all_test_x = df_all_test_x.values
-    all_test_log_y = safe_log(all_test_y)
+    # all_test_log_y = safe_log(all_test_y)
 
     print('Training xgboost log of y model...')
     x_train, x_test, y_train, y_test = train_test_split(
@@ -1457,11 +1053,11 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     # Load values into numpy arrays - drop the model name for use with xgb
     train_y = df_all_train_y.values
     train_actuals = df_all_train_actuals.values
-    train_log_y = safe_log(train_y)
+    # train_log_y = safe_log(train_y)
     train_x = df_all_train_x.values
     test_actuals = df_all_test_actuals.values
-    test_y = df_all_test_y.values
-    test_log_y = safe_log(test_y)
+    # test_y = df_all_test_y.values
+    # test_log_y = safe_log(test_y)
     test_x = df_all_test_x.values
 
     print('Training keras mape model...')
@@ -1484,39 +1080,35 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     if use_previous_training_weights and Path('./weights/weights-1.hdf5').exists():
         p_model.load_weights('./weights/weights-1.hdf5')
 
-    reduce_lr = ReduceLROnPlateau(
-        monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    # reduce_lr = ReduceLROnPlateau(
+    #     monitor='val_loss', factor=0.2, verbose=1, patience=3)
     early_stopping = EarlyStopping(monitor='val_loss', patience=12)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-1.hdf5', verbose=0, save_best_only=True)
 
     # Reorder array - get array index
-    s = np.arange(train_x.shape[0])
+    array_index = np.arange(train_x.shape[0])
 
     # Vals *.85 (train / test split) / batch size * num epochs for cycle
-    step_size = math.ceil(s.shape[0] * .85 / 256) * 4
+    step_size = math.ceil(array_index.shape[0] * .85 / 256) * 4
     clr = CyclicLR(base_lr=0.001, max_lr=0.04, step_size=step_size)
     # Reshuffle index
-    np.random.shuffle(s)
+    np.random.shuffle(array_index)
 
     # Create array using new index
-    x_shuffled_train = train_x[s]
-    y_shuffled_train = train_actuals[s]
+    x_shuffled_train = train_x[array_index]
+    y_shuffled_train = train_actuals[array_index]
 
-    history = p_model.fit(x_shuffled_train,
-                          y_shuffled_train,
-                          validation_split=0.15,
-                          epochs=20000,
-                          batch_size=network['batch_size'],
-                          callbacks=[  # reduce_lr,#
-                              early_stopping, csv_logger, checkpointer, clr],
-                          verbose=0)
-
-    # plt.xlabel('Learning Rate')
-    # plt.ylabel('Loss')
-    # plt.title("CLR Min Max Learning - MAPE")
-    # plt.plot(clr.history['lr'], clr.history['loss'], )
+    # history = p_model.fit(x_shuffled_train,
+    p_model.fit(x_shuffled_train,
+                y_shuffled_train,
+                validation_split=0.15,
+                epochs=20000,
+                batch_size=network['batch_size'],
+                callbacks=[  # reduce_lr,#
+                    early_stopping, csv_logger, checkpointer, clr],
+                verbose=0)
 
     p_model.load_weights('./weights/weights-1.hdf5')
 
@@ -1558,35 +1150,28 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     print('Training keras mae model...')
 
     # Reorder array - get array index
-    s = np.arange(train_x.shape[0])
+    array_index = np.arange(train_x.shape[0])
 
-    # Temporary get less data
-    # s = s[0:20000]
-
-    step_size = math.ceil(s.shape[0] * .85 / 512) * 100
+    step_size = math.ceil(array_index.shape[0] * .85 / 512) * 100
     clr = CyclicLR(base_lr=0.001, max_lr=0.04,
                    step_size=step_size, mode='exp_range', gamma=0.96)
 
     # Reshuffle index
-    np.random.shuffle(s)
+    np.random.shuffle(array_index)
 
     # Create array using new index
-    x_shuffled_train = train_x[s]
-    y_shuffled_train = train_y[s]
+    x_shuffled_train = train_x[array_index]
+    y_shuffled_train = train_y[array_index]
 
-    history = model.fit(x_shuffled_train,
-                        y_shuffled_train,
-                        validation_split=0.15,
-                        epochs=20000,
-                        batch_size=network['batch_size'],
-                        callbacks=[  # reduce_lr,
-                            early_stopping, checkpointer, csv_logger, clr],
-                        verbose=0)
-
-    # plt.xlabel('Learning Rate')
-    # plt.ylabel('Loss')
-    # plt.title("CLR Min Max Learning - MAE")
-    # plt.plot(clr.history['lr'], clr.history['loss'])
+    # history = model.fit(x_shuffled_train,
+    model.fit(x_shuffled_train,
+              y_shuffled_train,
+              validation_split=0.15,
+              epochs=20000,
+              batch_size=network['batch_size'],
+              callbacks=[  # reduce_lr,
+                  early_stopping, checkpointer, csv_logger, clr],
+              verbose=0)
 
     model.load_weights('./weights/weights-2.hdf5')
 
@@ -1610,10 +1195,6 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     gc.collect()
 
-    # Construct models which output final twelve weights as predictions
-    # mape_intermediate_model = Model(inputs=p_model.input,
-    #                                  outputs=p_model.get_layer('mape_twelve').output)
-    #
     mae_intermediate_model = Model(inputs=model.input,
                                    outputs=model.get_layer('int_layer').output)
 
@@ -1641,8 +1222,8 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
 
-    reduce_lr = ReduceLROnPlateau(
-        monitor='val_loss', factor=0.2, verbose=1, patience=2)
+    # reduce_lr = ReduceLROnPlateau(
+    #     monitor='val_loss', factor=0.2, verbose=1, patience=2)
     early_stopping = EarlyStopping(monitor='val_loss', patience=7)
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(
@@ -1671,21 +1252,17 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
 
     print('\rNetwork')
 
-    for property in network:
-        print(property, ':', network[property])
+    for network_property in network:
+        print(network_property, ':', network[network_property])
 
-    history = model.fit(train_x_scaled, train_y,
-                        batch_size=network['batch_size'],
-                        epochs=2000,
-                        verbose=0,
-                        validation_split=0.2,
-                        callbacks=[csv_logger, clr,  # reduce_lr,
-                                   early_stopping, checkpointer])
-
-    # plt.xlabel('Learning Rate')
-    # plt.ylabel('Loss')
-    # plt.title("CLR Min Max Learning - deep bagging")
-    # plt.plot(clr.history['lr'], clr.history['loss'], )
+    # history = model.fit(train_x_scaled, train_y,
+    model.fit(train_x_scaled, train_y,
+              batch_size=network['batch_size'],
+              epochs=2000,
+              verbose=0,
+              validation_split=0.2,
+              callbacks=[csv_logger, clr,  # reduce_lr,
+                         early_stopping, checkpointer])
 
     print('\rResults')
 
@@ -1754,7 +1331,7 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
         symbol_actuals = actuals[pred_index]
 
         # execute val for symbol
-        symbol_results = eval_results({symbol: {
+        this_symbol_results = eval_results({symbol: {
             'actual_y': symbol_actuals,
             'y_predict': symbol_predictions
         }
@@ -1774,8 +1351,8 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
             'median_predicted_val': [median_predicted_val],
         }
         # Add results values
-        for key in symbol_results[symbol]:
-            symbol_dict[key] = [symbol_results[symbol][key]]
+        for key in this_symbol_results[symbol]:
+            symbol_dict[key] = [this_symbol_results[symbol][key]]
 
         # create data frame from results
         df_symbol_result = pd.DataFrame.from_dict(symbol_dict)
@@ -1787,9 +1364,9 @@ def symbol_results(symbols_x, predictions, actuals, run_str):
     df_results.to_csv('./results/' + run_str + '.csv')
 
 
-def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_GICSIndustryGroup,
+def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_gics_industry_groups,
                                    df_all_train_actuals, df_all_test_x, test_x_model_names,
-                                   test_x_GICSIndustryGroup, df_all_test_actuals, xgb_models,
+                                   test_x_gics_industry_groups, df_all_test_actuals, xgb_models,
                                    xgb_industry_models, keras_models):
     print('Executing and exporting predictions data...')
     # export results
@@ -1799,10 +1376,10 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_
         'data/train_actuals.pkl.gz', compression='gzip')
 
     train_y_predictions = execute_model_predictions(df_all_train_x, train_x_model_names,
-                                                    train_x_GICSIndustryGroup, xgb_models,
+                                                    train_x_gics_industry_groups, xgb_models,
                                                     xgb_industry_models, keras_models)
     test_y_predictions = execute_model_predictions(df_all_test_x, test_x_model_names,
-                                                   test_x_GICSIndustryGroup, xgb_models,
+                                                   test_x_gics_industry_groups, xgb_models,
                                                    xgb_industry_models, keras_models)
 
     train_predictions = pd.DataFrame.from_dict({
@@ -1830,7 +1407,7 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_
     return train_predictions, test_predictions
 
 
-def execute_model_predictions(df_x, x_model_names, x_GICSIndustryGroup, xgb_models, xgb_industry_models,
+def execute_model_predictions(df_x, x_model_names, x_gics_industry_groups, xgb_models, xgb_industry_models,
                               keras_models):
     print('Executing xgb symbol predictions')
     xgb_predictions = execute_xgb_predictions(
@@ -1840,7 +1417,7 @@ def execute_model_predictions(df_x, x_model_names, x_GICSIndustryGroup, xgb_mode
     xgboost_keras_log_predictions = xgb_predictions['keras_log_mae_predictions']
 
     print('Executing xgb industry predictions')
-    xgb_industry_predictions = execute_xgb_predictions(df_x, x_GICSIndustryGroup, xgb_industry_models,
+    xgb_industry_predictions = execute_xgb_predictions(df_x, x_gics_industry_groups, xgb_industry_models,
                                                        keras_models)
     gen_industry_predictions = xgb_industry_predictions['log_y_predictions']
 
@@ -1884,278 +1461,10 @@ def fix_categorical(categorical_data):
     unique_vals = categorical_data.unique()
     category_renamer = {}
 
-    for index in range(0, len(unique_vals)):
-        category_renamer[unique_vals[index]
-                         ] = convert_file_string(unique_vals[index])
+    for element in enumerate(unique_vals):
+        category_renamer[element] = convert_file_string(element)
 
     print('Converting categories')
     print(category_renamer)
 
     return categorical_data.rename_categories(category_renamer)
-
-
-def main(run_config):
-    # Prepare run_str
-    run_str = datetime.now().strftime('%Y%m%d%H%M')
-
-    initialise_print_logger('logs/training-' + run_str + '.log')
-
-    print('Starting sharecast run:', run_str)
-
-    # Check whether we can skip all preprocessing steps
-    needs_preprocessing = False
-
-    if run_config.get('use_previous_training_weights') is True:
-        use_previous_training_weights = True
-    else:
-        use_previous_training_weights = False
-
-    if run_config.get('load_data') is True:
-        needs_preprocessing = True
-
-    if run_config.get('train_pre_process') is True:
-        needs_preprocessing = True
-
-    # Retrieve and divide data
-    if needs_preprocessing:
-        if run_config.get('load_data') is True:
-            # Load and divide data
-            if run_config.get('generate_labels') is True:
-                share_data = load_data(run_config['unlabelled_data_file'],
-                                       drop_unlabelled=True,
-                                       drop_labelled=False,
-                                       generate_labels=True,
-                                       label_weeks=run_config['generate_label_weeks'],
-                                       reference_date=run_config['reference_date'],
-                                       labelled_file_name=run_config['labelled_data_file']
-                                       )
-            else:
-                share_data = load_data(run_config['labelled_data_file'])
-            gc.collect()
-
-            # Divide data into symbol sand general data for training an testing
-            symbol_map, df_all_train_y, df_all_train_actuals, df_all_train_x, df_all_test_actuals, \
-                df_all_test_y, df_all_test_x = divide_data(share_data)
-
-            del share_data
-            gc.collect()
-
-            # Save data after dividing
-            df_all_train_x.to_pickle(
-                'data/pp_train_x_df.pkl.gz', compression='gzip')
-            df_all_train_y.to_pickle(
-                'data/df_all_train_y.pkl.gz', compression='gzip')
-            df_all_train_actuals.to_pickle(
-                'data/df_all_train_actuals.pkl.gz', compression='gzip')
-            df_all_test_x.to_pickle(
-                'data/pp_test_x_df.pkl.gz', compression='gzip')
-            df_all_test_y.to_pickle(
-                'data/df_all_test_y.pkl.gz', compression='gzip')
-            df_all_test_actuals.to_pickle(
-                'data/df_all_test_actuals.pkl.gz', compression='gzip')
-
-        else:
-            # Data already divided
-            print('Loading divided data')
-            df_all_train_x = pd.read_pickle(
-                'data/pp_train_x_df.pkl.gz', compression='gzip')
-            df_all_train_y = pd.read_pickle(
-                'data/df_all_train_y.pkl.gz', compression='gzip')
-            df_all_train_actuals = pd.read_pickle(
-                'data/df_all_train_actuals.pkl.gz', compression='gzip')
-            df_all_test_x = pd.read_pickle(
-                'data/pp_test_x_df.pkl.gz', compression='gzip')
-            df_all_test_y = pd.read_pickle(
-                'data/df_all_test_y.pkl.gz', compression='gzip')
-            df_all_test_actuals = pd.read_pickle(
-                'data/df_all_test_actuals.pkl.gz', compression='gzip')
-
-        # Retain model names for train and test
-        print('Retaining model name data')
-        train_x_model_names = df_all_train_x['model'].values
-        train_x_GICSSector = df_all_train_x['GICSSector'].values
-        train_x_GICSIndustryGroup = df_all_train_x['GICSIndustryGroup'].values
-        train_x_GICSIndustry = df_all_train_x['GICSIndustry'].values
-
-        test_x_model_names = df_all_test_x['model'].values
-        test_x_GICSSector = df_all_test_x['GICSSector'].values
-        test_x_GICSIndustryGroup = df_all_test_x['GICSIndustryGroup'].values
-        test_x_GICSIndustry = df_all_test_x['GICSIndustry'].values
-
-        # Fix the names used in the GICS data - remove '&' ',' and ' '
-        train_x_GICSSector = fix_categorical(train_x_GICSSector)
-        train_x_GICSIndustryGroup = fix_categorical(train_x_GICSIndustryGroup)
-        train_x_GICSIndustry = fix_categorical(train_x_GICSIndustry)
-        test_x_GICSSector = fix_categorical(test_x_GICSSector)
-        test_x_GICSIndustryGroup = fix_categorical(test_x_GICSIndustryGroup)
-        test_x_GICSIndustry = fix_categorical(test_x_GICSIndustry)
-
-        save(train_x_model_names, 'data/train_x_model_names.pkl.gz')
-        save(train_x_GICSSector, 'data/train_x_GICSSector.pkl.gz')
-        save(train_x_GICSIndustryGroup, 'data/train_x_GICSIndustryGroup.pkl.gz')
-        save(train_x_GICSIndustry, 'data/train_x_GICSIndustry.pkl.gz')
-
-        save(test_x_model_names, 'data/test_x_model_names.pkl.gz')
-        save(test_x_GICSSector, 'data/test_x_GICSSector.pkl.gz')
-        save(test_x_GICSIndustryGroup, 'data/test_x_GICSIndustryGroup.pkl.gz')
-        save(test_x_GICSIndustry, 'data/test_x_GICSIndustry.pkl.gz')
-
-        # Drop model names and GICS values
-        df_all_train_x = df_all_train_x.drop(
-            ['model', 'GICSSector', 'GICSIndustryGroup', 'GICSIndustry'], axis=1)
-        df_all_test_x = df_all_test_x.drop(
-            ['model', 'GICSSector', 'GICSIndustryGroup', 'GICSIndustry'], axis=1)
-
-        df_all_train_x.info()
-        df_all_test_x.info()
-
-        if run_config.get('train_pre_process') is True:
-            # Execute pre-processing trainer
-            df_all_train_x, se, imputer, scaler = train_preprocessor(
-                df_all_train_x, df_all_train_y)
-            df_all_test_x = execute_preprocessor(
-                df_all_test_x, se, imputer, scaler)
-
-            # Write processed data to files
-            df_all_train_x.to_pickle(
-                'data/df_all_train_x.pkl.gz', compression='gzip')
-            df_all_test_x.to_pickle(
-                'data/df_all_test_x.pkl.gz', compression='gzip')
-
-        if run_config.get('load_and_execute_pre_process') is True:
-            print('Loading pre-processing models')
-            # Load pre-processing models
-            se = load('models/se.pkl.gz')
-            imputer = load('models/imputer.pkl.gz')
-            scaler = load('models/scaler.pkl.gz')
-
-            print('Executing pre-processing')
-            # Execute pre-processing
-            df_all_train_x = execute_preprocessor(
-                df_all_train_x, se, imputer, scaler)
-            df_all_test_x = execute_preprocessor(
-                df_all_test_x, se, imputer, scaler)
-
-            # Write processed data to files
-            df_all_train_x.to_pickle(
-                'data/df_all_train_x.pkl.gz', compression='gzip')
-            df_all_test_x.to_pickle(
-                'data/df_all_test_x.pkl.gz', compression='gzip')
-
-    else:
-        print('Load model name data')
-        train_x_model_names = load('data/train_x_model_names.pkl.gz')
-        test_x_model_names = load('data/test_x_model_names.pkl.gz')
-        train_x_GICSSector = load('data/train_x_GICSSector.pkl.gz')
-        train_x_GICSIndustryGroup = load(
-            'data/train_x_GICSIndustryGroup.pkl.gz')
-        train_x_GICSIndustry = load('data/train_x_GICSIndustry.pkl.gz')
-        test_x_GICSSector = load('data/test_x_GICSSector.pkl.gz')
-        test_x_GICSIndustryGroup = load('data/test_x_GICSIndustryGroup.pkl.gz')
-        test_x_GICSIndustry = load('data/test_x_GICSIndustry.pkl.gz')
-
-    if run_config.get('load_processed_data') is True:
-        print('Loading pre-processed data')
-        df_all_train_x = pd.read_pickle(
-            'data/df_all_train_x.pkl.gz', compression='gzip')
-        df_all_train_y = pd.read_pickle(
-            'data/df_all_train_y.pkl.gz', compression='gzip')
-        df_all_train_actuals = pd.read_pickle(
-            'data/df_all_train_actuals.pkl.gz', compression='gzip')
-        df_all_test_x = pd.read_pickle(
-            'data/df_all_test_x.pkl.gz', compression='gzip')
-        df_all_test_y = pd.read_pickle(
-            'data/df_all_test_y.pkl.gz', compression='gzip')
-        df_all_test_actuals = pd.read_pickle(
-            'data/df_all_test_actuals.pkl.gz', compression='gzip')
-
-    if run_config.get('train_keras') is True:
-        # Train keras models
-        keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
-                                      df_all_test_y, df_all_test_x, use_previous_training_weights)
-    else:
-        print('Loading keras models')
-        # Load keras models
-        keras_models = {
-            'mape_model': load_model('models/keras-mape-model.h5', custom_objects={
-                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
-                'k_mae_mape': k_mae_mape,
-            }),
-            'mae_model': load_model('models/keras-mae-model.h5', custom_objects={
-                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
-                'k_mae_mape': k_mae_mape,
-            }),
-            'mae_intermediate_model': load_model('models/keras-mae-intermediate-model.h5', custom_objects={
-                'k_mean_absolute_percentage_error': k_mean_absolute_percentage_error,
-                'k_mae_mape': k_mae_mape,
-            }),
-        }
-
-    if run_config.get('train_xgb') is True:
-        train_xgb_models(df_all_train_x, df_all_train_y, train_x_model_names, test_x_model_names,
-                         df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models, 'symbol')
-
-    print('Loading xgboost symbol model list')
-    xgb_models = load_xgb_models('symbol')
-
-    if run_config.get('train_industry_xgb') is True:
-        train_xgb_models(df_all_train_x, df_all_train_y, train_x_GICSIndustryGroup, test_x_GICSIndustryGroup,
-                         df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models, 'industry')
-
-    print('Loading xgboost industry model list')
-    xgb_industry_models = load_xgb_models('industry')
-
-    # Export data prior to bagging
-    train_predictions, test_predictions = execute_train_test_predictions(df_all_train_x,
-                                                                         train_x_model_names,
-                                                                         train_x_GICSIndustryGroup,
-                                                                         df_all_train_actuals,
-                                                                         df_all_test_x,
-                                                                         test_x_model_names,
-                                                                         test_x_GICSIndustryGroup,
-                                                                         df_all_test_actuals,
-                                                                         xgb_models,
-                                                                         xgb_industry_models,
-                                                                         keras_models)
-
-    if run_config.get('train_deep_bagging') is True:
-        bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
-                                                                                    df_all_train_actuals,
-                                                                                    test_predictions,
-                                                                                    df_all_test_actuals,
-                                                                                    use_previous_training_weights)
-    else:
-        print('Loading bagging models')
-        bagging_model = load_model('models/keras-bagging-model.h5')
-        bagging_scaler = load('models/deep-bagging-scaler.pkl.gz')
-        deep_bagged_predictions = execute_deep_bagging(
-            bagging_model, bagging_scaler, test_predictions)
-
-    # Add deep bagged predictions to set
-    test_predictions['deep_bagged_predictions'] = deep_bagged_predictions
-
-    assess_results(test_predictions, test_x_model_names,
-                   df_all_test_actuals, run_str)
-
-    print('Execution completed')
-
-
-if __name__ == "__main__":
-    run_config = {
-        'load_data': False,
-        'generate_labels': False,
-        'generate_label_weeks': 8,
-        'reference_date': '2018-05-12',
-        'unlabelled_data_file': './data/ml-20180512-processed.pkl.gz',
-        'labelled_data_file': './data/ml-20180512-labelled.pkl.gz',
-        'train_pre_process': False,
-        'load_and_execute_pre_process': False,
-        'load_processed_data': True,
-        'train_keras': False,
-        'use_previous_training_weights': False,
-        'train_xgb': False,
-        'train_industry_xgb': False,
-        'train_deep_bagging': True,
-    }
-
-    main(run_config)

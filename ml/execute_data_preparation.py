@@ -1,9 +1,11 @@
-import pandas as pd
-from timeit import default_timer as timer
 import math
+import gc
+from timeit import default_timer as timer
+from datetime import datetime
 import numba
-from xgboost_general_symbol_ensemble_sharecast import *
-from optimise_dataframe import *
+import pandas as pd
+from processing_constants import PAST_RESULTS_DATE_REF_COLUMNS, HIGH_NAN_COLUMNS
+from optimise_dataframe import optimise_df
 
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
@@ -55,7 +57,10 @@ OLD_RETURN_COLUMNS = ['Future1WeekDividend',
 
 
 @numba.jit
-def calculate_week_stats(num_weeks, df, price_col):
+def calculate_week_stats(num_weeks: int, df: pd.DataFrame, price_col: str):
+    """
+        Calculates the stats using a rolling window for the number of weeks specified.
+    """
     rolling_expression = str(num_weeks * 7) + 'D'
     rolling_window = df[price_col].rolling(rolling_expression)
     prefix = return_prefix(num_weeks)
@@ -112,7 +117,11 @@ def calculate_week_stats(num_weeks, df, price_col):
 
 
 @numba.jit
-def calculate_week_price_return(num_weeks, df, price_col):
+def calculate_week_price_return(num_weeks: int, df: pd.DataFrame, price_col: str):
+    """
+        Calculates the return based on the comparison of price to num_weeks ago
+    """
+
     df_col = df[price_col]
     index = df_col.index
     comparison_date = index - pd.DateOffset(weeks=num_weeks)
@@ -138,7 +147,13 @@ def calculate_week_price_return(num_weeks, df, price_col):
 
 
 @numba.jit
-def calculate_period_dividends(df, dividend_date_col, dividend_payout_col, start_date, end_date):
+def calculate_period_dividends(df: pd.DataFrame, dividend_date_col: str,
+                               dividend_payout_col: str, start_date: datetime,
+                               end_date: datetime):
+    """
+        Calculates the dividends (if any) payed out during with the time period.
+    """
+
     # Limit results to period
     ref_vals_df = df[(df.index >= start_date) & (df.index < end_date)]
     # Limit cols to dividens cols
@@ -157,7 +172,11 @@ def calculate_period_dividends(df, dividend_date_col, dividend_payout_col, start
 
 
 @numba.jit
-def return_dividends(dividend_period_start, dividend_period_end, unique_dividends):
+def return_dividends(dividend_period_start: datetime, dividend_period_end: datetime,
+                     unique_dividends: pd.Series):
+    """
+        Sums the dividends within the specified time period
+    """
     period_dividends = unique_dividends.loc[dividend_period_start: dividend_period_end]
     dividends = period_dividends['exDividendPayout'].sum()
     if math.isnan(dividends):
@@ -167,7 +186,13 @@ def return_dividends(dividend_period_start, dividend_period_end, unique_dividend
 
 
 @numba.jit
-def calculate_dividend_returns(num_weeks, df, price_col, dividend_date_col, dividend_payout_col, unique_dividends):
+def calculate_dividend_returns(num_weeks: int, df: pd.DataFrame,
+                               price_col: str, dividend_date_col: str,
+                               dividend_payout_col: str,
+                               unique_dividends: pd.Series):
+    """
+        Calculates the dividends payed out in the last num_weeks.
+    """
     prefix = return_prefix(num_weeks)
     dividend_column = []
 
@@ -197,7 +222,10 @@ def calculate_dividend_returns(num_weeks, df, price_col, dividend_date_col, divi
 
 
 @numba.jit
-def generate_range_median(days_from, days_to, range_series):
+def generate_range_median(days_from: int, days_to: int, range_series: pd.Series):
+    """
+        Calculates a median value across a range of values prior to the current value
+    """
     # Create empty dictionary
     df_dict = {}
     # Populate dictionary with values in series
@@ -210,7 +238,11 @@ def generate_range_median(days_from, days_to, range_series):
 
 
 @numba.jit
-def append_recurrent_columns(df):
+def append_recurrent_columns(df: pd.DataFrame):
+    """
+        Adds a series of columns representing previous values at different time ranges.
+    """
+
     # Add extra columns for previous values, previous day, 2-5 day median, 6 - 10 median, 11-20 day median
     rec_df = df
     recurrent_columns = ['adjustedPrice', 'allordpreviousclose', 'asxpreviousclose', 'FXRUSD', 'FIRMMCRT',
@@ -242,7 +274,13 @@ def append_recurrent_columns(df):
 
 
 @numba.jit
-def add_stats_and_returns(num_weeks, df, price_col, dividend_date_col, dividend_payout_col, unique_dividends):
+def add_stats_and_returns(num_weeks: int, df: pd.DataFrame, price_col: str,
+                          dividend_date_col: str, dividend_payout_col: str,
+                          unique_dividends: pd.Series):
+    """
+        Executes processes to claculate all stats and return values for the last num_weeks
+    """
+
     # Set prefix for week
     prefix = return_prefix(num_weeks)
     # t1 = timer()
@@ -274,7 +312,10 @@ def add_stats_and_returns(num_weeks, df, price_col, dividend_date_col, dividend_
     return stats_df
 
 
-def return_prefix(week_num):
+def return_prefix(week_num: int):
+    """
+        Converts a numeric value to a string value to use for a column name
+    """
     # Change number to correct word prefix
     if week_num == 1:
         return 'one'
@@ -295,7 +336,10 @@ def return_prefix(week_num):
 
 
 @numba.jit
-def transform_symbol_returns(df, symbol):
+def transform_symbol_returns(df: pd.DataFrame, symbol: str):
+    """
+        Executes the calculations for returns acrued for a specific symbol
+    """
     # Set up config values for calculation
     return_weeks = [1, 2, 4, 8, 12, 26, 52]
     date_col = 'quoteDate'
@@ -305,7 +349,7 @@ def transform_symbol_returns(df, symbol):
     dividend_payout_col = 'exDividendPayout'
 
     print('Processing symbol: ', symbol)
-    t1 = timer()
+    t_1 = timer()
 
     # Reduce the data to the supplied symbol
     transformed_df = df.loc[df['symbol'] == symbol, :]
@@ -327,23 +371,27 @@ def transform_symbol_returns(df, symbol):
     # Add stats and return columns by num of weeks
     for week in return_weeks:
         # print('Processing week: ', week)
-        w1 = timer()
+        w_1 = timer()
         transformed_df = add_stats_and_returns(week, transformed_df, price_col, dividend_date_col, dividend_payout_col,
                                                unique_dividends)
-        w2 = timer()
-        print('Week ' + str(week) + ' took: ', w2 - w1)
+        w_2 = timer()
+        print('Week ' + str(week) + ' took: ', w_2 - w_1)
 
     # Add recurrent return columns
     transformed_df = append_recurrent_columns(transformed_df)
 
     transformed_df = optimise_df(transformed_df)
 
-    t3 = timer()
-    print('Processing symbol ' + symbol + ' took:', t3 - t1)
+    t_3 = timer()
+    print('Processing symbol ' + symbol + ' took:', t_3 - t_1)
     return transformed_df
 
 
-def process_dataset(df):
+def process_dataset(df: pd.DataFrame):
+    """
+        Prepares a dataset for prediction by working through each symbol and adding
+          returns and stats for each symbol and time period
+    """
     print('Dropping unused columns and setting date/time types and index')
     columns_to_drop = OLD_RETURN_COLUMNS
     columns_to_drop.extend(HIGH_NAN_COLUMNS)
@@ -364,7 +412,7 @@ def process_dataset(df):
     # Create list for symbol results
     symbol_dfs = []
 
-    s1 = timer()
+    s_1 = timer()
     for symbol in symbols:
         print(80*'-')
         symbol_df = transform_symbol_returns(df, symbol)
@@ -375,8 +423,8 @@ def process_dataset(df):
         symbol_count = symbol_count + 1
         # Every tenth symbol see how things are going
         if symbol_count % 100 == 0:
-            s2 = timer()
-            elapsed = s2 - s1
+            s_2 = timer()
+            elapsed = s_2 - s_1
             print(80*'-')
             print(str(symbol_count) + ' of ' + str(num_symbols) +
                   ' completed.  Elapsed time: ' + str(elapsed))
@@ -395,7 +443,11 @@ def process_dataset(df):
     return output_df
 
 
-def add_industry_categories(df, catgories_df):
+def add_industry_categories(df: pd.DataFrame, catgories_df: pd.DataFrame):
+    """
+        Adds the industry categpry (GICS) values to the dataset by matching on symbol
+    """
+
     print('Adding industry categories to data set')
     output_df = df.merge(catgories_df, left_on='symbol',
                          right_on='symbol', how='left')
@@ -403,7 +455,11 @@ def add_industry_categories(df, catgories_df):
     return output_df
 
 
-def load_data(base_path, no_files):
+def load_data(base_path: str, no_files: int):
+    """
+        Loads a series of data export files
+    """
+
     print('Loading', no_files, 'files for:', base_path)
     # Set the file increments range
     increments = range(1, (no_files + 1))
@@ -421,11 +477,15 @@ def load_data(base_path, no_files):
     return loading_data
 
 
-def main(load_config):
+def main(load_config: dict):
+    """
+        Runs the process of loading, executing predictions and (optionally) evaluating the
+          predictions for a data-set
+    """
     # Check whether to load individual files or an aggregated file
     if load_config.get('load_individual_data_files') is True:
         print('Loading individual data files')
-        l1 = timer()
+        l_1 = timer()
         df = load_data(load_config.get('base_path'),
                        load_config.get('no_files'))
         gc.collect()
@@ -434,15 +494,15 @@ def main(load_config):
         print('Saving data')
         df.to_pickle(
             'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
-        l2 = timer()
-        print('Loading and saving individual data took:', l2 - l1)
+        l_2 = timer()
+        print('Loading and saving individual data took:', l_2 - l_1)
     else:
         print('Loading aggregated data files')
-        l1 = timer()
+        l_1 = timer()
         df = pd.read_pickle(
             'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
-        l2 = timer()
-        print('Loading aggregated data file took:', l2 - l1)
+        l_2 = timer()
+        print('Loading aggregated data file took:', l_2 - l_1)
 
     # Load the industry-symbol values
     if load_config.get('add_industry_categories') is True:

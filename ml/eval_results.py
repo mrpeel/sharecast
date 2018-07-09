@@ -1,11 +1,11 @@
-from __future__ import print_function
 import pandas as pd
 import numpy as np
 from sklearn.metrics import mean_absolute_error, explained_variance_score, r2_score, median_absolute_error
-from print_logger import *
-
+from print_logger import print
 
 # @profile
+
+
 def safe_mape(actual_y, prediction_y):
     """
     Calculate mean absolute percentage error
@@ -54,7 +54,7 @@ def range_results(predictions, actuals):
         range_actuals = actuals[range_mask]
         # Re-shape the actuals array
         range_actuals = range_actuals.reshape(range_actuals.shape[0], 1)
-        range_results = {}
+        prediction_range_results = {}
 
         for prediction_name in predictions:
             all_predictions = predictions[prediction_name]
@@ -63,15 +63,15 @@ def range_results(predictions, actuals):
                 all_predictions.shape[0], 1)
             range_predictions = all_predictions[range_mask]
 
-            if len(range_predictions) > 0:
-                range_results[prediction_name] = {
+            if range_predictions:
+                prediction_range_results[prediction_name] = {
                     'mae': mean_absolute_error(range_actuals, range_predictions),
                     'mape': safe_mape(range_actuals, range_predictions),
                     'medae': median_absolute_error(range_actuals, range_predictions),
                     'num_vals': len(range_predictions),
                 }
             else:
-                range_results[prediction_name] = {
+                prediction_range_results[prediction_name] = {
                     'mae': 'N/A',
                     'mape': 'N/A,',
                     'medae': 'N/A,',
@@ -87,17 +87,18 @@ def range_results(predictions, actuals):
             'upper_range': [upper_range]
         }
 
-        for result in range_results:
+        for result in prediction_range_results:
             print('  ' + result)
-            print('    Mean absolute error: ', range_results[result]['mae'])
+            print('    Mean absolute error: ',
+                  prediction_range_results[result]['mae'])
             print('    Mean absolute percentage error: ',
-                  range_results[result]['mape'])
+                  prediction_range_results[result]['mape'])
             print('    Median absolute error: ',
-                  range_results[result]['medae'])
+                  prediction_range_results[result]['medae'])
 
-            pd_dict[result + '_mae'] = [range_results[result]['mae']]
-            pd_dict[result + '_mape'] = [range_results[result]['mape']]
-            pd_dict[result + '_medae'] = [range_results[result]['medae']]
+            pd_dict[result + '_mae'] = [prediction_range_results[result]['mae']]
+            pd_dict[result + '_mape'] = [prediction_range_results[result]['mape']]
+            pd_dict[result + '_medae'] = [prediction_range_results[result]['medae']]
 
         overall_results_output = overall_results_output.append(
             pd.DataFrame.from_dict(pd_dict))

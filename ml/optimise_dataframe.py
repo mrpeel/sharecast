@@ -1,5 +1,6 @@
 import pandas as pd
 from dateutil.parser import parse
+from print_logger import print
 
 
 def is_date(string):
@@ -13,7 +14,7 @@ def is_date(string):
         return False
 
 
-def is_date_col(df_col):
+def is_date_col(df_col: pd.Series):
     """
         Checks whether the first 100 values in a column convert to dates.
         If yes, returns that this is a date column.
@@ -29,7 +30,7 @@ def is_date_col(df_col):
     return date_col
 
 
-def is_category_col(df_col):
+def is_category_col(df_col: pd.Series):
     """
         Checks whether an object (string) column should be converted to a category.
         If on average there are two values for every category, column should be
@@ -41,12 +42,12 @@ def is_category_col(df_col):
     return bool((num_unique_values / num_total_values) < 0.5)
 
 
-def is_int8_col(df_col):
+def is_int8_col(df_col: pd.Series):
     """ Checks a numeric column only contains 0s and 1s """
     return df_col.isin([0, 1]).all()
 
 
-def optimise_df(df):
+def optimise_df(df: pd.Series):
     """
         Works through the columns of a dataframe and optimises for memory where
         possible.
@@ -69,10 +70,10 @@ def optimise_df(df):
             optimised_df[col] = df[col].astype('category')
         elif calulated_col_type == 'int8':
             print('Coverting to int8')
-            optimised_df[col] = df[col].astype('int8',  errors='ignore')
+            optimised_df[col] = df[col].astype('int8', errors='ignore')
         elif calulated_col_type == 'int32':
             print('Coverting to int32')
-            optimised_df[col] = df[col].astype('int32',  errors='ignore')
+            optimised_df[col] = df[col].astype('int32', errors='ignore')
         elif calulated_col_type == 'float32':
             print('Coverting to float32')
             optimised_df[col] = df[col].astype('float32', errors='ignore')
@@ -83,7 +84,7 @@ def optimise_df(df):
     return optimised_df
 
 
-def get_col_type(df_col):
+def get_col_type(df_col: pd.Series):
     """
     Returns a detailed type for a column:
         * date
