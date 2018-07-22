@@ -13,12 +13,13 @@ let sleep = function(ms) {
   });
 };
 
+
 /** Sets up or returns the duration of an activity
-* @param {Object} start - optional - for the end of an activity, the start
-*                          object to compare with
-* @return {Object} if no start is supplied, returns a start object; if startRec
-*                   is supplied, returns a duration object
-*/
+ * @param {Object} start - optional - for the end of an activity, the start
+ *                          object to compare with
+ * @return {Object} if no start is supplied, returns a start object; if startRec
+ *                   is supplied, returns a duration object
+ */
 let getTiming = function(start) {
   if (!start) {
     return process.hrtime();
@@ -29,21 +30,21 @@ let getTiming = function(start) {
 
 
 /** Returns a date in a set format: YYYY-MM-DD
-* @param {String} dateValue - the date string to parse
-* @param {String} dateFormat - a string defining the input format:
-*  YYYY	2014	4 or 2 digit year
-*  YY	14	2 digit year
-*  Y	-25	Year with any number of digits and sign
-*  Q	1..4	Quarter of year. Sets month to first month in quarter.
-*  M MM	1..12	Month number
-*  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
-*  D DD	1..31	Day of month
-*  Do	1st..31st	Day of month with ordinal
-*  DDD DDDD	1..365	Day of year
-*  X	1410715640.579	Unix timestamp
-*  x	1410715640579	Unix ms timestamp
-* @return {String} the reformatted date or an empty string
-*/
+ * @param {String} dateValue - the date string to parse
+ * @param {String} dateFormat - a string defining the input format:
+ *  YYYY	2014	4 or 2 digit year
+ *  YY	14	2 digit year
+ *  Y	-25	Year with any number of digits and sign
+ *  Q	1..4	Quarter of year. Sets month to first month in quarter.
+ *  M MM	1..12	Month number
+ *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
+ *  D DD	1..31	Day of month
+ *  Do	1st..31st	Day of month with ordinal
+ *  DDD DDDD	1..365	Day of year
+ *  X	1410715640.579	Unix timestamp
+ *  x	1410715640579	Unix ms timestamp
+ * @return {String} the reformatted date or an empty string
+ */
 let returnDateAsString = function(dateValue, dateFormat) {
   if (moment(dateValue, dateFormat || '').isValid()) {
     return moment(dateValue, dateFormat || '').format('YYYY-MM-DD');
@@ -52,23 +53,47 @@ let returnDateAsString = function(dateValue, dateFormat) {
   }
 };
 
+/** Returns a date as a unix timestamp
+ * @param {String} dateValue - the date string to parse
+ * @param {String} dateFormat - a string defining the input format:
+ *  YYYY	2014	4 or 2 digit year
+ *  YY	14	2 digit year
+ *  Y	-25	Year with any number of digits and sign
+ *  Q	1..4	Quarter of year. Sets month to first month in quarter.
+ *  M MM	1..12	Month number
+ *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
+ *  D DD	1..31	Day of month
+ *  Do	1st..31st	Day of month with ordinal
+ *  DDD DDDD	1..365	Day of year
+ *  X	1410715640.579	Unix timestamp
+ *  x	1410715640579	Unix ms timestamp
+ * @return {Float} the unix timestamp
+ */
+let returnDateAsUnix = function(dateValue, dateFormat) {
+  if (moment(dateValue, dateFormat || '').isValid()) {
+    return moment(dateValue, dateFormat || '').unix();
+  } else {
+    return -1;
+  }
+};
+
 
 /** Returns a date for the end of the month in a set format: YYYY-MM-DD
-* @param {String} dateValue - the date string to parse
-* @param {String} dateFormat - a string defining the input format:
-*  YYYY	2014	4 or 2 digit year
-*  YY	14	2 digit year
-*  Y	-25	Year with any number of digits and sign
-*  Q	1..4	Quarter of year. Sets month to first month in quarter.
-*  M MM	1..12	Month number
-*  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
-*  D DD	1..31	Day of month
-*  Do	1st..31st	Day of month with ordinal
-*  DDD DDDD	1..365	Day of year
-*  X	1410715640.579	Unix timestamp
-*  x	1410715640579	Unix ms timestamp
-* @return {String} the formatted end of month date or an empty string
-*/
+ * @param {String} dateValue - the date string to parse
+ * @param {String} dateFormat - a string defining the input format:
+ *  YYYY	2014	4 or 2 digit year
+ *  YY	14	2 digit year
+ *  Y	-25	Year with any number of digits and sign
+ *  Q	1..4	Quarter of year. Sets month to first month in quarter.
+ *  M MM	1..12	Month number
+ *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
+ *  D DD	1..31	Day of month
+ *  Do	1st..31st	Day of month with ordinal
+ *  DDD DDDD	1..365	Day of year
+ *  X	1410715640.579	Unix timestamp
+ *  x	1410715640579	Unix ms timestamp
+ * @return {String} the formatted end of month date or an empty string
+ */
 let returnEndOfMonth = function(dateValue, dateFormat) {
   if (moment(dateValue, dateFormat || '').isValid()) {
     return moment(dateValue, dateFormat || '')
@@ -103,8 +128,8 @@ let dateDiff = function(dateValue1, dateValue2, unit) {
   }
 
   if (!(unit === 'milliseconds' || unit === 'seconds' || unit === 'minutes' ||
-    unit === 'hours' || unit === 'days' || unit === 'weeks' ||
-    unit === 'months' || unit === 'years')) {
+      unit === 'hours' || unit === 'days' || unit === 'weeks' ||
+      unit === 'months' || unit === 'years')) {
     console.error('unit invalid: ' + unit);
     return null;
   }
@@ -138,7 +163,7 @@ let dateAdd = function(dateValue, unit, number) {
     return null;
   }
   if (!(unit === 'days' || unit === 'weeks' || unit === 'months' ||
-    unit === 'years')) {
+      unit === 'years')) {
     console.error('unit invalid: ' + unit);
     return null;
   }
@@ -173,7 +198,8 @@ let writeToCsv = function(csvData, csvFields, filePrefix, dateString) {
   });
 
   fs.writeFile('../data/' + filePrefix + '-' + dateString + '.csv',
-    csvOutput, function(err) {
+    csvOutput,
+    function(err) {
       if (err)
         throw err;
       console.log('File saved');
@@ -229,6 +255,7 @@ module.exports = {
   sleep: sleep,
   getTiming: getTiming,
   returnDateAsString: returnDateAsString,
+  returnDateAsUnix: returnDateAsUnix,
   dateAdd: dateAdd,
   dateDiff: dateDiff,
   isDate: isDate,

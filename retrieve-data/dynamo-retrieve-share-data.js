@@ -1,6 +1,7 @@
 'use strict';
 
-const yahooFinance = require('yahoo-finance');
+// const yahooFinance = require('yahoo-finance');
+const retrieveQuote = require('./retrieve-quote');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const symbols = require('./dynamo-symbols');
@@ -9,61 +10,6 @@ const metrics = require('./dynamo-retrieve-google-company-data');
 const asyncify = require('asyncawait/async');
 const awaitify = require('asyncawait/await');
 // const program = require('commander');
-
-/* const fields = {
-  p: 'previous-close',
-  y: 'dividend-yield',
-  d: 'dividend-per-share',
-  q: 'ex-dividend-date',
-  r1: 'dividend-pay-date',
-  c1: 'change',
-  p2: 'change-in-percent',
-  d1: 'last-trade-date',
-  g: 'day-low',
-  h: 'day-high',
-  l1: 'last-trade-price-only',
-  k: '52-week-high',
-  j: '52-week-low',
-  j1: 'market-capitalization',
-  f6: 'float-shares',
-  s1: 'shares-owned',
-  x: 'stock-exchange',
-  j2: 'shares-outstanding',
-  v: 'volume',
-  e: 'earnings-per-share',
-  e7: 'EPS-estimate-current-year',
-  b4: 'book-value',
-  j4: 'EBITDA',
-  p5: 'price-per-sales',
-  p6: 'price-per-book',
-  r: 'PE-ratio',
-  r5: 'PEG-ratio',
-  r6: 'price-per-EPS-estimate-current-year',
-  r7: 'price-per-EPS-estimate-next-year',
-  s7: 'short-ratio',
-  s6: 'revenue',
-};
-
-
-const indiceFields = {
-  d1: 'last-trade-date',
-  p: 'previous-close',
-  c1: 'change',
-  p2: 'change-in-percent',
-  g: 'day-low',
-  h: 'day-high',
-  k: '52-week-high',
-  j: '52-week-low',
-  j5: 'change-from-52-week-low',
-  k4: 'change-from-52-week-high',
-  j6: 'percent-change-from-52-week-low',
-  k5: 'percent-change-from-52-week-high',
-  n: 'name',
-};
-
-/* Retrieve index values */
-/* const indiceFieldsToRetrieve = utils.createFieldArray(indiceFields);
-const companyFieldsToRetrieve = utils.createFieldArray(fields); */
 
 /**  Retrieve company and index symbols and sets them up for retrieval
  * @return {Object} coninating values in the format:
@@ -79,7 +25,7 @@ const companyFieldsToRetrieve = utils.createFieldArray(fields); */
  *    indexSymbols: [], (array of the index symbols used)
  *  }
  */
-let setupSymbols = asyncify(function (indicesOnly) {
+let setupSymbols = asyncify(function(indicesOnly) {
   try {
     console.log('----- Start setup symbols -----');
     let indexValues = awaitify(symbols.getIndices());
@@ -134,7 +80,7 @@ let setupSymbols = asyncify(function (indicesOnly) {
  * @param {String} type - 'index' or 'company' symbol
  * @return {Array} an array of results
  */
-let retrieveSnapshot = function (symbols, type) {
+let retrieveSnapshot = function(symbols, type) {
   if (!symbols) {
     console.error('retrieveSnapshot error: no symbols supplied');
     return;
@@ -145,7 +91,7 @@ let retrieveSnapshot = function (symbols, type) {
     return;
   }
 
-  return new Promise(function (resolve, reject) {
+  return new Promise(function(resolve, reject) {
     let retrieveResults = [];
     let returnResults = [];
     // If a single value, convert to an array
@@ -159,7 +105,7 @@ let retrieveSnapshot = function (symbols, type) {
 
     Promise.all(retrieveResults).then((results) => {
       results.forEach((result) => {
-        returnResults.push(mapFields(result, type));
+        returnResults.push(result);
       });
 
       resolve(returnResults);
@@ -169,117 +115,116 @@ let retrieveSnapshot = function (symbols, type) {
   });
 };
 /**  Return current quote information from yahoo finance
- * @param {Array} symbol - a string or array of strings with yahoo symbols to
- *                         look up
+ * @param {Array} symbol - a string with yahoo symbols to look up
  * @return {Array} an array of results
  */
-let retrieveQuote = function (symbol) { // }, fields) {
-  return new Promise(function (resolve, reject) {
-    let quoteOptions = {
-      modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
-        'financialData'
-      ],
-    };
-    quoteOptions.symbol = symbol;
+// let retrieveQuote = function(symbol) { // }, fields) {
+//   return new Promise(function(resolve, reject) {
+//     let quoteOptions = {
+//       modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
+//         'financialData',
+//       ],
+//     };
+//     quoteOptions.symbol = symbol;
 
-    yahooFinance.quote(quoteOptions).then((result) => {
-      resolve(result);
-    }).catch((err) => {
-      console.log(err);
-      resolve([]);
-      // reject(err);
-    });
-  });
-};
+//     yahooFinance.quote(quoteOptions).then((result) => {
+//       resolve(result);
+//     }).catch((err) => {
+//       console.log(err);
+//       resolve([]);
+//       // reject(err);
+//     });
+//   });
+// };
 
 /**  Map the return from the update yahoo API to the previous quote structure
  * @param {Object} quote - the quote object from Yahoo
  * @param {String} symbolType - index or company symbol
  * @return {Object} quote restructured into previous format
  */
-let mapFields = function (quote, symbolType) {
-  let updatedQuote;
-  let quotePrice;
+// let mapFields = function(quote, symbolType) {
+//   let updatedQuote;
+//   let quotePrice;
 
-  // Put in empty default structures where missing
-  quote.summaryDetail = quote.summaryDetail || {};
-  quote.regularMarketChange = quote.regularMarketChange || {};
-  quote.price = quote.price || {};
-  quote.defaultKeyStatistics = quote.defaultKeyStatistics || {};
-  quote.financialData = quote.financialData || {};
+//   // Put in empty default structures where missing
+//   quote.summaryDetail = quote.summaryDetail || {};
+//   quote.regularMarketChange = quote.regularMarketChange || {};
+//   quote.price = quote.price || {};
+//   quote.defaultKeyStatistics = quote.defaultKeyStatistics || {};
+//   quote.financialData = quote.financialData || {};
 
-  if (symbolType === 'index') {
-    updatedQuote = {
-      '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
-      '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
-      'change': quote.price.regularMarketChange || null,
-      'changeInPercent': quote.price.regularMarketChangePercent || null,
-      'daysHigh': quote.summaryDetail.dayHigh || null,
-      'daysLow': quote.summaryDetail.dayLow || null,
-      'name': quote.price.shortName || null,
-      'previousClose': quote.summaryDetail.previousClose || null,
-      'symbol': quote.price.symbol || null,
-      'lastTradeDate': quote.price.regularMarketTime || null,
-    };
+//   if (symbolType === 'index') {
+//     updatedQuote = {
+//       '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
+//       '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
+//       'change': quote.price.regularMarketChange || null,
+//       'changeInPercent': quote.price.regularMarketChangePercent || null,
+//       'daysHigh': quote.summaryDetail.dayHigh || null,
+//       'daysLow': quote.summaryDetail.dayLow || null,
+//       'name': quote.price.shortName || null,
+//       'previousClose': quote.summaryDetail.previousClose || null,
+//       'symbol': quote.price.symbol || null,
+//       'lastTradeDate': quote.price.regularMarketTime || null,
+//     };
 
-    // Set price to use for 52 week comparisons
-    quotePrice = quote.summaryDetail.previousClose || null;
-  } else {
-    updatedQuote = {
-      '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
-      '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
-      'bookValue': quote.defaultKeyStatistics.bookValue || null,
-      'change': quote.price.regularMarketChange || null,
-      'changeInPercent': quote.price.regularMarketChangePercent || null,
-      'daysHigh': quote.summaryDetail.dayHigh || null,
-      'daysLow': quote.summaryDetail.dayLow || null,
-      'earningsPerShare': quote.defaultKeyStatistics.forwardEps || null,
-      'ebitda': quote.financialData.ebitda || null,
-      'exDividendDate': quote.summaryDetail.exDividendDate || null,
-      'exDividendPayout': quote.summaryDetail.dividendRate || null,
-      'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield || null,
-      'Float': quote.defaultKeyStatistics.floatShares || null,
-      'lastTradePriceOnly': quote.price.regularMarketPrice || null,
-      'name': quote.price.shortName || null,
-      'pegRatio': quote.defaultKeyStatistics.pegRatio || null,
-      'peRatio': quote.summaryDetail.trailingPE || null,
-      'previousClose': quote.summaryDetail.previousClose || null,
-      'price200DayAverage': quote.summaryDetail.twoHundredDayAverage || null,
-      'price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'] || null,
-      'pricePerBook': quote.defaultKeyStatistics.priceToBook || null,
-      'symbol': quote.price.symbol || null,
-      'lastTradeDate': quote.price.regularMarketTime || null,
-      'volume': quote.summaryDetail.volume || null,
-    };
+//     // Set price to use for 52 week comparisons
+//     quotePrice = quote.summaryDetail.previousClose || null;
+//   } else {
+//     updatedQuote = {
+//       '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
+//       '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
+//       'bookValue': quote.defaultKeyStatistics.bookValue || null,
+//       'change': quote.price.regularMarketChange || null,
+//       'changeInPercent': quote.price.regularMarketChangePercent || null,
+//       'daysHigh': quote.summaryDetail.dayHigh || null,
+//       'daysLow': quote.summaryDetail.dayLow || null,
+//       'earningsPerShare': quote.defaultKeyStatistics.forwardEps || null,
+//       'ebitda': quote.financialData.ebitda || null,
+//       'exDividendDate': quote.summaryDetail.exDividendDate || null,
+//       'exDividendPayout': quote.summaryDetail.dividendRate || null,
+//       'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield || null,
+//       'Float': quote.defaultKeyStatistics.floatShares || null,
+//       'lastTradePriceOnly': quote.price.regularMarketPrice || null,
+//       'name': quote.price.shortName || null,
+//       'pegRatio': quote.defaultKeyStatistics.pegRatio || null,
+//       'peRatio': quote.summaryDetail.trailingPE || null,
+//       'previousClose': quote.summaryDetail.previousClose || null,
+//       'price200DayAverage': quote.summaryDetail.twoHundredDayAverage || null,
+//       'price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'] || null,
+//       'pricePerBook': quote.defaultKeyStatistics.priceToBook || null,
+//       'symbol': quote.price.symbol || null,
+//       'lastTradeDate': quote.price.regularMarketTime || null,
+//       'volume': quote.summaryDetail.volume || null,
+//     };
 
-    // Set price to use for 52 week comparisons
-    quotePrice = quote.price.regularMarketPrice || null;
-  }
+//     // Set price to use for 52 week comparisons
+//     quotePrice = quote.price.regularMarketPrice || null;
+//   }
 
-  // Calculate 52 week changes
-  if (quotePrice) {
-    if (updatedQuote['52WeekHigh']) {
-      updatedQuote['changeFrom52WeekHigh'] = quotePrice - updatedQuote['52WeekHigh'];
-      updatedQuote['percebtChangeFrom52WeekHigh'] = (quotePrice -
-          updatedQuote['52WeekHigh']) /
-        updatedQuote['52WeekHigh'];
-    } else {
-      updatedQuote['percebtChangeFrom52WeekHigh'] = 0;
-      updatedQuote['changeFrom52WeekHigh'] = 0;
-    }
-    if (updatedQuote['52WeekLow']) {
-      updatedQuote['changeFrom52WeekLow'] = quotePrice - updatedQuote['52WeekLow'];
-      updatedQuote['percentChangeFrom52WeekLow'] = (quotePrice -
-          updatedQuote['52WeekLow']) /
-        updatedQuote['52WeekLow'];
-    } else {
-      updatedQuote['percentChangeFrom52WeekLow'] = 0;
-      updatedQuote['changeFrom52WeekLow'] = 0;
-    }
-  }
+//   // Calculate 52 week changes
+//   if (quotePrice) {
+//     if (updatedQuote['52WeekHigh']) {
+//       updatedQuote['changeFrom52WeekHigh'] = quotePrice - updatedQuote['52WeekHigh'];
+//       updatedQuote['percebtChangeFrom52WeekHigh'] = (quotePrice -
+//           updatedQuote['52WeekHigh']) /
+//         updatedQuote['52WeekHigh'];
+//     } else {
+//       updatedQuote['percebtChangeFrom52WeekHigh'] = 0;
+//       updatedQuote['changeFrom52WeekHigh'] = 0;
+//     }
+//     if (updatedQuote['52WeekLow']) {
+//       updatedQuote['changeFrom52WeekLow'] = quotePrice - updatedQuote['52WeekLow'];
+//       updatedQuote['percentChangeFrom52WeekLow'] = (quotePrice -
+//           updatedQuote['52WeekLow']) /
+//         updatedQuote['52WeekLow'];
+//     } else {
+//       updatedQuote['percentChangeFrom52WeekLow'] = 0;
+//       updatedQuote['changeFrom52WeekLow'] = 0;
+//     }
+//   }
 
-  return updatedQuote;
-};
+//   return updatedQuote;
+// };
 
 /**  Process an array of index quote results
  * @param {Array} results - an array with index quote values
@@ -287,7 +232,7 @@ let mapFields = function (quote, symbolType) {
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processIndexResults = asyncify(function (results, symbolLookup) {
+let processIndexResults = asyncify(function(results, symbolLookup) {
   if (results) {
     // Check if multi-dimensional
     if (Array.isArray(results)) {
@@ -308,7 +253,7 @@ let processIndexResults = asyncify(function (results, symbolLookup) {
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processResult = asyncify(function (result, symbolLookup) {
+let processResult = asyncify(function(result, symbolLookup) {
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
 
@@ -328,7 +273,7 @@ let processResult = asyncify(function (result, symbolLookup) {
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processCompanyResults = asyncify(function (results, symbolLookup,
+let processCompanyResults = asyncify(function(results, symbolLookup,
   dataToAppend, dividends) {
   if (results) {
     // Check if multi-dimensional
@@ -352,7 +297,7 @@ let processCompanyResults = asyncify(function (results, symbolLookup,
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processCompanyResult = asyncify(function (result, symbolLookup,
+let processCompanyResult = asyncify(function(result, symbolLookup,
   dataToAppend, dividends) {
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
@@ -392,8 +337,8 @@ let processCompanyResult = asyncify(function (result, symbolLookup,
  * @param {String} endDate - the end of the timer period
  * @return {Array} an array of results
  */
-let retrieveDividends = function (symbol, startDate, endDate) {
-  return new Promise(function (resolve, reject) {
+let retrieveDividends = function(symbol, startDate, endDate) {
+  return new Promise(function(resolve, reject) {
     let historyOptions = {
       from: startDate,
       to: endDate,
@@ -407,9 +352,9 @@ let retrieveDividends = function (symbol, startDate, endDate) {
       historyOptions.symbol = symbol;
     }
 
-    yahooFinance.historical(historyOptions).then(function (result) {
+    yahooFinance.historical(historyOptions).then(function(result) {
       resolve(result);
-    }).catch(function (err) {
+    }).catch(function(err) {
       reject(err);
     });
   });
@@ -420,7 +365,7 @@ let retrieveDividends = function (symbol, startDate, endDate) {
  *     values are.
  * @param {Object} indexQuote - the index quote to write
  */
-let writeIndexQuote = asyncify(function (indexQuote) {
+let writeIndexQuote = asyncify(function(indexQuote) {
   // console.log('----- Write index quote  -----');
   try {
     // Set up the basic insert structure for dynamo
@@ -469,7 +414,7 @@ let writeIndexQuote = asyncify(function (indexQuote) {
  *      ...
  *    }
  */
-let convertIndexDatatoAppendData = function (indexData) {
+let convertIndexDatatoAppendData = function(indexData) {
   let returnVal = {};
 
   indexData.forEach((indexRow) => {
@@ -498,7 +443,7 @@ let convertIndexDatatoAppendData = function (indexData) {
  *      ...
  *    }
  */
-let returnIndexDataForDate = function (dateVal) {
+let returnIndexDataForDate = function(dateVal) {
   if (!utils.isDate(dateVal)) {
     console.error(`Invalid dateVal: ${dateVal}`);
     return;
@@ -545,7 +490,7 @@ let returnIndexDataForDate = function (dateVal) {
  * @param {Object} object2
  * @return {Object}  a new object with all the properties
  */
-let addObjectProperties = function (object1, object2) {
+let addObjectProperties = function(object1, object2) {
   let returnObj = {};
 
   Object.keys(object1).forEach((key) => {
@@ -567,7 +512,7 @@ let addObjectProperties = function (object1, object2) {
  *     adjustedPrice, and checks and removes any invalid values.
  * @param {Object} quoteData - the company quote to write
  */
-let writeCompanyQuoteData = asyncify(function (quoteData) {
+let writeCompanyQuoteData = asyncify(function(quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['lastTradeDate']) {
     return;
@@ -614,7 +559,7 @@ let writeCompanyQuoteData = asyncify(function (quoteData) {
 *      }
 *     This would process from record index 100 to 199 in the symbols list
 */
-let updateQuotesWithMetrics = asyncify(function (symbols, quoteDate, recLimits) {
+let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
   if (!symbols) {
     console.log('updateQuotesWithMetrics error: no symbols supplied');
     return;
@@ -722,7 +667,7 @@ let updateQuotesWithMetrics = asyncify(function (symbols, quoteDate, recLimits) 
  *     uses the last date for the All Ordinaries index
  * @return {String} the most recent date found in format YYYY-MM-DD
  */
-let getCurrentExecutionDate = asyncify(function () {
+let getCurrentExecutionDate = asyncify(function() {
   // Get current dat based on last index quote for All Ordinaries
   let queryDetails = {
     tableName: 'indexQuotes',
@@ -746,14 +691,14 @@ let getCurrentExecutionDate = asyncify(function () {
 /**  Executes the retrieval and storage of the latest financial indicator
  *     information
  */
-let executeFinancialIndicators = asyncify(function () {
+let executeFinancialIndicators = asyncify(function() {
   awaitify(finIndicators.updateIndicatorValues());
 });
 
 /**  Executes the retrieval and storage of the latest company metrics
  *     information
  */
-let executeCompanyMetrics = asyncify(function (recLimits) {
+let executeCompanyMetrics = asyncify(function(recLimits) {
   // let symbolResult = awaitify(setupSymbols());
   // let mCompanies = symbolResult.companies;
 
@@ -763,7 +708,7 @@ let executeCompanyMetrics = asyncify(function (recLimits) {
 /**  Executes the retrieval and storage of the latest index quote
  *     information
  */
-let executeIndexQuoteRetrieval = asyncify(function () {
+let executeIndexQuoteRetrieval = asyncify(function() {
   let symbolResult = awaitify(setupSymbols(true));
 
   let symbolLookup = symbolResult.symbolLookup;
@@ -789,7 +734,7 @@ let executeIndexQuoteRetrieval = asyncify(function () {
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeCompanyQuoteRetrieval = asyncify(function (recLimits) {
+let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
   let dataToAppend = {};
   let symbolGroups = [];
   let symbolResult = awaitify(setupSymbols());
@@ -865,7 +810,7 @@ let executeCompanyQuoteRetrieval = asyncify(function (recLimits) {
  *           },
  *   }
  */
-let getDividendsforDate = asyncify(function (symbolGroup, retrievalDate,
+let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
   symbolLookup) {
   if (!symbolGroup) {
     console.error('getDividendsforDate error: no symbolGroup supplied');
@@ -939,7 +884,7 @@ let getDividendsforDate = asyncify(function (symbolGroup, retrievalDate,
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeMetricsUpdate = asyncify(function (recLimits) {
+let executeMetricsUpdate = asyncify(function(recLimits) {
   // Get current dat based on last index quote for All Ordinaries
   let metricsDate = awaitify(getCurrentExecutionDate());
   let companies = [];
