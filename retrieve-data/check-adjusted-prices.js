@@ -18,21 +18,21 @@ const lambda = new aws.Lambda({
 
 
 /** Retrieve daily history values for symbol(s) from yahoo finance
-* @param {Array} symbol - one or more yahoo symbols to lookup
-* @param {String} startDate - the first day of the lookup period
-* @param {String} endDate - the last day of the lookup period
-* @return {Promise} resolves with the history record in form:
-*    {
-*    date: 20 Jan 2017,
-*    open: 28.77,
-*    high: 28.84,
-*    low: 28.42,
-*    close: 28.81,
-*    volume: 536800,
-*    adjClose: 27.73,
-*    symbol: 'JBH.AX'
-* }
-*/
+ * @param {Array} symbol - one or more yahoo symbols to lookup
+ * @param {String} startDate - the first day of the lookup period
+ * @param {String} endDate - the last day of the lookup period
+ * @return {Promise} resolves with the history record in form:
+ *    {
+ *    date: 20 Jan 2017,
+ *    open: 28.77,
+ *    high: 28.84,
+ *    low: 28.42,
+ *    close: 28.81,
+ *    volume: 536800,
+ *    adjClose: 27.73,
+ *    symbol: 'JBH.AX'
+ * }
+ */
 let retrieveDailyHistory = function(symbol, startDate, endDate) {
   return new Promise(function(resolve, reject) {
     let historyOptions = {
@@ -57,11 +57,11 @@ let retrieveDailyHistory = function(symbol, startDate, endDate) {
 };
 
 /** Check through each company symbol, retrieve the last 8 days history data
-*    and see if any prices have closePrice !== adjustedPrice.  If a discrepancy
-*    is found, then all prices for that symbol need to be re-checked back to
-*    2006-07-01, so trigger a complete re-check of prices.
-*
-*/
+ *    and see if any prices have closePrice !== adjustedPrice.  If a discrepancy
+ *    is found, then all prices for that symbol need to be re-checked back to
+ *    2006-07-01, so trigger a complete re-check of prices.
+ *
+ */
 let checkForAdjustments = asyncify(function(event) {
   let endDate = event.compDate || utils.returnDateAsString(Date.now());
   /* This assumes process is being run on a Friday night and the look back
@@ -83,8 +83,7 @@ let checkForAdjustments = asyncify(function(event) {
     symbolGroups = [];
     /* Split companies into groups of 15 to ensure request doesn't exceed api
         url length */
-    for (let companyCounter = 0; companyCounter < companies.length;
-      companyCounter += 20) {
+    for (let companyCounter = 0; companyCounter < companies.length; companyCounter += 20) {
       symbolGroups.push(companies.slice(companyCounter, companyCounter + 20));
     }
   }
@@ -142,11 +141,6 @@ let checkForAdjustments = asyncify(function(event) {
 
             reloadYear += 1;
           }
-
-        // invokeLambda('retrieveAdjustedHistoryData', {
-        //   symbol: retrieveSymbol,
-        //   endDate: endDate,
-        // });
         }
       });
     } catch (err) {

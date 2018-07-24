@@ -2,19 +2,17 @@
   "dependencies": {
     "asyncawait": "^1.0.7",
     "aws-sdk": "^2.279.1",
-    "google-finance": "^0.1.11",
     "json2csv": "^3.11.5",
+    "moment": "^2.22.2",
     "moment-timezone": "^0.5.21",
-    "node-fetch": "^1.7.3",
-    "request": "^2.87.0",
-    "yahoo-finance": "^0.3.5"
+    "node-fetch": "^1.7.3"
   },
   "devDependencies": {
     "commander": "^2.16.0",
     "csvtojson": "^1.1.12",
     "eslint": "^5.2.0",
     "eslint-config-google": "^0.9.1",
-    "gulp": "^3.9.1",
+    "gulp": "^4.0.0",
     "gulp-aws-lambda": "^1.0.11",
     "gulp-install": "^0.6.0",
     "gulp-zip": "^4.1.0"

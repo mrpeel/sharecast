@@ -32,8 +32,8 @@ let getTiming = function(start) {
 /** Returns a date in a set format: YYYY-MM-DD
  * @param {String} dateValue - the date string to parse
  * @param {String} dateFormat - a string defining the input format:
- *  YYYY	2014	4 or 2 digit year
- *  YY	14	2 digit year
+ *  YYYY 2014 4 or 2 digit year
+ *  YY 14 2 digit year
  *  Y	-25	Year with any number of digits and sign
  *  Q	1..4	Quarter of year. Sets month to first month in quarter.
  *  M MM	1..12	Month number
@@ -200,16 +200,18 @@ let writeToCsv = function(csvData, csvFields, filePrefix, dateString) {
   fs.writeFile('../data/' + filePrefix + '-' + dateString + '.csv',
     csvOutput,
     function(err) {
-      if (err)
+      if (err) {
         throw err;
+      }
       console.log('File saved');
     });
 };
 
 let writeJSONfile = function(jsonObject, fileName) {
   fs.writeFile(fileName, JSON.stringify(jsonObject), function(err) {
-    if (err)
+    if (err) {
       throw err;
+    }
     console.log('JSON File saved');
   });
 };
