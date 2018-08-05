@@ -34,15 +34,15 @@ let getTiming = function(start) {
  * @param {String} dateFormat - a string defining the input format:
  *  YYYY 2014 4 or 2 digit year
  *  YY 14 2 digit year
- *  Y	-25	Year with any number of digits and sign
- *  Q	1..4	Quarter of year. Sets month to first month in quarter.
- *  M MM	1..12	Month number
- *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
- *  D DD	1..31	Day of month
- *  Do	1st..31st	Day of month with ordinal
- *  DDD DDDD	1..365	Day of year
- *  X	1410715640.579	Unix timestamp
- *  x	1410715640579	Unix ms timestamp
+ *  Y 25 Year with any number of digits and sign
+ *  Q 1..4 Quarter of year. Sets month to first month in quarter.
+ *  M MM 1..12 Month number
+ *  MMM MMMM Jan..December Month name in locale set by moment.locale()
+ *  D DD 1..31 Day of month
+ *  Do 1st..31st Day of month with ordinal
+ *  DDD DDDD 1..365 Day of year
+ *  X 1410715640.579 Unix timestamp
+ *  x 1410715640579 Unix ms timestamp
  * @return {String} the reformatted date or an empty string
  */
 let returnDateAsString = function(dateValue, dateFormat) {
@@ -56,17 +56,17 @@ let returnDateAsString = function(dateValue, dateFormat) {
 /** Returns a date as a unix timestamp
  * @param {String} dateValue - the date string to parse
  * @param {String} dateFormat - a string defining the input format:
- *  YYYY	2014	4 or 2 digit year
- *  YY	14	2 digit year
- *  Y	-25	Year with any number of digits and sign
- *  Q	1..4	Quarter of year. Sets month to first month in quarter.
- *  M MM	1..12	Month number
- *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
- *  D DD	1..31	Day of month
- *  Do	1st..31st	Day of month with ordinal
- *  DDD DDDD	1..365	Day of year
- *  X	1410715640.579	Unix timestamp
- *  x	1410715640579	Unix ms timestamp
+ *  YYYY 2014 4 or 2 digit year
+ *  YY 14 2 digit year
+ *  Y 25 Year with any number of digits and sign
+ *  Q 1..4 Quarter of year. Sets month to first month in quarter.
+ *  M MM 1..12 Month number
+ *  MMM MMMM Jan..December Month name in locale set by moment.locale()
+ *  D DD 1..31 Day of month
+ *  Do 1st..31st Day of month with ordinal
+ *  DDD DDDD 1..365 Day of year
+ *  X 1410715640.579 Unix timestamp
+ *  x 1410715640579 Unix ms timestamp
  * @return {Float} the unix timestamp
  */
 let returnDateAsUnix = function(dateValue, dateFormat) {
@@ -81,17 +81,17 @@ let returnDateAsUnix = function(dateValue, dateFormat) {
 /** Returns a date for the end of the month in a set format: YYYY-MM-DD
  * @param {String} dateValue - the date string to parse
  * @param {String} dateFormat - a string defining the input format:
- *  YYYY	2014	4 or 2 digit year
- *  YY	14	2 digit year
- *  Y	-25	Year with any number of digits and sign
- *  Q	1..4	Quarter of year. Sets month to first month in quarter.
- *  M MM	1..12	Month number
- *  MMM MMMM	Jan..December	Month name in locale set by moment.locale()
- *  D DD	1..31	Day of month
- *  Do	1st..31st	Day of month with ordinal
- *  DDD DDDD	1..365	Day of year
- *  X	1410715640.579	Unix timestamp
- *  x	1410715640579	Unix ms timestamp
+ *  YYYY 2014 4 or 2 digit year
+ *  YY 14 2 digit year
+ *  Y 25 Year with any number of digits and sign
+ *  Q 1..4 Quarter of year. Sets month to first month in quarter.
+ *  M MM 1..12 Month number
+ *  MMM MMMM Jan..December Month name in locale set by moment.locale()
+ *  D DD 1..31 Day of month
+ *  Do 1st..31st Day of month with ordinal
+ *  DDD DDDD 1..365 Day of year
+ *  X 1410715640.579 Unix timestamp
+ *  x 1410715640579 Unix ms timestamp
  * @return {String} the formatted end of month date or an empty string
  */
 let returnEndOfMonth = function(dateValue, dateFormat) {
