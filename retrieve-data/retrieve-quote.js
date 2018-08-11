@@ -84,8 +84,8 @@ let retrieveDividends = function(symbol, startDate, endDate) {
                         let dividendAmount = dividendsObject[dividendKey].amount;
                         dividends.push({
                             symbol: symbol,
-                            dividendDate: dividendDate,
-                            dividendAmount: dividendAmount,
+                            exDividendDate: dividendDate,
+                            exDividendPayout: dividendAmount,
                         });
                     });
                 } else if (
@@ -140,13 +140,16 @@ let retrieveHistory = function(symbol, startDate, endDate, includeOriginalClose)
                     let adjustedCloseRecords = responseJson.chart.result[0].indicators.adjclose[0].adjclose;
                     let historyResult = [];
 
-                    console.log(`History returned for ${symbol}. ${timestampRecords.length} timestamp records, ${closeRecords.length} close records, ${adjustedCloseRecords.length} close records`);
+                    console.log(`History returned for ${symbol}. ${timestampRecords.length} `,
+                        `timestamp records, ${closeRecords.length} close records, `,
+                        `${adjustedCloseRecords.length} close records`);
 
-                    if (timestampRecords.length == closeRecords.length && timestampRecords.length == adjustedCloseRecords.length) {
-                        for (let hc = 0; hc < timestampRecords.length; hc++) {
+                    if (timestampRecords.length == closeRecords.length &&
+                        timestampRecords.length == adjustedCloseRecords.length) {
+                        for (const timestampRecord of timestampRecords) {
                             // Always include date and adjusted close
                             let pushRecord = {
-                                'date': utils.returnDateAsString(timestampRecords[hc] * 1000),
+                                'date': utils.returnDateAsString(timestampRecord * 1000),
                                 'adjClose': adjustedCloseRecords[hc],
                             };
 
@@ -272,17 +275,16 @@ let getQuotes = async function(retrieveOptions) {
             );
         }
 
-        let symbolResults = [];
+        let symbolResults = {};
         let symbolErrors = 0;
         let isCompanySymbol = retrieveOptions.type === 'index' ? false : true;
 
-        for (let sc = 0; sc < retrieveOptions.symbols.length; sc++) {
-            let symbol = retrieveOptions.symbols[sc];
+        for (const symbol of retrieveOptions.symbols) {
             try {
                 let rawQuote = await retrieveQuote(symbol);
                 let symbolQuote = transformQuote(rawQuote, isCompanySymbol);
 
-                symbolResults.push(symbolQuote);
+                symbolResults[symbol] = symbolQuote;
                 console.log(`${symbol} quote retrieved`);
             } catch (err) {
                 console.log(`${symbol} error: ${JSON.stringify(err)}`);
@@ -322,20 +324,16 @@ let getDividends = async function(retrieveOptions) {
         }
         let startDate = utils.returnDateAsUnix(retrieveOptions.startDate);
         let endDate = utils.returnDateAsUnix(retrieveOptions.endDate);
-        let dividendResults = [];
+        let dividendResults = {};
         let symbolErrors = 0;
-        for (let sc = 0; sc < retrieveOptions.symbols.length; sc++) {
-            let symbol = retrieveOptions.symbols[sc];
+        for (const symbol of retrieveOptions.symbols) {
             try {
                 let symbolDividends = await retrieveDividends(
                     symbol,
                     startDate,
                     endDate
                 );
-                dividendResults.push({
-                    symbol: symbol,
-                    dividends: symbolDividends,
-                });
+                dividendResults[symbol] = symbolDividends;
                 console.log(`${symbol} retrieved ${symbolDividends.length} dividends records`);
             } catch (err) {
                 console.log(`${symbol} error: ${JSON.stringify(err)}`);
@@ -353,50 +351,122 @@ let getDividends = async function(retrieveOptions) {
 };
 
 /**
+ * Gets the latest dividend record for a set of symbols for a time period
+ * @param {Object} retrieveOptions an object in the form:
+ *  {
+ *     'symbols': [],  an array yahoo symbol name in form JBH.AX
+ *     'startDate': period start in format YYYY-MM-DD
+ *     'endDate': period end in format YYYY-MM-DD
+ *  }
+ * @return {Array}  An array of objects with the symbol dividends
+ */
+let getLatestDividends = async function(retrieveOptions) {
+    try {
+        if (!retrieveOptions ||
+            !retrieveOptions.symbols ||
+            !retrieveOptions.startDate ||
+            !retrieveOptions.endDate
+        ) {
+            throw new Error(
+                `getLatestDividends missing symbols, startDate or endDate property: ${JSON.stringify(retrieveOptions)}`
+            );
+        }
+        // Get the dividend records
+        let getResults = await getDividends(retrieveOptions);
+
+        // Loop through each symbol and only the latest record
+        let dividendResults = getResults.results;
+        let finalResults = {};
+        let symbols = Object.keys(dividendResults) || [];
+
+        // Check each record
+        for (const symbol of symbols) {
+            let symbolDividends = dividendResults[symbol];
+
+            for (const symbolDividend of symbolDividends) {
+                let exDividendDate = symbolDividend.exDividendDate;
+                let exDividendPayout = symbolDividend.exDividendPayout;
+
+                // If this is the first result for this symbol or the most recent, re-set the values for the symbol
+                if (!finalResults[symbol] ||
+                    finalResults[symbol]['exDividendDate'] < exDividendDate) {
+                    finalResults[symbol] = {};
+                    finalResults[symbol]['exDividendDate'] = exDividendDate;
+                    finalResults[symbol]['exDividendPayout'] = exDividendPayout;
+                }
+            }
+        }
+
+        return {
+            results: finalResults,
+            errorCount: getResults.errorCount,
+        };
+    } catch (err) {
+        throw (err);
+    }
+};
+
+/**
  * Checks whether there is a difference between the close and adjusted close
  *   for a symbol in a time period
  * @param {Object} retrieveOptions an object in the form:
  *  {
- *     'symbol': yahoo symbol name in form JBH.AX
+ *     'symbols': yahoo symbol name in form JBH.AX
  *     'startDate': period start in format YYYY-MM-DD
  *     'endDate': period end in format YYYY-MM-DD
  *  }
  * @return {Boolean}  whether any close price has been adjusted
  */
-let checkForAdjustedPrice = async function(retrieveOptions) {
+let checkForAdjustedPrices = async function(retrieveOptions) {
     try {
         if (!retrieveOptions ||
-            !retrieveOptions.symbol ||
+            !retrieveOptions.symbols ||
             !retrieveOptions.startDate ||
             !retrieveOptions.endDate
         ) {
             throw new Error(
-                `getDividends missing symbol, startDate or endDate property: ${JSON.stringify(retrieveOptions)}`
+                `checkForAdjustedPrices missing symbols, startDate or endDate property: ${JSON.stringify(retrieveOptions)}`
             );
         }
         let startDate = utils.returnDateAsUnix(retrieveOptions.startDate);
         let endDate = utils.returnDateAsUnix(retrieveOptions.endDate);
-        let symbol = retrieveOptions.symbol;
-        let symbolHistory = await retrieveHistory(
-            symbol,
-            startDate,
-            endDate,
-            true
-        );
-        console.log(`${symbol} retrieved ${symbolHistory.length} history records`);
+        let symbolErrors = 0;
+        let adjustedResults = [];
 
-        // Check for records with close != adjClose
-        let adjustedResult = symbolHistory.some((historyRecord) => {
-            if (historyRecord.adjClose && historyRecord.close) {
-                return (historyRecord.adjClose !== historyRecord.close);
-            } else {
-                return false;
+        for (const symbol of retrieveOptions.symbols) {
+            try {
+                let symbolHistory = await retrieveHistory(
+                    symbol,
+                    startDate,
+                    endDate,
+                    true
+                );
+                console.log(`${symbol} retrieved ${symbolHistory.length} history records`);
+
+                // Check for records with close != adjClose
+                let adjustedResult = symbolHistory.some((historyRecord) => {
+                    if (historyRecord.adjClose && historyRecord.close) {
+                        return (historyRecord.adjClose !== historyRecord.close);
+                    } else {
+                        return false;
+                    }
+                });
+
+                adjustedResults.push({
+                    symbol: symbol,
+                    adjustedResult: adjustedResult,
+                });
+            } catch (err) {
+                console.log(`${symbol} error: ${JSON.stringify(err)}`);
+                symbolErrors++;
             }
-        });
+        }
 
-        return adjustedResult;
+        return {
+            results: adjustedResults,
+            errorCount: symbolErrors,
+        };
     } catch (err) {
-        console.log(`${retrieveOptions.symbol} error: ${JSON.stringify(err)}`);
         throw (err);
     }
 };
@@ -427,8 +497,7 @@ let getAdjustedPrices = async function(retrieveOptions) {
         let endDate = utils.returnDateAsUnix(retrieveOptions.endDate);
         let historyResults = [];
         let symbolErrors = 0;
-        for (let sc = 0; sc < retrieveOptions.symbols.length; sc++) {
-            let symbol = retrieveOptions.symbols[sc];
+        for (const symbol of retrieveOptions.symbols) {
             try {
                 let symbolHistory = await retrieveHistory(
                     symbol,
@@ -459,36 +528,37 @@ let getAdjustedPrices = async function(retrieveOptions) {
 module.exports = {
     getQuotes: getQuotes,
     getDividends: getDividends,
-    checkForAdjustedPrice: checkForAdjustedPrice,
+    getLatestDividends: getLatestDividends,
+    checkForAdjustedPrices: checkForAdjustedPrices,
     getAdjustedPrices: getAdjustedPrices,
 };
 
-checkForAdjustedPrice({
-    'symbol': 'JBH.AX',
-    'startDate': '2018-07-18',
-    'endDate': '2018-07-25',
-}).then((adjustedResults) => {
-    console.log(JSON.stringify(adjustedResults));
-    return getAdjustedPrices({
-        'symbols': ['JBH.AX'],
-        'startDate': '2007-01-01',
-        'endDate': '2018-07-30',
-    });
-}).then((historyResults) => {
-    // console.log(JSON.stringify(historyResults.results, null, 2));
-    historyResults.results.forEach((result) => {
-        console.log(`${result.symbol}: ${result.history.length} results`);
-    });
-    console.log(`${historyResults.errorCount} errors`);
-}).catch((err) => {
-    console.error(err);
-});
+// checkForAdjustedPrices({
+//     'symbols': ['JBH.AX', 'CBA.AX'],
+//     'startDate': '2013-07-18',
+//     'endDate': '2018-07-25',
+// }).then((adjustedResults) => {
+//     console.log(JSON.stringify(adjustedResults));
+//     return getAdjustedPrices({
+//         'symbols': ['JBH.AX', 'CBA.AX'],
+//         'startDate': '2007-01-01',
+//         'endDate': '2018-07-30',
+//     });
+// }).then((historyResults) => {
+//     // console.log(JSON.stringify(historyResults.results, null, 2));
+//     historyResults.results.forEach((result) => {
+//         console.log(`${result.symbol}: ${result.history.length} results`);
+//     });
+//     console.log(`${historyResults.errorCount} errors`);
+// }).catch((err) => {
+//     console.error(err);
+// });
 
 // getQuotes({
 //     'symbols': ['JBH.AX', '123.AX'],
 //     'type': 'company',
 // }).then((quoteResults) => {
-//     console.log(`Number of succesfull results: ${JSON.stringify(quoteResults.results.length)}`);
+//     console.log(`Number of succesfull results: ${JSON.stringify(Object.keys(quoteResults.results).length)}`);
 //     console.log(`Number of errors: ${quoteResults.errorCount}`);
 //     console.log(JSON.stringify(quoteResults.results));
 //     return getQuotes({
@@ -496,7 +566,7 @@ checkForAdjustedPrice({
 //         'type': 'index',
 //     });
 // }).then((quoteResults) => {
-//     console.log(`Number of succesfull results: ${JSON.stringify(quoteResults.results.length)}`);
+//     console.log(`Number of succesfull results: ${JSON.stringify(Object.keys(quoteResults.results).length)}`);
 //     console.log(`Number of errors: ${quoteResults.errorCount}`);
 //     console.log(JSON.stringify(quoteResults.results));
 //     return getDividends({
@@ -505,7 +575,16 @@ checkForAdjustedPrice({
 //         'endDate': '2018-07-31',
 //     });
 // }).then((dividendResults) => {
-//     console.log(`Number of succesfull results: ${JSON.stringify(dividendResults.results.length)}`);
+//     console.log(`Number of succesfull results: ${JSON.stringify(Object.keys(dividendResults.results).length)}`);
+//     console.log(`Number of errors: ${dividendResults.errorCount}`);
+//     console.log(JSON.stringify(dividendResults.results));
+//     return getLatestDividends({
+//         'symbols': ['JBH.AX', '123.AX'],
+//         'startDate': '2017-07-31',
+//         'endDate': '2018-07-31',
+//     });
+// }).then((dividendResults) => {
+//     console.log(`Number of succesfull results: ${JSON.stringify(Object.keys(dividendResults.results).length)}`);
 //     console.log(`Number of errors: ${dividendResults.errorCount}`);
 //     console.log(JSON.stringify(dividendResults.results));
 // }).catch((err) => {

@@ -1,17 +1,13 @@
 'use strict';
 
-// const yahooFinance = require('yahoo-finance');
 const retrieveQuote = require('./retrieve-quote');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
 const symbols = require('./dynamo-symbols');
 const finIndicators = require('./dynamo-retrieve-financial-indicator-data');
-const metrics = require('./dynamo-retrieve-google-company-data');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
-// const program = require('commander');
 
 /**  Retrieve company and index symbols and sets them up for retrieval
+ * @param {Boolean} indicesOnly - whether to only return the index symbols
  * @return {Object} coninating values in the format:
  *  {
  *    indexLookup: {Object}, (object to match index symbol with lookup
@@ -25,10 +21,10 @@ const awaitify = require('asyncawait/await');
  *    indexSymbols: [], (array of the index symbols used)
  *  }
  */
-let setupSymbols = asyncify(function(indicesOnly) {
+let setupSymbols = async function (indicesOnly) {
   try {
     console.log('----- Start setup symbols -----');
-    let indexValues = awaitify(symbols.getIndices());
+    let indexValues = await symbols.getIndices();
     let wSymbolLookup = {};
     let wIndexLookup = {};
     let wIndexSymbols = [];
@@ -55,7 +51,7 @@ let setupSymbols = asyncify(function(indicesOnly) {
     };
 
     if (!indicesOnly) {
-      let companyValues = awaitify(symbols.getCompanies());
+      let companyValues = await symbols.getCompanies();
 
       companyValues.forEach((companyValue) => {
         wCompanyLookup[companyValue['yahoo-symbol']] = companyValue['symbol'];
@@ -72,159 +68,8 @@ let setupSymbols = asyncify(function(indicesOnly) {
   } catch (err) {
     console.log(err);
   }
-});
-
-/**  Call yahoo quote and map values to known structure
- * @param {Array} symbols - a string or array of strings with yahoo symbols to
- *                         look up
- * @param {String} type - 'index' or 'company' symbol
- * @return {Array} an array of results
- */
-let retrieveSnapshot = function(symbols, type) {
-  if (!symbols) {
-    console.error('retrieveSnapshot error: no symbols supplied');
-    return;
-  }
-
-  if (!type) {
-    console.error('retrieveSnapshot error: no type supplied');
-    return;
-  }
-
-  return new Promise(function(resolve, reject) {
-    let retrieveResults = [];
-    let returnResults = [];
-    // If a single value, convert to an array
-    if (!Array.isArray(symbols)) {
-      symbols = [symbols];
-    }
-
-    symbols.forEach((index) => {
-      retrieveResults.push(retrieveQuote(index));
-    });
-
-    Promise.all(retrieveResults).then((results) => {
-      results.forEach((result) => {
-        returnResults.push(result);
-      });
-
-      resolve(returnResults);
-    }).catch((err) => {
-      reject(err);
-    });
-  });
 };
-/**  Return current quote information from yahoo finance
- * @param {Array} symbol - a string with yahoo symbols to look up
- * @return {Array} an array of results
- */
-// let retrieveQuote = function(symbol) { // }, fields) {
-//   return new Promise(function(resolve, reject) {
-//     let quoteOptions = {
-//       modules: ['price', 'summaryDetail', 'defaultKeyStatistics',
-//         'financialData',
-//       ],
-//     };
-//     quoteOptions.symbol = symbol;
 
-//     yahooFinance.quote(quoteOptions).then((result) => {
-//       resolve(result);
-//     }).catch((err) => {
-//       console.log(err);
-//       resolve([]);
-//       // reject(err);
-//     });
-//   });
-// };
-
-/**  Map the return from the update yahoo API to the previous quote structure
- * @param {Object} quote - the quote object from Yahoo
- * @param {String} symbolType - index or company symbol
- * @return {Object} quote restructured into previous format
- */
-// let mapFields = function(quote, symbolType) {
-//   let updatedQuote;
-//   let quotePrice;
-
-//   // Put in empty default structures where missing
-//   quote.summaryDetail = quote.summaryDetail || {};
-//   quote.regularMarketChange = quote.regularMarketChange || {};
-//   quote.price = quote.price || {};
-//   quote.defaultKeyStatistics = quote.defaultKeyStatistics || {};
-//   quote.financialData = quote.financialData || {};
-
-//   if (symbolType === 'index') {
-//     updatedQuote = {
-//       '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
-//       '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
-//       'change': quote.price.regularMarketChange || null,
-//       'changeInPercent': quote.price.regularMarketChangePercent || null,
-//       'daysHigh': quote.summaryDetail.dayHigh || null,
-//       'daysLow': quote.summaryDetail.dayLow || null,
-//       'name': quote.price.shortName || null,
-//       'previousClose': quote.summaryDetail.previousClose || null,
-//       'symbol': quote.price.symbol || null,
-//       'lastTradeDate': quote.price.regularMarketTime || null,
-//     };
-
-//     // Set price to use for 52 week comparisons
-//     quotePrice = quote.summaryDetail.previousClose || null;
-//   } else {
-//     updatedQuote = {
-//       '52WeekHigh': quote.summaryDetail.fiftyTwoWeekHigh || null,
-//       '52WeekLow': quote.summaryDetail.fiftyTwoWeekLow || null,
-//       'bookValue': quote.defaultKeyStatistics.bookValue || null,
-//       'change': quote.price.regularMarketChange || null,
-//       'changeInPercent': quote.price.regularMarketChangePercent || null,
-//       'daysHigh': quote.summaryDetail.dayHigh || null,
-//       'daysLow': quote.summaryDetail.dayLow || null,
-//       'earningsPerShare': quote.defaultKeyStatistics.forwardEps || null,
-//       'ebitda': quote.financialData.ebitda || null,
-//       'exDividendDate': quote.summaryDetail.exDividendDate || null,
-//       'exDividendPayout': quote.summaryDetail.dividendRate || null,
-//       'fiveYearAvgDividendYield': quote.summaryDetail.fiveYearAvgDividendYield || null,
-//       'Float': quote.defaultKeyStatistics.floatShares || null,
-//       'lastTradePriceOnly': quote.price.regularMarketPrice || null,
-//       'name': quote.price.shortName || null,
-//       'pegRatio': quote.defaultKeyStatistics.pegRatio || null,
-//       'peRatio': quote.summaryDetail.trailingPE || null,
-//       'previousClose': quote.summaryDetail.previousClose || null,
-//       'price200DayAverage': quote.summaryDetail.twoHundredDayAverage || null,
-//       'price52WeekPercChange': quote.defaultKeyStatistics['52WeekChange'] || null,
-//       'pricePerBook': quote.defaultKeyStatistics.priceToBook || null,
-//       'symbol': quote.price.symbol || null,
-//       'lastTradeDate': quote.price.regularMarketTime || null,
-//       'volume': quote.summaryDetail.volume || null,
-//     };
-
-//     // Set price to use for 52 week comparisons
-//     quotePrice = quote.price.regularMarketPrice || null;
-//   }
-
-//   // Calculate 52 week changes
-//   if (quotePrice) {
-//     if (updatedQuote['52WeekHigh']) {
-//       updatedQuote['changeFrom52WeekHigh'] = quotePrice - updatedQuote['52WeekHigh'];
-//       updatedQuote['percebtChangeFrom52WeekHigh'] = (quotePrice -
-//           updatedQuote['52WeekHigh']) /
-//         updatedQuote['52WeekHigh'];
-//     } else {
-//       updatedQuote['percebtChangeFrom52WeekHigh'] = 0;
-//       updatedQuote['changeFrom52WeekHigh'] = 0;
-//     }
-//     if (updatedQuote['52WeekLow']) {
-//       updatedQuote['changeFrom52WeekLow'] = quotePrice - updatedQuote['52WeekLow'];
-//       updatedQuote['percentChangeFrom52WeekLow'] = (quotePrice -
-//           updatedQuote['52WeekLow']) /
-//         updatedQuote['52WeekLow'];
-//     } else {
-//       updatedQuote['percentChangeFrom52WeekLow'] = 0;
-//       updatedQuote['changeFrom52WeekLow'] = 0;
-//     }
-//   }
-
-//   return updatedQuote;
-// };
 
 /**  Process an array of index quote results
  * @param {Array} results - an array with index quote values
@@ -232,170 +77,126 @@ let retrieveSnapshot = function(symbols, type) {
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processIndexResults = asyncify(function(results, symbolLookup) {
-  if (results) {
-    // Check if multi-dimensional
-    if (Array.isArray(results)) {
-      // Multiple  symbols returned
-      results.forEach((indResult) => {
-        awaitify(processResult(indResult, symbolLookup));
+let processIndexResults = async function (results, symbolLookup) {
+  // Work through results and add them to db
+  let resultSymbols = Object.keys(results);
+  let errorCount = 0;
+  let insertResults = {};
+
+  for (const resultSymbol of resultSymbols) {
+    try {
+      let result = results[resultSymbol];
+      // Convert yahoo symbol to generic symbol
+      result.symbol = symbolLookup[result.symbol];
+
+      // Set up the basic insert structure for dynamo
+      let insertDetails = {
+        tableName: 'indexQuotes',
+        values: {},
+        primaryKey: [
+          'symbol', 'quoteDate',
+        ],
+      };
+
+      result.quoteDate = utils
+        .returnDateAsString(result['lastTradeDate']);
+      result.yearMonth = result.quoteDate
+        .substring(0, 7).replace('-', '');
+
+      // Check through for values with null and remove from object
+      Object.keys(result).forEach((field) => {
+        if (result[field] === null || result[field] === 'Infinity' ||
+          result[field] === '-Infinity') {
+          delete result[field];
+        }
       });
-    } else {
-      // Single symbol returned
-      awaitify(processResult(results, symbolLookup));
+
+      insertDetails.values = result;
+      let writeResult = await dynamodb.insertRecord(insertDetails);
+
+      // Create result type if doesn't exist
+      if (!insertResults[writeResult.result]) {
+        insertResults[writeResult.result] = 0;
+      }
+      // Increment result type
+      insertResults[writeResult.result]++;
+    } catch (err) {
+      console.log(err);
+      errorCount++;
     }
   }
-});
 
-/**  Process a a single index quote result and insert in dynamo.  Fields are
- *     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
- * @param {Object} result - the result values
- * @param {Array} symbolLookup - an array of key/value pairs to translate
- *                               the symbols yahoo uses to the normal symbol
- */
-let processResult = asyncify(function(result, symbolLookup) {
-  // Convert yahoo symbol to generic symbol
-  result.symbol = symbolLookup[result.symbol];
+  return {
+    insertResults: insertResults,
+    errorCount: errorCount,
+  };
+};
 
-  Object.keys(result).forEach((field) => {
-    // Reset number here required
-    if (result[field]) {
-      result[field] = utils.checkForNumber(result[field]);
-    }
-  });
-
-  awaitify(writeIndexQuote(result));
-});
 
 /**  Process an array of company quote results
- * @param {Array} results - an array with index quote values
+ * @param {Object} results - an object with symbol quote values
  *                         look up or  a single index quote value
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
+ * @param {Object} dataToAppend - an object with a set of data properties to
+ *                                append to all symbol records
+ * @param {Object} dividends - An object with symbol dividends to append
+ *                              to symbol records when saving
  */
-let processCompanyResults = asyncify(function(results, symbolLookup,
+let processCompanyResults = async function (results, symbolLookup,
   dataToAppend, dividends) {
-  if (results) {
-    // Check if multi-dimensional
-    if (Array.isArray(results)) {
-      // Multiple  symbols returned
-      results.forEach((indResult) => {
-        awaitify(processCompanyResult(indResult, symbolLookup,
-          dataToAppend, dividends));
+  let symbols = Object.keys(results) || [];
+  let errorCount = 0;
+  let insertResults = {};
+
+  for (const symbol of symbols) {
+    try {
+      let result = results[symbol];
+
+      // Convert yahoo symbol to generic symbol
+      result.symbol = symbolLookup[result.symbol];
+
+      Object.keys(result).forEach((field) => {
+        // Reset number here required
+        if (result[field]) {
+          result[field] = utils.checkForNumber(result[field]);
+        }
       });
-    } else {
-      // Single symbol returned
-      awaitify(processCompanyResult(results, symbolLookup,
-        dataToAppend, dividends));
+
+      // If data to append,ietrate through keys and add it to the record
+      if (dataToAppend) {
+        Object.keys(dataToAppend).forEach((dataKey) => {
+          result[dataKey] = dataToAppend[dataKey];
+        });
+      }
+
+      // Add dividends details if located
+      if (dividends && dividends[symbol]) {
+        result['exDividendDate'] = dividends[symbol]['exDividendDate'];
+        result['exDividendPayout'] = dividends[symbol]['exDividendPayout'];
+      }
+
+      // Write value
+      let writeResult = await writeCompanyQuoteData(result);
+
+      // Create result type if doesn't exist
+      if (!insertResults[writeResult.result]) {
+        insertResults[writeResult.result] = 0;
+      }
+      // Increment result type
+      insertResults[writeResult.result]++;
+    } catch (err) {
+      console.log(err);
+      errorCount++;
     }
   }
-});
 
-/**  Process a a single company quote result and insert in dynamo.  Fields are
- *     reformatted as reuired, e.g. 1M -> 1000000, and empty fields are removed
- * @param {Object} result - the result values
- * @param {Array} symbolLookup - an array of key/value pairs to translate
- *                               the symbols yahoo uses to the normal symbol
- */
-let processCompanyResult = asyncify(function(result, symbolLookup,
-  dataToAppend, dividends) {
-  // Convert yahoo symbol to generic symbol
-  result.symbol = symbolLookup[result.symbol];
-
-  Object.keys(result).forEach((field) => {
-    // Reset number here required
-    if (result[field]) {
-      result[field] = utils.checkForNumber(result[field]);
-    }
-  });
-
-  // Add metric data to this result
-  // result = awaitify(addMetricsToQuote(result));
-
-  // If data to append,ietrate through keys and add it to the record
-  if (dataToAppend) {
-    Object.keys(dataToAppend).forEach((dataKey) => {
-      result[dataKey] = dataToAppend[dataKey];
-    });
-  }
-
-  // Add dividends details if located
-  if (dividends && dividends[result.symbol]) {
-    result['exDividendDate'] = dividends[result.symbol]['exDividendDate'];
-    result['exDividendPayout'] = dividends[result.symbol]['exDividendPayout'];
-  }
-
-  // Write value
-  awaitify(writeCompanyQuoteData(result));
-});
-
-/**  Return an array of dividens results from yahoo finance for a specified
- *     time period
- * @param {Array} symbol - a string or array of strings with yahoo symbols to
- *                         look up
- * @param {String} startDate - the start of the timer period
- * @param {String} endDate - the end of the timer period
- * @return {Array} an array of results
- */
-let retrieveDividends = function(symbol, startDate, endDate) {
-  return new Promise(function(resolve, reject) {
-    let historyOptions = {
-      from: startDate,
-      to: endDate,
-      period: 'v',
-    };
-
-    // Check if one or many symbols
-    if (Array.isArray(symbol)) {
-      historyOptions.symbols = symbol;
-    } else {
-      historyOptions.symbol = symbol;
-    }
-
-    yahooFinance.historical(historyOptions).then(function(result) {
-      resolve(result);
-    }).catch(function(err) {
-      reject(err);
-    });
-  });
+  return {
+    insertResults: insertResults,
+    errorCount: errorCount,
+  };
 };
 
-/**  Write an index quote record to dynamodb.
- *    Converts lastTradeDate -> quoteDate and checks and removes anu invalid
- *     values are.
- * @param {Object} indexQuote - the index quote to write
- */
-let writeIndexQuote = asyncify(function(indexQuote) {
-  // console.log('----- Write index quote  -----');
-  try {
-    // Set up the basic insert structure for dynamo
-    let insertDetails = {
-      tableName: 'indexQuotes',
-      values: {},
-      primaryKey: [
-        'symbol', 'quoteDate',
-      ],
-    };
-
-    indexQuote.quoteDate = utils
-      .returnDateAsString(indexQuote['lastTradeDate']);
-    indexQuote.yearMonth = indexQuote.quoteDate
-      .substring(0, 7).replace('-', '');
-
-    // Check through for values with null and remove from object
-    Object.keys(indexQuote).forEach((field) => {
-      if (indexQuote[field] === null || indexQuote[field] === 'Infinity' ||
-        indexQuote[field] === '-Infinity') {
-        delete indexQuote[field];
-      }
-    });
-
-    insertDetails.values = indexQuote;
-    awaitify(dynamodb.insertRecord(insertDetails));
-  } catch (err) {
-    console.log(err);
-  }
-});
 
 /**
  * Converts individual index data records into an array of values which
@@ -414,7 +215,7 @@ let writeIndexQuote = asyncify(function(indexQuote) {
  *      ...
  *    }
  */
-let convertIndexDatatoAppendData = function(indexData) {
+let convertIndexDatatoAppendData = function (indexData) {
   let returnVal = {};
 
   indexData.forEach((indexRow) => {
@@ -443,7 +244,7 @@ let convertIndexDatatoAppendData = function(indexData) {
  *      ...
  *    }
  */
-let returnIndexDataForDate = function(dateVal) {
+let returnIndexDataForDate = async function (dateVal) {
   if (!utils.isDate(dateVal)) {
     console.error(`Invalid dateVal: ${dateVal}`);
     return;
@@ -463,16 +264,16 @@ let returnIndexDataForDate = function(dateVal) {
   };
 
 
-  let symbolResult = awaitify(setupSymbols(true));
+  let symbolResult = await setupSymbols(true);
   let indexSymbols = symbolResult.indexSymbols;
 
-  indexSymbols.forEach((index) => {
+  for (const index of indexSymbols) {
     queryDetails.expressionAttributeValues[':symbol'] = index;
-    let indexResults = awaitify(dynamodb.queryTable(queryDetails));
+    let indexResults = await dynamodb.queryTable(queryDetails);
     if (indexResults.length) {
       allIndiceResults = allIndiceResults.concat(indexResults);
     }
-  });
+  }
 
 
   // Check we got a metrics result
@@ -490,7 +291,7 @@ let returnIndexDataForDate = function(dateVal) {
  * @param {Object} object2
  * @return {Object}  a new object with all the properties
  */
-let addObjectProperties = function(object1, object2) {
+let addObjectProperties = function (object1, object2) {
   let returnObj = {};
 
   Object.keys(object1).forEach((key) => {
@@ -512,7 +313,7 @@ let addObjectProperties = function(object1, object2) {
  *     adjustedPrice, and checks and removes any invalid values.
  * @param {Object} quoteData - the company quote to write
  */
-let writeCompanyQuoteData = asyncify(function(quoteData) {
+let writeCompanyQuoteData = async function (quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['lastTradeDate']) {
     return;
@@ -543,186 +344,54 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
   });
 
   insertDetails.values = quoteData;
-  return awaitify(dynamodb.insertRecord(insertDetails));
-});
+  return await dynamodb.insertRecord(insertDetails);
+};
 
-/**  Processes updates to company quotes for a specific date.  Looks up the
-*     relevant company metrics for the date, and processes an update to the
-*     company quote record to add the metrics values.
-* @param {Array} symbols - all companies which are being processed
-* @param {String} quoteDate - the date to process
-* @param {Object} recLimits (optional) - specifies where to start and stop
-*     the operation, in form of:
-*     {
-        startRec: 100,
-        endRec, 199,
-*      }
-*     This would process from record index 100 to 199 in the symbols list
-*/
-let updateQuotesWithMetrics = asyncify(function(symbols, quoteDate, recLimits) {
-  if (!symbols) {
-    console.log('updateQuotesWithMetrics error: no symbols supplied');
-    return;
-  }
-
-  if (!quoteDate) {
-    console.log('updateQuotesWithMetrics error: no quoteDate supplied');
-    return;
-  }
-
-  let startRec = 0;
-  let endRec = symbols.length - 1;
-
-  if (recLimits && recLimits.startRec) {
-    startRec = recLimits.startRec;
-  }
-
-  if (recLimits && recLimits.endRec && recLimits.endRec < endRec) {
-    endRec = recLimits.endRec;
-  }
-
-  if (startRec > endRec) {
-    return;
-  }
-
-  console.log('Updating company quotes with metrics for ', quoteDate, ' from ',
-    startRec, ' to ', endRec);
-
-  let metricsDate = quoteDate;
-
-  // Set-up update details, only update the record if it is found
-  let updateDetails = {
-    tableName: 'companyQuotes',
-    key: {
-      quoteDate: metricsDate,
-    },
-    conditionExpression: 'attribute_exists(symbol) and ' +
-      'attribute_exists(quoteDate)',
-  };
-
-  for (let c = startRec; c <= endRec; c++) {
-    let companySymbol = symbols[c];
-    // symbols.forEach((companySymbol) => {
-    // If at least one quote record has been returned, continue
-    let fieldsPresent = [];
-    let updateExpression;
-    let expressionAttributeValues = {};
-    let expressionAttributeNames = {};
-
-    // Set-up query and retrieve metrics value
-    let queryDetails = {
-      tableName: 'companyMetrics',
-      keyConditionExpression: 'symbol = :symbol and ' +
-        'metricsDate <= :metricsDate',
-      expressionAttributeValues: {
-        ':metricsDate': metricsDate,
-        ':symbol': companySymbol,
-      },
-      reverseOrder: true,
-      limit: 1,
-    };
-
-    let metricsResult = awaitify(dynamodb.queryTable(queryDetails));
-
-    // Check we got a metrics result
-    if (metricsResult.length) {
-      let workingRecord = metricsResult[0];
-
-      // Set up the key: symbol and quoteDate
-      updateDetails.key.symbol = companySymbol;
-
-      // Remove the attributes which should not be copied into cpmanyQuotes
-      delete workingRecord['symbol'];
-      delete workingRecord['metricsDate'];
-      delete workingRecord['yearMonth'];
-      delete workingRecord['created'];
-
-      // Get a list of fields and values to copy
-      Object.keys(workingRecord).forEach((field) => {
-        expressionAttributeValues[(':' + field)] = workingRecord[field];
-        expressionAttributeNames[('#' + field)] = field;
-        fieldsPresent.push('#' + field + '=:' + field);
-      });
-
-      // Enure that at least one field is present to update
-      if (fieldsPresent.length) {
-        updateExpression = 'set ' + fieldsPresent.join(',');
-
-        updateDetails.updateExpression = updateExpression;
-        updateDetails.expressionAttributeValues = expressionAttributeValues;
-        updateDetails.expressionAttributeNames = expressionAttributeNames;
-
-        try {
-          awaitify(dynamodb.updateRecord(updateDetails));
-        } catch (err) {
-          console.log(err);
-        }
-      }
-    }
-  }
-});
-
-/**  Find the most recent date which quotes were retrieved for.  Because
- *     inidividual companies may or may not have a quote for a given date, it
- *     uses the last date for the All Ordinaries index
- * @return {String} the most recent date found in format YYYY-MM-DD
- */
-let getCurrentExecutionDate = asyncify(function() {
-  // Get current dat based on last index quote for All Ordinaries
-  let queryDetails = {
-    tableName: 'indexQuotes',
-    keyConditionExpression: 'symbol = :symbol',
-    reverseOrder: true,
-    expressionAttributeValues: {
-      ':symbol': 'ALLORD',
-    },
-    limit: 1,
-    projectionExpression: 'symbol, quoteDate',
-  };
-
-  let indexLookup = awaitify(dynamodb.queryTable(queryDetails));
-  if (indexLookup.length) {
-    return indexLookup[0]['quoteDate'];
-  } else {
-    return null;
-  }
-});
 
 /**  Executes the retrieval and storage of the latest financial indicator
  *     information
  */
-let executeFinancialIndicators = asyncify(function() {
-  awaitify(finIndicators.updateIndicatorValues());
-});
+let executeFinancialIndicators = async function () {
+  await finIndicators.updateIndicatorValues();
+};
 
-/**  Executes the retrieval and storage of the latest company metrics
- *     information
- */
-let executeCompanyMetrics = asyncify(function(recLimits) {
-  // let symbolResult = awaitify(setupSymbols());
-  // let mCompanies = symbolResult.companies;
-
-  awaitify(metrics.updateCompanyMetrics(recLimits));
-});
 
 /**  Executes the retrieval and storage of the latest index quote
  *     information
  */
-let executeIndexQuoteRetrieval = asyncify(function() {
-  let symbolResult = awaitify(setupSymbols(true));
+let executeIndexQuoteRetrieval = async function () {
+  let symbolResult = await setupSymbols(true);
 
   let symbolLookup = symbolResult.symbolLookup;
   let indices = symbolResult.indices;
 
   console.log('----- Start retrieve index quotes -----');
   try {
-    let results = awaitify(retrieveSnapshot(indices, 'index'));
+    let indexResults = await retrieveQuote.getQuotes({
+      'symbols': indices,
+      'type': 'index',
+    });
 
-    awaitify(processIndexResults(results, symbolLookup));
+    console.log(`Number of succesfull results: ${JSON.stringify(indexResults.results.length)}`);
+    console.log(`Number of errors: ${indexResults.errorCount}`);
+
+    let processResults;
+
+    if (indexResults.results) {
+      processResults = await processIndexResults(indexResults.results, symbolLookup);
+    }
+    return {
+      indexRetrieves: indexResults.results.length,
+      indexRetrieveErrors: indexResults.errorCount,
+      insertQuoteProcessingResults: processResults,
+    };
   } catch (err) {
     console.log(err);
+    return {
+      error: err,
+    };
   }
-});
+};
 
 /**  Executes the retrieval and storage of the latest company quote
 *     information
@@ -734,182 +403,96 @@ let executeIndexQuoteRetrieval = asyncify(function() {
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeCompanyQuoteRetrieval = asyncify(function(recLimits) {
-  let dataToAppend = {};
-  let symbolGroups = [];
-  let symbolResult = awaitify(setupSymbols());
+let executeCompanyQuoteRetrieval = async function (recLimits) {
+  try {
+    let dataToAppend = {};
+    let symbolResult = await setupSymbols();
 
-  let symbolLookup = symbolResult.symbolLookup;
-  let companies = symbolResult.companies;
+    let symbolLookup = symbolResult.symbolLookup;
+    let companies = symbolResult.companies;
 
-  let todayString = utils.returnDateAsString(Date.now());
-  let financialIndicatos = awaitify(finIndicators
-    .returnIndicatorValuesForDate(todayString));
-  let indexDataToAppend = awaitify(returnIndexDataForDate(todayString));
+    let todayString = utils.returnDateAsString(Date.now());
+    let financialIndicatos = await finIndicators
+      .returnIndicatorValuesForDate(todayString);
+    let indexDataToAppend = await returnIndexDataForDate(todayString);
 
-  // create append array from indicators and index data
-  dataToAppend = addObjectProperties(financialIndicatos,
-    indexDataToAppend);
+    // create append array from indicators and index data
+    dataToAppend = addObjectProperties(financialIndicatos,
+      indexDataToAppend);
 
-  let startRec = 0;
-  let endRec = companies.length - 1;
+    let startRec = 0;
+    let endRec = companies.length - 1;
 
-  if (recLimits && recLimits.startRec) {
-    startRec = recLimits.startRec;
-  }
-
-  if (recLimits && recLimits.endRec && recLimits.endRec < endRec) {
-    endRec = recLimits.endRec;
-  }
-
-  if (startRec > endRec) {
-    return;
-  }
-
-  console.log('Retrieving company quotes from ', startRec, ' to ', endRec);
-
-
-  /* Split companies into groups of 15 to ensure request doesn't exceed api
-      url length */
-  for (let companyCounter = startRec; companyCounter < endRec; companyCounter += 15) {
-    symbolGroups.push(companies.slice(companyCounter, companyCounter + 15));
-  }
-
-  symbolGroups.forEach((symbolGroup) => {
-    try {
-      console.log('Retrieving symbol group');
-      let result = awaitify(retrieveSnapshot(symbolGroup,
-        'company'));
-
-      // Retrieve dividends
-      console.log('Retrieving dividends for group');
-      let dividends = awaitify(getDividendsforDate(symbolGroup,
-        todayString, symbolLookup));
-
-      console.log('Processing results');
-      awaitify(processCompanyResults(result, symbolLookup,
-        dataToAppend, dividends));
-    } catch (err) {
-      console.log(err);
+    if (recLimits && recLimits.startRec) {
+      startRec = recLimits.startRec;
     }
-  });
-});
 
-/**  Executes the retrieval and return of current company dividend
- *      information for the date specified
- * @param {Array} symbolGroup  one or more yahoo symbols to look up for dividend
- * @param {String} retrievalDate - the date to retrieve dividends for
- * @param {Array} symbolLookup - an array of key/value pairs to translate
- *                               the symbols yahoo uses to the normal symbol
- * @return {Object} an object for each company which has relevant dividend
- *     information for the specified date in the form of:
- *   {
- *   'JBH': {
- *           'exDividendDate': '2017-02-23',
- *           'exDividendPayout': 1.02344,
- *           },
- *   }
- */
-let getDividendsforDate = asyncify(function(symbolGroup, retrievalDate,
-  symbolLookup) {
-  if (!symbolGroup) {
-    console.error('getDividendsforDate error: no symbolGroup supplied');
-    return;
-  }
+    if (recLimits && recLimits.endRec && recLimits.endRec < endRec) {
+      endRec = recLimits.endRec;
+    }
 
-  if (!retrievalDate) {
-    console.error('getDividendsforDate error: no retrievalDate supplied');
-    return;
-  }
+    if (startRec > endRec) {
+      return;
+    }
 
-  if (!symbolLookup) {
-    console.error('getDividendsforDate error: no symbolLookup supplied');
-    return;
-  }
+    console.log('Retrieving company quotes from ', startRec, ' to ', endRec);
 
-
-  // Retrieve dividends
-  let dividendEndDate = utils.returnDateAsString(retrievalDate);
-  let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -1);
-  dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
-  let dividends = awaitify(retrieveDividends(symbolGroup,
-    dividendStartDate, dividendEndDate));
-
-  // Convert dividend results array to results object
-  let dividendResults = {};
-
-  // Single company result is returned as an array
-  if (Array.isArray(dividends) && dividends.length > 0) {
-    // Multiple  symbols returned
-    dividends.forEach((dividendRecord) => {
-      processDividend(dividendRecord);
+    // Get array of companies to work with
+    let companySymbols = companies.slice(startRec, endRec);
+    let companyResults = await retrieveQuote.getQuotes({
+      'symbols': companySymbols,
+      'type': 'company',
     });
-  } else {
-    // Multi-company result is returned as an object
-    Object.keys(dividends).forEach((dividendCompany) => {
-      dividends[dividendCompany].forEach((dividendRecord) => {
-        processDividend(dividendRecord);
-      });
+
+    console.log(`Number of succesfull quote results: ${JSON.stringify(companyResults.results.length)}`);
+    console.log(`Number of quote errors: ${companyResults.errorCount}`);
+
+    let dividendEndDate = utils.returnDateAsString(todayString);
+    let dividendStartDate = utils.dateAdd(todayString, 'years', -1);
+    dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
+
+    let dividendResults = await retrieveQuote.getLatestDividends({
+      'symbols': companySymbols,
+      'startDate': dividendStartDate,
+      'endDate': dividendEndDate,
     });
+
+    console.log(`Number of succesfull dividend results:`,
+      `${JSON.stringify(Object.keys(dividendResults.results).length)}`);
+    console.log(`Number of dividend errors: ${dividendResults.errorCount}`);
+
+    let processResults;
+
+    if (companyResults.results) {
+      console.log('Processing results');
+      processResults = await processCompanyResults(companyResults.results, symbolLookup,
+        dataToAppend, dividendResults.results || {});
+    }
+
+    return {
+      quoteRetrieves: companyResults.results.length,
+      quoteRetrieveErrors: companyResults.errorCount,
+      latestDividendRetrieves: Object.keys(dividendResults.results).length,
+      latestDividendErrors: dividendResults,
+      insertQuoteProcessingResults: processResults,
+    };
+  } catch (err) {
+    console.log(err);
+    return {
+      error: err,
+    };
   }
-
-  /** Check if dividend record is the latest record for each symbol.  If it is
-   *    pdate the recorded dividend
-   * @param {Object} dividendRecord record to process
-   */
-  function processDividend(dividendRecord) {
-    let symbol = symbolLookup[dividendRecord.symbol];
-    let exDividendDate = utils.returnDateAsString(dividendRecord['date']);
-    let exDividendPayout = dividendRecord['dividends'];
-
-    /* Check if symbol has already been recorded, or recorded with an earlier
-      date */
-    if (!dividendResults[symbol] ||
-      dividendResults[symbol]['exDividendDate'] < exDividendDate)
-      dividendResults[symbol] = {};
-    dividendResults[symbol]['exDividendDate'] = exDividendDate;
-    dividendResults[symbol]['exDividendPayout'] = exDividendPayout;
-  }
-
-  return dividendResults;
-});
-
-/**  Executes the company metrics update to add metrics information
-*  after quotes are retrieved
-* @param {Object} recLimits   (optional) - specifies where to start and stop
-*     the operation, in form of:
-*     {
-        startRec: 100,
-        endRec, 199,
-*      }
-*     This would process from company record index 100 to 199
-*/
-let executeMetricsUpdate = asyncify(function(recLimits) {
-  // Get current dat based on last index quote for All Ordinaries
-  let metricsDate = awaitify(getCurrentExecutionDate());
-  let companies = [];
-  let symbolResult = awaitify(setupSymbols());
-
-  Object.keys(symbolResult.companyLookup).forEach((yahooSymbol) => {
-    companies.push(symbolResult.companyLookup[yahooSymbol]);
-  });
-
-  if (metricsDate) {
-    awaitify(updateQuotesWithMetrics(companies, metricsDate, recLimits || {}));
-  }
-});
+};
 
 
 module.exports = {
   setupSymbols: setupSymbols,
-  updateQuotesWithMetrics: updateQuotesWithMetrics,
-  writeIndexQuote: writeIndexQuote,
   writeCompanyQuoteData: writeCompanyQuoteData,
   returnIndexDataForDate: returnIndexDataForDate,
   executeFinancialIndicators: executeFinancialIndicators,
-  executeCompanyMetrics: executeCompanyMetrics,
   executeIndexQuoteRetrieval: executeIndexQuoteRetrieval,
   executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
-  executeMetricsUpdate: executeMetricsUpdate,
-  retrieveDividends: retrieveDividends,
 };
+
+// dynamodb.setLocalAccessConfig();
+// executeIndexQuoteRetrieval();

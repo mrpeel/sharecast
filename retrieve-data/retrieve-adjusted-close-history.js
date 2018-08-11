@@ -1,11 +1,8 @@
 'use strict';
 
-const yahooFinance = require('yahoo-finance');
 const utils = require('./utils');
 const dynamodb = require('./dynamodb');
-// const retrieveData = require('./dynamo-retrieve-share-data');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
+const retrieveQuote = require('./retrieve-quote');
 const moment = require('moment-timezone');
 const sns = require('./publish-sns');
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
@@ -24,9 +21,11 @@ const lambda = new aws.Lambda({
   results - results
 }
 */
-let reloadQuote = asyncify(function(params) {
+let reloadQuote = async function(params) {
   let symbol;
   let symbolYear;
+  let resultStats;
+
   try {
     let results = [];
     let yahooSymbol;
@@ -46,7 +45,16 @@ let reloadQuote = asyncify(function(params) {
         limit: 1,
       };
 
-      let reloadResults = awaitify(dynamodb.scanTable(scanDetails));
+      if (params.resultStats) {
+        resultstats = params.resultStats;
+      } else {
+        resultStats = {
+          updatedRecords: 0,
+          errors: 0,
+        };
+      }
+
+      let reloadResults = await dynamodb.scanTable(scanDetails);
 
       if (reloadResults.length) {
         symbolYear = reloadResults[0]['symbolYear'];
@@ -56,9 +64,8 @@ let reloadQuote = asyncify(function(params) {
         endDate = reloadResults[0]['endDate'];
       } else {
         try {
-          awaitify(
-            sns.publishMsg(snsArn,
-              `All reloadQuote value processing finished`, 'reloadQuote finished'));
+          await sns.publishMsg(snsArn,
+            `${JSON.stringify(resultStats)}`, 'reloadQuote finished');
         } catch (err) {}
         return true;
       }
@@ -71,15 +78,23 @@ let reloadQuote = asyncify(function(params) {
         },
       };
 
-      awaitify(dynamodb.deleteRecord(deleteDetails));
+      await dynamodb.deleteRecord(deleteDetails);
 
       // Load results from yahoo
-      let fullResults = awaitify(retrieveHistory(yahooSymbol,
-        utils.returnDateAsString(startDate, 'YYYY-MM-DD'),
-        utils.returnDateAsString(endDate, 'YYYY-MM-DD')));
+      let fullResults = await retrieveQuote.getAdjustedPrices({
+        'symbols': [yahooSymbol],
+        'startDate': utils.returnDateAsString(startDate, 'YYYY-MM-DD'),
+        'endDate': utils.returnDateAsString(endDate, 'YYYY-MM-DD'),
+      });
 
-      // Strip results to core values
-      fullResults.forEach((resultVal) => {
+      fullResults.results.forEach((result) => {
+        console.log(`${result.symbol}: ${result.history.length} results`);
+      });
+      console.log(`${fullResults.errorCount} errors`);
+
+
+      // Retrieve core values for update
+      fullResults.results[yahooSymbol].forEach((resultVal) => {
         // Push the stripped down value to results
         results.push({
           'date': utils.returnDateAsString(resultVal['date']),
@@ -96,11 +111,19 @@ let reloadQuote = asyncify(function(params) {
       let result = results.shift(1);
       result.adjustedPrice = result.adjClose;
       result.symbol = symbol;
-      awaitify(updateAdjustedPrice(result));
+      let updateResult = await updateAdjustedPrice(result);
+
+      if (updateResult.error) {
+        resultStats.errors++;
+      } else {
+        resultStats.updatedRecords++;
+      }
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 270) {
+      if (utils.dateDiff(t0, t1, 'seconds') > 260) {
+        await sns.publishMsg(snsArn,
+          `${JSON.stringify(resultStats)}`, 'reloadQuote Continuing');
         break;
       }
     }
@@ -113,54 +136,38 @@ let reloadQuote = asyncify(function(params) {
         'symbol': symbol,
         'yahooSymbol': yahooSymbol,
         'results': results,
+        'resultStats': resultStats,
       };
 
       let description = `Re-invoking reloadQuote:  ${symbolYear} - ` +
         `${results.length} records`;
 
-      awaitify(invokeLambda('reloadQuote', reinvokeEvent, description));
+      await invokeLambda('reloadQuote', reinvokeEvent, description);
     } else {
       // Invoke lambda again
       let description = `Invoking next reloadQuote`;
 
-      awaitify(invokeLambda('reloadQuote', {}, description));
+      await invokeLambda('reloadQuote', {}, description);
     }
     return true;
   } catch (err) {
     try {
-      awaitify(
-        sns.publishMsg(snsArn,
-          'reloadQuote failed.  Error: ' + JSON.stringify(err),
-          'reloadQuote failed'));
+      await
+      sns.publishMsg(snsArn,
+        'reloadQuote failed.  Error: ' + JSON.stringify(err),
+        'reloadQuote failed');
     } catch (err) {}
 
     console.log('reloadQuote failed while processing: ', symbolYear);
     console.log(err);
   }
-});
-
-
-let retrieveHistory = function(symbol, startDate, endDate) {
-  return new Promise(function(resolve, reject) {
-    let historyOptions = {
-      from: startDate,
-      to: endDate,
-      symbol: symbol,
-    };
-
-    yahooFinance.historical(historyOptions).then(function(result) {
-      resolve(result);
-    }).catch(function(err) {
-      reject(err);
-    });
-  });
 };
 
 
 /**  Write a conpany quote adjusted price update to dynamodb
-* @param {Object} quoteData - the company quote to write
-*/
-let updateAdjustedPrice = asyncify(function(quoteData) {
+ * @param {Object} quoteData - the company quote to write
+ */
+let updateAdjustedPrice = async function(quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['date']) {
     return;
@@ -197,37 +204,34 @@ let updateAdjustedPrice = asyncify(function(quoteData) {
   updateDetails.expressionAttributeValues = expressionAttributeValues;
   updateDetails.expressionAttributeNames = expressionAttributeNames;
 
-  return awaitify(dynamodb.updateRecord(updateDetails));
-});
+  return await dynamodb.updateRecord(updateDetails);
+};
 
-let invokeLambda = function(lambdaName, event, description) {
-  return new Promise(function(resolve, reject) {
-    console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
-    if (description) {
-      console.log(description);
-    }
+let invokeLambda = async function(lambdaName, event, description) {
+  console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
+  if (description) {
+    console.log(description);
+  }
 
-    /*
-    // Re-invoke function to simulate lambda
-    retrieveAdjustedHistoryData(event);
+  /*
+  // Re-invoke function to simulate lambda
+  retrieveAdjustedHistoryData(event);
 
-    resolve(true);
-    return; */
+  resolve(true);
+  return; */
 
-    lambda.invoke({
+  try {
+    await lambda.invoke({
       FunctionName: lambdaName,
       InvocationType: 'Event',
       Payload: JSON.stringify(event, null, 2),
-    }, function(err, data) {
-      if (err) {
-        reject(err);
-      } else {
-        console.log(`Function ${lambdaName} executed with event: `,
-          `${JSON.stringify(event)}`);
-        resolve(true);
-      }
-    });
-  });
+    }).promise();
+    console.log(`Function ${lambdaName} executed with event: `,
+      `${JSON.stringify(event)}`);
+    return true;
+  } catch (err) {
+    throw err;
+  }
 };
 
 

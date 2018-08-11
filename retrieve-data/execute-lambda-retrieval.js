@@ -1,7 +1,5 @@
 'use strict';
 
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 const utils = require('./utils');
 const aws = require('aws-sdk');
 const lambda = new aws.Lambda({
@@ -9,26 +7,24 @@ const lambda = new aws.Lambda({
 });
 
 
-let invokeLambda = function(lambdaName, event) {
-  return new Promise(function(resolve, reject) {
-    lambda.invoke({
+let invokeLambda = async function(lambdaName, event) {
+  try {
+    await lambda.invoke({
       FunctionName: lambdaName,
       Payload: JSON.stringify(event, null, 2),
-    }, function(err, data) {
-      if (err) {
-        reject(err);
-      } else {
-        console.log(`Function ${lambdaName} executed with event: `,
-          `${JSON.stringify(event)}`);
-        resolve(true);
-      }
-    });
-  });
+    }).promise();
+    console.log(`Function ${lambdaName} executed with event: `,
+      `${JSON.stringify(event)}`);
+    return true;
+  } catch (err) {
+    throw err;
+  }
 };
 
 /**  Executes all retrieval and update logic for the day's data
-*/
-let executeAll = asyncify(function(lastExecutionDetails) {
+ * @param {Object} lastExecutionDetails
+ */
+let executeAll = async function(lastExecutionDetails) {
   try {
     let lastExecuted;
     let executionList;
@@ -75,9 +71,9 @@ let executeAll = asyncify(function(lastExecutionDetails) {
 
     console.log('Executing ', executionOrder[execute]);
 
-    awaitify(invokeLambda('retrieveShareData', {
+    await invokeLambda('retrieveShareData', {
       executeFunction: executionOrder[execute],
-    }));
+    });
 
     let t1 = new Date();
 
@@ -102,7 +98,7 @@ let executeAll = asyncify(function(lastExecutionDetails) {
   } catch (err) {
     console.error('executeAll function failed: ', err);
   }
-});
+};
 
 
 executeAll();
