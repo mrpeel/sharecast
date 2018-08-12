@@ -105,8 +105,10 @@ let processIndexResults = async function(results, symbolLookup) {
 
       // Check through for values with null and remove from object
       Object.keys(result).forEach((field) => {
-        if (result[field] === null || result[field] === 'Infinity' ||
-          result[field] === '-Infinity') {
+        if (result[field] === null ||
+          result[field] === 'Infinity' ||
+          result[field] === '-Infinity' ||
+          Number.isNaN(result[field])) {
           delete result[field];
         }
       });
@@ -157,7 +159,7 @@ let processCompanyResults = async function(results, symbolLookup,
       result.symbol = symbolLookup[result.symbol];
 
       Object.keys(result).forEach((field) => {
-        // Reset number here required
+        // Reset number here rif equired
         if (result[field]) {
           result[field] = utils.checkForNumber(result[field]);
         }
@@ -337,8 +339,10 @@ let writeCompanyQuoteData = async function(quoteData) {
 
   // Check through for values with null and remove from object
   Object.keys(quoteData).forEach((field) => {
-    if (quoteData[field] === null || quoteData[field] === '' ||
-      quoteData[field] === 'Infinity' || quoteData[field] === '-Infinity') {
+    if (quoteData[field] === null ||
+      quoteData[field] === 'Infinity' ||
+      quoteData[field] === '-Infinity' ||
+      Number.isNaN(quoteData[field])) {
       delete quoteData[field];
     }
   });
@@ -372,7 +376,7 @@ let executeIndexQuoteRetrieval = async function() {
       'type': 'index',
     });
 
-    console.log(`Number of succesfull results: ${JSON.stringify(indexResults.results.length)}`);
+    console.log(`Number of succesfull results: ${Object.keys(indexResults.results).length}`);
     console.log(`Number of errors: ${indexResults.errorCount}`);
 
     let processResults;
@@ -381,7 +385,7 @@ let executeIndexQuoteRetrieval = async function() {
       processResults = await processIndexResults(indexResults.results, symbolLookup);
     }
     return {
-      indexRetrieves: indexResults.results.length,
+      indexRetrieves: Object.keys(indexResults.results).length,
       indexRetrieveErrors: indexResults.errorCount,
       insertQuoteProcessingResults: processResults,
     };
@@ -412,8 +416,7 @@ let executeCompanyQuoteRetrieval = async function(recLimits) {
     let companies = symbolResult.companies;
 
     let todayString = utils.returnDateAsString(Date.now());
-    let financialIndicatos = await finIndicators
-      .returnIndicatorValuesForDate(todayString);
+    let financialIndicatos = await finIndicators.returnIndicatorValuesForDate(todayString);
     let indexDataToAppend = await returnIndexDataForDate(todayString);
 
     // create append array from indicators and index data
@@ -444,7 +447,7 @@ let executeCompanyQuoteRetrieval = async function(recLimits) {
       'type': 'company',
     });
 
-    console.log(`Number of succesfull quote results: ${JSON.stringify(companyResults.results.length)}`);
+    console.log(`Number of succesfull quote results: ${Object.keys(companyResults.results).length}`);
     console.log(`Number of quote errors: ${companyResults.errorCount}`);
 
     let dividendEndDate = utils.returnDateAsString(todayString);
@@ -470,7 +473,7 @@ let executeCompanyQuoteRetrieval = async function(recLimits) {
     }
 
     return {
-      quoteRetrieves: companyResults.results.length,
+      quoteRetrieves: Object.keys(companyResults.results).length,
       quoteRetrieveErrors: companyResults.errorCount,
       latestDividendRetrieves: Object.keys(dividendResults.results).length,
       latestDividendErrors: dividendResults,
@@ -494,5 +497,9 @@ module.exports = {
   executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
 };
 
-// dynamodb.setLocalAccessConfig();
-// executeIndexQuoteRetrieval();
+dynamodb.setLocalAccessConfig();
+let localExecute = async function() {
+  let results = await executeIndexQuoteRetrieval();
+  console.log(JSON.stringify(results, null, 2));
+};
+localExecute();

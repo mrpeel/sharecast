@@ -184,9 +184,7 @@ let getIndicatorRequestDates = async function(indicatorIds) {
       limit: 1,
     };
 
-    for (let c = 0; c < indicatorIds.length; c++) {
-      // Prepare and insert row
-      let indicatorId = indicatorIds[c];
+    for (const indicatorId of indicatorIds) {
       let indicatorDate;
 
       queryDetails.expressionAttributeValues = {
@@ -244,9 +242,8 @@ let returnIndicatorValuesForDate = async function(valueDate) {
       limit: 1,
     };
 
-    for (let c = 0; c < indicatorIds.length; c++) {
+    for (const indicatorId of indicatorIds) {
       // Prepare and insert row
-      let indicatorId = indicatorIds[c];
       queryDetails.expressionAttributeValues = {
         ':symbol': indicatorId,
         ':created': valueDate,
@@ -274,22 +271,18 @@ let updateIndicatorValues = async function() {
     let indicatorIds = await getIndicatorList();
     let indicatorDates = await getIndicatorRequestDates(indicatorIds);
 
-    for (let id = 0; id < indicatorDates.length; id++) {
-      let indicatorDate = indicatorDates[id];
+    for (const indicatorDate of indicatorDates) {
       let retrievalDetails = {};
       let symbol = indicatorDate.symbol;
 
       retrievalDetails.symbol = symbol;
       retrievalDetails.url = baseUrl + indicatorRetrievalValues[symbol].url +
         urlSuffix + dateParameter + indicatorDate['startDate'];
-      retrievalDetails.dataColumn = indicatorRetrievalValues[symbol]
-        .dataColumn;
-      let indicatorResults = await
-      retrieveQuandlIndicator(retrievalDetails);
+      retrievalDetails.dataColumn = indicatorRetrievalValues[symbol].dataColumn;
+      let indicatorResults = await retrieveQuandlIndicator(retrievalDetails);
 
       // Insert the value in the db
-      for (let ic = 0; ic < indicatorResults.length; ic++) {
-        let indicatorResult = indicatorResults[ic];
+      for (const indicatorResult of indicatorResults) {
         await insertIndicatorValue(indicatorResult);
       };
     };

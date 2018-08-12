@@ -221,21 +221,21 @@ let invokeLambda = async function(lambdaName, event, description) {
 
 
   // Re-invoke function to simulate lambda
-  reloadQuote(event);
-  return true;
+  // reloadQuote(event);
+  // return true;
 
-  // try {
-  //   await lambda.invoke({
-  //     FunctionName: lambdaName,
-  //     InvocationType: 'Event',
-  //     Payload: JSON.stringify(event, null, 2),
-  //   }).promise();
-  //   console.log(`Function ${lambdaName} executed with event: `,
-  //     `${JSON.stringify(event)}`);
-  //   return true;
-  // } catch (err) {
-  //   throw err;
-  // }
+  try {
+    await lambda.invoke({
+      FunctionName: lambdaName,
+      InvocationType: 'Event',
+      Payload: JSON.stringify(event),
+    }).promise();
+    console.log(`Function ${lambdaName} executed with event: `,
+      `${JSON.stringify(event, null, 2)}`);
+    return true;
+  } catch (err) {
+    throw err;
+  }
 };
 
 
@@ -243,5 +243,5 @@ module.exports = {
   reloadQuote: reloadQuote,
 };
 
-dynamodb.setLocalAccessConfig();
-reloadQuote({});
+// dynamodb.setLocalAccessConfig();
+// reloadQuote({});

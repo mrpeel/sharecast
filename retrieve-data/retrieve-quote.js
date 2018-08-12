@@ -233,7 +233,7 @@ let transformQuote = function(yahooQuote, isCompanySymbol = true) {
                 transformedQuote['changeFrom52WeekHigh'] =
                     quotePrice - transformedQuote['52WeekHigh'];
                 transformedQuote['percebtChangeFrom52WeekHigh'] =
-                    (transformedQuote - transformedQuote['52WeekHigh']) /
+                    (quotePrice - transformedQuote['52WeekHigh']) /
                     transformedQuote['52WeekHigh'];
             } else {
                 transformedQuote['percebtChangeFrom52WeekHigh'] = 0;
