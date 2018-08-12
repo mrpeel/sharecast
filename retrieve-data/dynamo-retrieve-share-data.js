@@ -21,7 +21,7 @@ const finIndicators = require('./dynamo-retrieve-financial-indicator-data');
  *    indexSymbols: [], (array of the index symbols used)
  *  }
  */
-let setupSymbols = async function (indicesOnly) {
+let setupSymbols = async function(indicesOnly) {
   try {
     console.log('----- Start setup symbols -----');
     let indexValues = await symbols.getIndices();
@@ -77,7 +77,7 @@ let setupSymbols = async function (indicesOnly) {
  * @param {Array} symbolLookup - an array of key/value pairs to translate
  *                               the symbols yahoo uses to the normal symbol
  */
-let processIndexResults = async function (results, symbolLookup) {
+let processIndexResults = async function(results, symbolLookup) {
   // Work through results and add them to db
   let resultSymbols = Object.keys(results);
   let errorCount = 0;
@@ -143,7 +143,7 @@ let processIndexResults = async function (results, symbolLookup) {
  * @param {Object} dividends - An object with symbol dividends to append
  *                              to symbol records when saving
  */
-let processCompanyResults = async function (results, symbolLookup,
+let processCompanyResults = async function(results, symbolLookup,
   dataToAppend, dividends) {
   let symbols = Object.keys(results) || [];
   let errorCount = 0;
@@ -215,7 +215,7 @@ let processCompanyResults = async function (results, symbolLookup,
  *      ...
  *    }
  */
-let convertIndexDatatoAppendData = function (indexData) {
+let convertIndexDatatoAppendData = function(indexData) {
   let returnVal = {};
 
   indexData.forEach((indexRow) => {
@@ -244,7 +244,7 @@ let convertIndexDatatoAppendData = function (indexData) {
  *      ...
  *    }
  */
-let returnIndexDataForDate = async function (dateVal) {
+let returnIndexDataForDate = async function(dateVal) {
   if (!utils.isDate(dateVal)) {
     console.error(`Invalid dateVal: ${dateVal}`);
     return;
@@ -291,7 +291,7 @@ let returnIndexDataForDate = async function (dateVal) {
  * @param {Object} object2
  * @return {Object}  a new object with all the properties
  */
-let addObjectProperties = function (object1, object2) {
+let addObjectProperties = function(object1, object2) {
   let returnObj = {};
 
   Object.keys(object1).forEach((key) => {
@@ -313,7 +313,7 @@ let addObjectProperties = function (object1, object2) {
  *     adjustedPrice, and checks and removes any invalid values.
  * @param {Object} quoteData - the company quote to write
  */
-let writeCompanyQuoteData = async function (quoteData) {
+let writeCompanyQuoteData = async function(quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['lastTradeDate']) {
     return;
@@ -351,7 +351,7 @@ let writeCompanyQuoteData = async function (quoteData) {
 /**  Executes the retrieval and storage of the latest financial indicator
  *     information
  */
-let executeFinancialIndicators = async function () {
+let executeFinancialIndicators = async function() {
   await finIndicators.updateIndicatorValues();
 };
 
@@ -359,7 +359,7 @@ let executeFinancialIndicators = async function () {
 /**  Executes the retrieval and storage of the latest index quote
  *     information
  */
-let executeIndexQuoteRetrieval = async function () {
+let executeIndexQuoteRetrieval = async function() {
   let symbolResult = await setupSymbols(true);
 
   let symbolLookup = symbolResult.symbolLookup;
@@ -403,7 +403,7 @@ let executeIndexQuoteRetrieval = async function () {
 *      }
 *     This would process from company record index 100 to 199
 */
-let executeCompanyQuoteRetrieval = async function (recLimits) {
+let executeCompanyQuoteRetrieval = async function(recLimits) {
   try {
     let dataToAppend = {};
     let symbolResult = await setupSymbols();

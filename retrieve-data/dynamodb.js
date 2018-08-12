@@ -2,6 +2,7 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
+let maxExecutionTime = 300;
 
 // Set the base retry to wait 500ms
 AWS.config.update({
@@ -20,6 +21,13 @@ let dynamoTables = {};
 let setLocalAccessConfig = function() {
   AWS.config.loadFromPath(`${__dirname}/../credentials/aws.json`);
   client = new AWS.DynamoDB.DocumentClient();
+  /* Set max execution time to a large number to prevent
+      re-invocation of lambda when running locally */
+  maxExecutionTime = 1000000;
+};
+
+let getExecutionMaxTime = function() {
+  return maxExecutionTime;
 };
 
 /** Gets all the dynamo tables and records their provisioned capacity
@@ -463,7 +471,7 @@ let updateRecord = async function(updateDetails) {
     ' ', JSON.stringify(params.Key));
 
   try {
-    await client.update(params).promise();
+    let data = await client.update(params).promise();
     console.log(`Update table ${updateDetails.tableName} succeeded.`);
     return (data || null);
   } catch (err) {
@@ -569,4 +577,5 @@ module.exports = {
   updateRecord: updateRecord,
   deleteRecord: deleteRecord,
   setLocalAccessConfig: setLocalAccessConfig,
+  getExecutionMaxTime: getExecutionMaxTime,
 };

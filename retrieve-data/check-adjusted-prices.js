@@ -79,11 +79,11 @@ let checkForAdjustments = async function(event) {
       console.log(`Number of errors: ${adjustmentResults.errorCount}`);
 
 
-      for (const adjustmentResult of adjustmentResults) {
+      for (const adjustmentResult of adjustmentResults.results) {
         // Retrieve individual result
-        if (adjustmentResult.adjustmentResult) {
+        if (adjustmentResult.adjustedResult) {
           // Retrieve original symbol from yahoo symbol
-          let retrieveSymbol = symbolLookup[resultSymbol];
+          let retrieveSymbol = symbolLookup[adjustmentResult.symbol];
           let reloadYear = startYear;
 
           while (String(reloadYear) < endDate) {
@@ -98,7 +98,7 @@ let checkForAdjustments = async function(event) {
             insertDetails.values = {
               'symbolYear': symbolYear,
               'symbol': retrieveSymbol,
-              'yahooSymbol': resultSymbol,
+              'yahooSymbol': adjustmentResult.symbol,
               'startDate': reloadStartDate,
               'endDate': reloadEndDate,
             };
@@ -108,14 +108,14 @@ let checkForAdjustments = async function(event) {
             reloadYear += 1;
           }
         }
+        processStats.symbolsChecked++;
       }
-      processStats.symbolsChecked++;
     } catch (err) {
       console.error(err);
     }
     let t1 = new Date();
 
-    if (utils.dateDiff(t0, t1, 'seconds') > 220) {
+    if (utils.dateDiff(t0, t1, 'seconds') > (dynamodb.getExecutionMaxTime() - 80)) {
       break;
     }
   }
@@ -138,7 +138,7 @@ let checkForAdjustments = async function(event) {
     await invokeLambda('reloadQuote', {}, description);
 
     await
-    sns.publishMsg(snsArn, `${JSON.stringify(processStats)}`,
+    sns.publishMsg(snsArn, `${JSON.stringify(processStats, null, 2)}`,
       'checkForAdjustments completed.');
   }
 
@@ -179,7 +179,11 @@ module.exports = {
   checkForAdjustments: checkForAdjustments,
 };
 
-dynamodb.setLocalAccessConfig();
-checkForAdjustments({
-  compDate: '2018-08-10',
-});
+// dynamodb.setLocalAccessConfig();
+// checkForAdjustments({
+//   compDate: '2018-08-10',
+//   processStats: {
+//     symbolsChecked: 5,
+//     symbolReloadRecordsCreated: 1,
+//   },
+// });

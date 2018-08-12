@@ -65,7 +65,7 @@ let reloadQuote = async function(params) {
       } else {
         try {
           await sns.publishMsg(snsArn,
-            `${JSON.stringify(resultStats)}`, 'reloadQuote finished');
+            `${JSON.stringify(resultStats, null, 2)}`, 'reloadQuote finished');
         } catch (err) {}
         return true;
       }
@@ -89,18 +89,18 @@ let reloadQuote = async function(params) {
 
       fullResults.results.forEach((result) => {
         console.log(`${result.symbol}: ${result.history.length} results`);
-      });
-      console.log(`${fullResults.errorCount} errors`);
-
-
-      // Retrieve core values for update
-      fullResults.results[yahooSymbol].forEach((resultVal) => {
-        // Push the stripped down value to results
-        results.push({
-          'date': utils.returnDateAsString(resultVal['date']),
-          'adjClose': resultVal['adjClose'],
+        // Loop through historical ajdusted close values
+        result.history.forEach((historyRec) => {
+          // Push the stripped down value to results if the value is present
+          if (historyRec.adjClose) {
+            results.push({
+              'date': utils.returnDateAsString(historyRec.date),
+              'adjClose': historyRec.adjClose,
+            });
+          }
         });
       });
+      console.log(`${fullResults.errorCount} errors`);
     } else {
       console.error(`Inconsistent params: ${JSON.stringify(params)}`);
       return;
@@ -111,19 +111,23 @@ let reloadQuote = async function(params) {
       let result = results.shift(1);
       result.adjustedPrice = result.adjClose;
       result.symbol = symbol;
-      let updateResult = await updateAdjustedPrice(result);
+      try {
+        let updateResult = await updateAdjustedPrice(result);
 
-      if (updateResult.error) {
-        resultStats.errors++;
-      } else {
-        resultStats.updatedRecords++;
+        if (updateResult.error) {
+          resultStats.errors++;
+        } else {
+          resultStats.updatedRecords++;
+        }
+      } catch (err) {
+        console.log(`Error while processing ${symbol} for ${result.date}. ${err}`);
       }
 
       let t1 = new Date();
 
-      if (utils.dateDiff(t0, t1, 'seconds') > 260) {
+      if (utils.dateDiff(t0, t1, 'seconds') > (dynamodb.getExecutionMaxTime() - 40)) {
         await sns.publishMsg(snsArn,
-          `${JSON.stringify(resultStats)}`, 'reloadQuote Continuing');
+          `${JSON.stringify(resultStats, null, 2)}`, 'reloadQuote Continuing');
         break;
       }
     }
@@ -147,14 +151,16 @@ let reloadQuote = async function(params) {
       // Invoke lambda again
       let description = `Invoking next reloadQuote`;
 
-      await invokeLambda('reloadQuote', {}, description);
+      await invokeLambda('reloadQuote', {
+        'resultStats': resultStats,
+      }, description);
     }
     return true;
   } catch (err) {
     try {
       await
       sns.publishMsg(snsArn,
-        'reloadQuote failed.  Error: ' + JSON.stringify(err),
+        'reloadQuote failed.  Error: ' + JSON.stringify(err, null, 2),
         'reloadQuote failed');
     } catch (err) {}
 
@@ -213,25 +219,23 @@ let invokeLambda = async function(lambdaName, event, description) {
     console.log(description);
   }
 
-  /*
+
   // Re-invoke function to simulate lambda
-  retrieveAdjustedHistoryData(event);
+  reloadQuote(event);
+  return true;
 
-  resolve(true);
-  return; */
-
-  try {
-    await lambda.invoke({
-      FunctionName: lambdaName,
-      InvocationType: 'Event',
-      Payload: JSON.stringify(event, null, 2),
-    }).promise();
-    console.log(`Function ${lambdaName} executed with event: `,
-      `${JSON.stringify(event)}`);
-    return true;
-  } catch (err) {
-    throw err;
-  }
+  // try {
+  //   await lambda.invoke({
+  //     FunctionName: lambdaName,
+  //     InvocationType: 'Event',
+  //     Payload: JSON.stringify(event, null, 2),
+  //   }).promise();
+  //   console.log(`Function ${lambdaName} executed with event: `,
+  //     `${JSON.stringify(event)}`);
+  //   return true;
+  // } catch (err) {
+  //   throw err;
+  // }
 };
 
 
@@ -239,5 +243,5 @@ module.exports = {
   reloadQuote: reloadQuote,
 };
 
-// dynamodb.setLocalAccessConfig();
-// reloadQuote({});
+dynamodb.setLocalAccessConfig();
+reloadQuote({});

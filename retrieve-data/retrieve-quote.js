@@ -146,10 +146,10 @@ let retrieveHistory = function(symbol, startDate, endDate, includeOriginalClose)
 
                     if (timestampRecords.length == closeRecords.length &&
                         timestampRecords.length == adjustedCloseRecords.length) {
-                        for (const timestampRecord of timestampRecords) {
+                        for (let hc = 0; hc < timestampRecords.length; hc++) {
                             // Always include date and adjusted close
                             let pushRecord = {
-                                'date': utils.returnDateAsString(timestampRecord * 1000),
+                                'date': utils.returnDateAsString(timestampRecords[hc] * 1000),
                                 'adjClose': adjustedCloseRecords[hc],
                             };
 
