@@ -159,7 +159,7 @@ let processCompanyResults = async function(results, symbolLookup,
       result.symbol = symbolLookup[result.symbol];
 
       Object.keys(result).forEach((field) => {
-        // Reset number here rif equired
+        // Reset number here if required
         if (result[field]) {
           result[field] = utils.checkForNumber(result[field]);
         }
@@ -253,7 +253,7 @@ let returnIndexDataForDate = async function(dateVal) {
   }
   let returnVal = {};
   let quoteDate = utils.returnDateAsString(dateVal);
-  let allIndiceResults = [];
+  let allIndexResults = [];
 
   let queryDetails = {
     tableName: 'indexQuotes',
@@ -273,14 +273,14 @@ let returnIndexDataForDate = async function(dateVal) {
     queryDetails.expressionAttributeValues[':symbol'] = index;
     let indexResults = await dynamodb.queryTable(queryDetails);
     if (indexResults.length) {
-      allIndiceResults = allIndiceResults.concat(indexResults);
+      allIndexResults = allIndexResults.concat(indexResults);
     }
   }
 
 
   // Check we got a metrics result
-  if (allIndiceResults.length) {
-    returnVal = convertIndexDatatoAppendData(allIndiceResults);
+  if (allIndexResults.length) {
+    returnVal = convertIndexDatatoAppendData(allIndexResults);
   }
 
   return returnVal;
@@ -356,7 +356,7 @@ let writeCompanyQuoteData = async function(quoteData) {
  *     information
  */
 let executeFinancialIndicators = async function() {
-  await finIndicators.updateIndicatorValues();
+  return await finIndicators.updateIndicatorValues();
 };
 
 
@@ -497,9 +497,12 @@ module.exports = {
   executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
 };
 
-dynamodb.setLocalAccessConfig();
 let localExecute = async function() {
-  let results = await executeIndexQuoteRetrieval();
+  dynamodb.setLocalAccessConfig();
+  let results = await executeCompanyQuoteRetrieval({
+    startRec: 0,
+    endRec: 20,
+  });
   console.log(JSON.stringify(results, null, 2));
 };
 localExecute();

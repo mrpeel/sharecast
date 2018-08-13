@@ -134,7 +134,7 @@ let retrievalHandler = async function(event, context) {
     let duration = getTiming(t0);
 
     // Update the last executed function
-    let logMessage = `${JSON.stringify(executionResult)}`;
+    let logMessage = `${JSON.stringify(executionResult, null, 2)}`;
     let msgSubject = `Lambda ${executionOrder[execute]} completed in ${duration} seconds`;
 
     console.log(logMessage);

@@ -270,22 +270,40 @@ let updateIndicatorValues = async function() {
     console.log('----- Start financial indicator retrieval -----');
     let indicatorIds = await getIndicatorList();
     let indicatorDates = await getIndicatorRequestDates(indicatorIds);
+    let indicatorStats = {
+      indicatorsToRetrieve: indicatorDates.length,
+      retrievalErrors: 0,
+      succesfullyInsertedIndicators: 0,
+      insertResults: {},
+    };
 
     for (const indicatorDate of indicatorDates) {
-      let retrievalDetails = {};
-      let symbol = indicatorDate.symbol;
+      try {
+        let retrievalDetails = {};
+        let symbol = indicatorDate.symbol;
 
-      retrievalDetails.symbol = symbol;
-      retrievalDetails.url = baseUrl + indicatorRetrievalValues[symbol].url +
-        urlSuffix + dateParameter + indicatorDate['startDate'];
-      retrievalDetails.dataColumn = indicatorRetrievalValues[symbol].dataColumn;
-      let indicatorResults = await retrieveQuandlIndicator(retrievalDetails);
+        retrievalDetails.symbol = symbol;
+        retrievalDetails.url = baseUrl + indicatorRetrievalValues[symbol].url +
+          urlSuffix + dateParameter + indicatorDate['startDate'];
+        retrievalDetails.dataColumn = indicatorRetrievalValues[symbol].dataColumn;
+        let indicatorResults = await retrieveQuandlIndicator(retrievalDetails);
 
-      // Insert the value in the db
-      for (const indicatorResult of indicatorResults) {
-        await insertIndicatorValue(indicatorResult);
-      };
-    };
+        // Insert the value in the db
+        for (const indicatorResult of indicatorResults) {
+          let insertResult = await insertIndicatorValue(indicatorResult);
+
+          if (!indicatorStats.insertResults[insertResult.result]) {
+            indicatorStats.insertResults[insertResult.result] = 0;
+          }
+
+          indicatorStats.insertResults[insertResult.result]++;
+        }
+      } catch (err) {
+        console.log(`Error while retrieiving ${symbol}.  ${err}`);
+        indicatorStats.retrievalErrors++;
+      }
+    }
+    return indicatorStats;
   } catch (err) {
     console.log(err);
   }
@@ -321,9 +339,13 @@ let insertIndicatorValue = async function(indicatorValue) {
       primaryKey: ['symbol', 'valueDate'],
     };
 
-    await dynamodb.insertRecord(insertDetails);
+    return await dynamodb.insertRecord(insertDetails);
   } catch (err) {
     console.log(err);
+    return {
+      result: 'failed',
+      message: JSON.stringify(err),
+    };
   }
 };
 

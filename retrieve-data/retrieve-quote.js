@@ -218,7 +218,7 @@ let transformQuote = function(yahooQuote, isCompanySymbol = true) {
             let fieldName = fieldParts[1];
 
             // Check field is present in object and copy with new name
-            if (yahooQuote[moduleName][fieldName]) {
+            if (yahooQuote[moduleName] && yahooQuote[moduleName][fieldName]) {
                 transformedQuote[field] = yahooQuote[moduleName][fieldName];
             }
         });
