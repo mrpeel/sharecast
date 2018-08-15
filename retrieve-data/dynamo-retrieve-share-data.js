@@ -476,7 +476,7 @@ let executeCompanyQuoteRetrieval = async function(recLimits) {
       quoteRetrieves: Object.keys(companyResults.results).length,
       quoteRetrieveErrors: companyResults.errorCount,
       latestDividendRetrieves: Object.keys(dividendResults.results).length,
-      latestDividendErrors: dividendResults,
+      latestDividendErrors: dividendResults.errorCount,
       insertQuoteProcessingResults: processResults,
     };
   } catch (err) {
@@ -497,12 +497,12 @@ module.exports = {
   executeCompanyQuoteRetrieval: executeCompanyQuoteRetrieval,
 };
 
-let localExecute = async function() {
-  dynamodb.setLocalAccessConfig();
-  let results = await executeCompanyQuoteRetrieval({
-    startRec: 0,
-    endRec: 20,
-  });
-  console.log(JSON.stringify(results, null, 2));
-};
-localExecute();
+// let localExecute = async function() {
+//   dynamodb.setLocalAccessConfig();
+//   let results = await executeCompanyQuoteRetrieval({
+//     // startRec: 0,
+//     // endRec: 100,
+//   });
+//   console.log(JSON.stringify(results, null, 2));
+// };
+// localExecute();

@@ -135,7 +135,7 @@ let retrievalHandler = async function(event, context) {
 
     // Update the last executed function
     let logMessage = `${JSON.stringify(executionResult, null, 2)}`;
-    let msgSubject = `Lambda ${executionOrder[execute]} completed in ${duration} seconds`;
+    let msgSubject = `Lambda ${functionName} completed in ${duration} seconds`;
 
     console.log(logMessage);
 
@@ -198,7 +198,6 @@ let getTiming = function(start) {
 
 
 module.exports = {
-  dailyHandler: dailyHandler,
   retrievalHandler: retrievalHandler,
   checkForAdjustmentsHandler: checkForAdjustmentsHandler,
   reloadQuote: reloadQuoteHandler,

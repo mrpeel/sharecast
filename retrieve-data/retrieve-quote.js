@@ -2,8 +2,6 @@
 
 const utils = require('./utils');
 const fetch = require('node-fetch');
-// const asyncify = require('asyncawait/async');
-// const awaitify = require('asyncawait/await');
 const quoteURL =
     'https://query2.finance.yahoo.com/v10/finance/quoteSummary/$SYMBOL?formatted=false&modules=summaryDetail,financialData,earnings,price,defaultKeyStatistics,calendarEvents&corsDomain=finance.yahoo.com';
 const dividendURL =
