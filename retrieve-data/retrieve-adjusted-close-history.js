@@ -46,7 +46,7 @@ let reloadQuote = async function(params) {
       };
 
       if (params.resultStats) {
-        resultstats = params.resultStats;
+        resultStats = params.resultStats;
       } else {
         resultStats = {
           updatedRecords: 0,
