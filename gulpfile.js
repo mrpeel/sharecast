@@ -105,7 +105,7 @@ gulp.task('install_dependencies', gulp.series('credentials', function() {
     }));
 }));
 
-gulp.task('deploy', gulp.series('install_dependencies', function() {
+gulp.task('deploy', gulp.series('install_dependencies', function(done) {
   gulp.src(['dist/**/*'])
     .pipe(zip('retrieve-share-data.zip'))
     // .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
@@ -125,4 +125,6 @@ gulp.task('deploy', gulp.series('install_dependencies', function() {
   // gulp.src(['dist/**/*'])
   //  .pipe(zip('process-returns.zip'))
   //  .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
+
+  done();
 }));
