@@ -65,7 +65,7 @@ def prepare_data_for_model(share_data: pd.DataFrame, include_y=True):
     symbol_date_df['GICSIndustry'] = df_all_x['GICSIndustry']
     symbol_date_df['prediction_date'] = df_all_x.index
 
-    if include_y is True:
+    if include_y:
         df_all_y = pd.concat(y_dfs)
         del y_dfs
         gc.collect()
@@ -74,10 +74,10 @@ def prepare_data_for_model(share_data: pd.DataFrame, include_y=True):
         del actuals_dfs
         gc.collect()
 
-    if include_y is True:
+    if include_y:
         return df_all_x, df_all_y, df_all_actuals, symbol_date_df
-    else:
-        return df_all_x, symbol_date_df
+
+    return df_all_x, symbol_date_df
 
 
 def output_predictions(predictions, df_symbol_date, file_name):
@@ -98,7 +98,19 @@ def output_predictions(predictions, df_symbol_date, file_name):
     output_df.to_csv(pred_file_location)
 
 
-def main(run_config):
+def main(**kwargs):
+    """Execute predictions for a dataset using the trained models
+       Arguments:
+        data_file=None
+        predict_unlabelled=False
+        output_preds=True
+        eval_results=True
+    """
+    data_file = kwargs.get('data_file', None)
+    predict_unlabelled = kwargs.get('predict_unlabelled', False)
+    output_preds = kwargs.get('output_preds', True)
+    eval_results = kwargs.get('eval_results', True)
+
     # Prepare run_str
     run_str = datetime.now().strftime('%Y%m%d%H%M')
 
@@ -107,28 +119,11 @@ def main(run_config):
     print('Starting sharecast prediction:', run_str)
 
     # Load and divide data
-    if run_config.get('generate_labels') is True:
-        share_data = load_data(run_config['data_file'],
-                               generate_labels=True,
-                               label_weeks=run_config['label_weeks'],
-                               reference_date=run_config['reference_date'],
-                               labelled_file_name=run_config['labelled_file_name']
-                               )
-    elif run_config.get('predict_unlabelled') is True:
-        share_data = load_data(run_config['data_file'],
-                               drop_unlabelled=False,
-                               drop_labelled=True,
-                               generate_labels=False,
-                               label_weeks=run_config['label_weeks'],
-                               reference_date=run_config['reference_date'],
-                               unlabelled_file_name=run_config.get('unlabelled_file_name'))
-    else:
-        share_data = load_data(run_config['data_file'])
-
+    share_data = load_data(data_file)
     gc.collect()
 
     # Divide data into symbols and general data for training an testing
-    if run_config.get('predict_unlabelled') is True:
+    if predict_unlabelled:
         # Only return x values
         df_all_x, df_symbol_date = prepare_data_for_model(share_data, False)
     else:
@@ -204,26 +199,20 @@ def main(run_config):
         bagging_model, bagging_scaler, predictions)
     predictions['deep_bagged_predictions'] = deep_bagged_predictions
 
-    if run_config.get('eval_results') is True:
+    if eval_results:
         assess_results(predictions, model_names, df_all_actuals, run_str)
 
-    if run_config.get('output_predictions') is True:
+    if output_preds:
         output_predictions(predictions, df_symbol_date, run_str)
 
     print('Prediction completed')
 
 
 if __name__ == "__main__":
-    RUN_CONFIG = {
-        'data_file': './data/ml-20180512-processed.pkl.gz',
-        'generate_labels': True,
-        'predict_unlabelled': False,
-        'label_weeks': 8,
-        'reference_date': '2018-05-12',
-        'labelled_file_name': './data/ml-20180512-labelled.pkl.gz',
-        'unlabelled_file_name': './data/ml-20180512-unlabelled.pkl.gz',
-        'output_predictions': True,
-        'eval_results': True,
-    }
 
-    main(RUN_CONFIG)
+    main(data_file='./data/ml-20180714-processed.pkl.gz',
+         generate_labels=True,
+         predict_unlabelled=False,
+         output_preds=True,
+         eval_results=True
+         )

@@ -1,5 +1,4 @@
 import glob
-from datetime import datetime, timedelta
 import gc
 import os
 from pathlib import Path
@@ -25,7 +24,7 @@ from clr_callback import CyclicLR
 from compile_keras import compile_keras_model
 # import matplotlib.pyplot as plt
 
-from processing_constants import LABEL_COLUMN, RETURN_COLUMN
+from processing_constants import LABEL_COLUMN
 from processing_constants import CONTINUOUS_COLUMNS, PAST_RESULTS_CONTINUOUS_COLUMNS
 from processing_constants import CATEGORICAL_COLUMNS, PAST_RESULTS_CATEGORICAL_COLUMNS
 from processing_constants import COLUMNS_TO_REMOVE, RECURRENT_COLUMNS
@@ -91,92 +90,8 @@ def convert_date(df, column_name):
                                         "_DAYOFWEEK"].astype('int32', errors='ignore')
 
 
-@numba.jit
-def generate_label_column(df, num_weeks, reference_date, date_col):
-    """ Generate a label column for each record num_weeks in the future
-        then reduce data set to values which occurr <= (reference_date - num_weeks)
-     """
-
-    # Retrieve unique symbols
-    symbols = df['symbol'].drop_duplicates()
-    symbol_counter = 0
-
-    date_ref_col = date_col + '_ref'
-
-    # Array to hold completed dataframes
-    symbol_dfs = []
-
-    for symbol in symbols:
-        gc.collect()
-        symbol_counter = symbol_counter + 1
-        # print(80 * '-')
-        print('Generating labels for:', symbol, 'num:', symbol_counter)
-        # Retrieve data for symbol and sort by date
-        symbol_df = df.loc[df['symbol'] == symbol, :]
-        symbol_df.sort_values(by=['quoteDate'], inplace=True)
-
-        # Set the date index for the data frame
-        symbol_df[date_ref_col] = symbol_df[date_col]
-        symbol_df = symbol_df.set_index(date_ref_col)
-
-        comparison_date = symbol_df.index + pd.DateOffset(weeks=num_weeks)
-
-        # Get the future result values for number of weeks
-        ref_vals_df = pd.DataFrame()
-        # Create offset for number of weeks (this sets the index forwards as well)
-        ref_vals_df[LABEL_COLUMN] = symbol_df[RETURN_COLUMN].asof(
-            comparison_date)
-        ref_vals_df[LABEL_COLUMN + '_date'] = comparison_date
-
-        # Reset the index value back to original dates
-        ref_vals_df.index = symbol_df.index
-
-        # concatenate the offset values with the original values
-        combined_vals = pd.concat([symbol_df, ref_vals_df], axis=1)
-
-        # Append dataframe to dataframe array
-        symbol_dfs.append(combined_vals)
-
-    # Generate concatenated dataframe
-    output_df = pd.concat(symbol_dfs)
-
-    # Process data set to remove records which are too recent to have a future value
-
-    # Ensure reference is a date/time
-    converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
-    # filter dataframe
-    output_df = output_df.loc[output_df[LABEL_COLUMN +
-                                        '_date'] <= converted_ref_date]
-    # Remove extra column with future date reference
-    output_df.drop([LABEL_COLUMN + '_date'], axis=1, inplace=True)
-
-    # Use most efficient storage for memory
-    output_df.loc[:, LABEL_COLUMN] = output_df[LABEL_COLUMN].astype(
-        'float32', errors='ignore')
-
-    return output_df
 
 
-@numba.jit
-def remove_labelled_data(df, num_weeks, reference_date):
-    """
-        Remove all data which is before the referenece period.
-        Keep quotes > (reference_date - num_weeks)
-    """
-
-    print('Removing labelled data, reference_date:',
-          reference_date, ', num_weeks:', num_weeks)
-
-    output_df = df
-    weeks_delta = timedelta(weeks=num_weeks)
-    converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
-    comparison_date = converted_ref_date - weeks_delta
-    print('Calculated comparison date:', comparison_date)
-
-    output_df = output_df.loc[output_df.index > comparison_date]
-    print('Retaining', len(output_df.index), 'records')
-
-    return output_df
 
 
 # @profile
@@ -187,6 +102,7 @@ def load_data(file_name, **kwargs):
         drop_unlabelled=True
         drop_labelled=False
         generate_labels=False
+        generate_tminus_labels=False
         label_weeks=None
         reference_date=None
         labelled_file_name=None
@@ -195,12 +111,6 @@ def load_data(file_name, **kwargs):
     print('Loading file:', file_name)
 
     drop_unlabelled = kwargs.get('drop_unlabelled', True)
-    generate_labels = kwargs.get('generate_labels', False)
-    drop_labelled = kwargs.get('drop_labelled', False)
-    label_weeks = kwargs.get('label_weeks', None)
-    reference_date = kwargs.get('reference_date', None)
-    labelled_file_name = kwargs.get('labelled_file_name', None)
-    unlabelled_file_name = kwargs.get('unlabelled_file_name', None)
 
     df = pd.read_pickle(file_name, compression='gzip')
     gc.collect()
@@ -228,24 +138,6 @@ def load_data(file_name, **kwargs):
     df.loc[:, 'exDividendRelative'] = df['exDividendRelative'].astype(
         'int32', errors='ignore')
 
-    # generate labels if required
-    if generate_labels and label_weeks and reference_date:
-        df = generate_label_column(
-            df, label_weeks, reference_date, 'quoteDate')
-        gc.collect()
-        # save as new file
-        if labelled_file_name:
-            df.to_pickle(labelled_file_name, compression='gzip')
-
-    # Remobe labelled data
-    if drop_labelled and label_weeks and reference_date:
-        df = remove_labelled_data(
-            df, label_weeks, reference_date)
-        gc.collect()
-
-        # save as new file
-        if unlabelled_file_name:
-            df.to_pickle(unlabelled_file_name, compression='gzip')
 
     print('Converting quoteDate to numeric types')
     convert_date(df, 'quoteDate')
@@ -1461,7 +1353,7 @@ def fix_categorical(categorical_data):
     unique_vals = categorical_data.unique()
     category_renamer = {}
 
-    for element in enumerate(unique_vals):
+    for index, element in enumerate(unique_vals):
         category_renamer[element] = convert_file_string(element)
 
     print('Converting categories')

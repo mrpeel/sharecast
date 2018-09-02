@@ -14,7 +14,35 @@ from stats_operations import k_mean_absolute_percentage_error, k_mae_mape
 from print_logger import initialise_print_logger, print
 
 
-def main(run_config):
+def main(**kwargs):
+    """Runs the process of loading, executing training and (optionally) evaluating the
+        predictions for a data-set
+       Arguments:
+        load_data_file=True
+        labelled_data_file=None
+        train_pre_process=True
+        load_and_execute_pre_process=False
+        load_processed_data=False
+        train_keras=True
+        use_previous_training_weights=False
+        train_xgb=True
+        train_industry_xgb=True
+        train_deep_bagging=True
+    """
+
+    load_data_file = kwargs.get('load_data_file', True)
+    labelled_data_file = kwargs.get('labelled_data_file', None)
+    train_pre_process = kwargs.get('train_pre_process', True)
+    load_and_execute_pre_process = kwargs.get(
+        'load_and_execute_pre_process', False)
+    load_processed_data = kwargs.get('load_processed_data', False)
+    train_keras = kwargs.get('train_keras', True)
+    use_previous_training_weights = kwargs.get(
+        'use_previous_training_weights', False)
+    train_xgb = kwargs.get('train_xgb', True)
+    train_industry_xgb = kwargs.get('train_industry_xgb', True)
+    train_bagging = kwargs.get('train_bagging', True)
+
     # Prepare run_str
     run_str = datetime.now().strftime('%Y%m%d%H%M')
 
@@ -25,32 +53,14 @@ def main(run_config):
     # Check whether we can skip all preprocessing steps
     needs_preprocessing = False
 
-    if run_config.get('use_previous_training_weights') is True:
-        use_previous_training_weights = True
-    else:
-        use_previous_training_weights = False
-
-    if run_config.get('load_data') is True:
-        needs_preprocessing = True
-
-    if run_config.get('train_pre_process') is True:
+    if load_data or train_pre_process:
         needs_preprocessing = True
 
     # Retrieve and divide data
     if needs_preprocessing:
-        if run_config.get('load_data') is True:
+        if load_data_file:
             # Load and divide data
-            if run_config.get('generate_labels') is True:
-                share_data = load_data(run_config['unlabelled_data_file'],
-                                       drop_unlabelled=True,
-                                       drop_labelled=False,
-                                       generate_labels=True,
-                                       label_weeks=run_config['generate_label_weeks'],
-                                       reference_date=run_config['reference_date'],
-                                       labelled_file_name=run_config['labelled_data_file']
-                                       )
-            else:
-                share_data = load_data(run_config['labelled_data_file'])
+            share_data = load_data(labelled_data_file)
             gc.collect()
 
             # Divide data into symbol sand general data for training an testing
@@ -131,7 +141,7 @@ def main(run_config):
         df_all_train_x.info()
         df_all_test_x.info()
 
-        if run_config.get('train_pre_process') is True:
+        if train_pre_process:
             # Execute pre-processing trainer
             df_all_train_x, symbol_encoder, imputer, scaler = train_preprocessor(
                 df_all_train_x)
@@ -144,7 +154,7 @@ def main(run_config):
             df_all_test_x.to_pickle(
                 'data/df_all_test_x.pkl.gz', compression='gzip')
 
-        if run_config.get('load_and_execute_pre_process') is True:
+        if load_and_execute_pre_process:
             print('Loading pre-processing models')
             # Load pre-processing models
             symbol_encoder = load('models/se.pkl.gz')
@@ -177,7 +187,7 @@ def main(run_config):
             'data/test_x_GICSIndustryGroup.pkl.gz')
         test_gics_industry_groups = load('data/test_x_GICSIndustry.pkl.gz')
 
-    if run_config.get('load_processed_data') is True:
+    if load_processed_data:
         print('Loading pre-processed data')
         df_all_train_x = pd.read_pickle(
             'data/df_all_train_x.pkl.gz', compression='gzip')
@@ -192,7 +202,7 @@ def main(run_config):
         df_all_test_actuals = pd.read_pickle(
             'data/df_all_test_actuals.pkl.gz', compression='gzip')
 
-    if run_config.get('train_keras') is True:
+    if train_keras:
         # Train keras models
         keras_models = train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_test_actuals,
                                       df_all_test_y, df_all_test_x, use_previous_training_weights)
@@ -214,14 +224,14 @@ def main(run_config):
             }),
         }
 
-    if run_config.get('train_xgb') is True:
+    if train_xgb:
         train_xgb_models(df_all_train_x, df_all_train_y, train_model_names, test_model_names,
                          df_all_test_actuals, df_all_test_y, df_all_test_x, keras_models, 'symbol')
 
     print('Loading xgboost symbol model list')
     xgb_models = load_xgb_models('symbol')
 
-    if run_config.get('train_industry_xgb') is True:
+    if train_industry_xgb:
         train_xgb_models(df_all_train_x, df_all_train_y, train_gics_industry_groups,
                          test_gics_industry_groups, df_all_test_actuals, df_all_test_y,
                          df_all_test_x, keras_models, 'industry')
@@ -242,7 +252,7 @@ def main(run_config):
                                                                          xgb_industry_models,
                                                                          keras_models)
 
-    if run_config.get('train_deep_bagging') is True:
+    if train_bagging:
         bagging_model, bagging_scaler, deep_bagged_predictions = train_deep_bagging(train_predictions,
                                                                                     df_all_train_actuals,
                                                                                     test_predictions,
@@ -265,21 +275,14 @@ def main(run_config):
 
 
 if __name__ == "__main__":
-    RUN_CONFIG = {
-        'load_data': False,
-        'generate_labels': False,
-        'generate_label_weeks': 8,
-        'reference_date': '2018-05-12',
-        'unlabelled_data_file': './data/ml-20180512-processed.pkl.gz',
-        'labelled_data_file': './data/ml-20180512-labelled.pkl.gz',
-        'train_pre_process': False,
-        'load_and_execute_pre_process': False,
-        'load_processed_data': True,
-        'train_keras': False,
-        'use_previous_training_weights': False,
-        'train_xgb': False,
-        'train_industry_xgb': False,
-        'train_deep_bagging': True,
-    }
-
-    main(RUN_CONFIG)
+    main(load_data_file=True,
+         labelled_data_file='./data/ml-20180714-labelled.pkl.gz',
+         train_pre_process=True,
+         load_and_execute_pre_process=False,
+         load_processed_data=False,
+         train_keras=True,
+         use_previous_training_weights=False,
+         train_xgb=True,
+         train_industry_xgb=True,
+         train_bagging=True
+         )

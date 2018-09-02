@@ -1,11 +1,13 @@
 import math
 import gc
 from timeit import default_timer as timer
-from datetime import datetime
+from datetime import datetime, timedelta
 import numba
 import pandas as pd
-from processing_constants import PAST_RESULTS_DATE_REF_COLUMNS, HIGH_NAN_COLUMNS
+import numpy as np
+from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_REF_COLUMNS, HIGH_NAN_COLUMNS
 from optimise_dataframe import optimise_df
+
 
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
@@ -234,7 +236,7 @@ def generate_range_median(days_from: int, days_to: int, range_series: pd.Series)
 
     # Create data frame for values and return median
     temp_df = pd.DataFrame.from_dict(df_dict)
-    return temp_df.median(axis=1)
+    return temp_df.median(axis=1, skipna=True)
 
 
 @numba.jit
@@ -400,6 +402,20 @@ def process_dataset(df: pd.DataFrame):
     df['exDividendDate'] = pd.to_datetime(
         df['exDividendDate'], errors='coerce')
 
+    zero_columns = ['change', 'changeInPercent', 'changeFrom52WeekHigh',
+                    'changeFrom52WeekLow', 'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow',
+                    'allordchange', 'allordpercebtChangeFrom52WeekHigh', 'allordpercentChangeFrom52WeekLow',
+                    'asxchange', 'asxpercebtChangeFrom52WeekHigh', 'asxpercentChangeFrom52WeekLow']
+    print('Fixing missing values as 0 for:', zero_columns)
+    df[zero_columns].fillna(0, inplace=True)
+
+    print('Fill missing adjustedPrice values')
+    df['adjustedPrice'] = df.apply(
+        lambda row: row['lastTradePriceOnly'] if np.isnan(
+            row['adjustedPrice']) else row['adjustedPrice'],
+        axis=1
+    )
+
     symbols = df['symbol'].unique()
 
     # ######## TEMP ###########
@@ -443,7 +459,7 @@ def process_dataset(df: pd.DataFrame):
     return output_df
 
 
-def add_industry_categories(df: pd.DataFrame, catgories_df: pd.DataFrame):
+def append_industry_categories(df: pd.DataFrame, catgories_df: pd.DataFrame):
     """
         Adds the industry categpry (GICS) values to the dataset by matching on symbol
     """
@@ -477,45 +493,239 @@ def load_data(base_path: str, no_files: int):
     return loading_data
 
 
-def main(load_config: dict):
+@numba.jit
+def generate_label_column(df, num_weeks, reference_date, date_col):
+    """ Generate a label column for each record num_weeks in the future
+        then reduce data set to values which occurr <= (reference_date - num_weeks)
+     """
+
+    # Retrieve unique symbols
+    symbols = df['symbol'].drop_duplicates()
+    symbol_counter = 0
+
+    date_ref_col = date_col + '_ref'
+
+    # Array to hold completed dataframes
+    symbol_dfs = []
+
+    for symbol in symbols:
+        gc.collect()
+        symbol_counter = symbol_counter + 1
+        # print(80 * '-')
+        print('Generating labels for:', symbol, 'num:', symbol_counter)
+        # Retrieve data for symbol and sort by date
+        symbol_df = df.loc[df['symbol'] == symbol, :]
+        symbol_df.sort_values(by=['quoteDate'], inplace=True)
+
+        # Set the date index for the data frame
+        symbol_df[date_ref_col] = symbol_df[date_col]
+        symbol_df = symbol_df.set_index(date_ref_col)
+
+        comparison_date = symbol_df.index + pd.DateOffset(weeks=num_weeks)
+
+        # Get the future result values for number of weeks
+        ref_vals_df = pd.DataFrame()
+        # Create offset for number of weeks (this sets the index forwards as well)
+        ref_vals_df[LABEL_COLUMN] = symbol_df[RETURN_COLUMN].asof(
+            comparison_date)
+        ref_vals_df[LABEL_COLUMN + '_date'] = comparison_date
+
+        # Reset the index value back to original dates
+        ref_vals_df.index = symbol_df.index
+
+        # concatenate the offset values with the original values
+        combined_vals = pd.concat([symbol_df, ref_vals_df], axis=1)
+
+        # Append dataframe to dataframe array
+        symbol_dfs.append(combined_vals)
+
+    # Generate concatenated dataframe
+    output_df = pd.concat(symbol_dfs)
+
+    # Process data set to remove records which are too recent to have a future value
+
+    # Ensure reference is a date/time
+    # converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
+
+    # filter dataframe
+    # output_df = output_df.loc[output_df[LABEL_COLUMN +
+    #                                     '_date'] <= converted_ref_date]
+    # Remove extra column with future date reference
+    output_df.drop([LABEL_COLUMN + '_date'], axis=1, inplace=True)
+
+    # Use most efficient storage for memory
+    output_df.loc[:, LABEL_COLUMN] = output_df[LABEL_COLUMN].astype(
+        'float32', errors='ignore')
+
+    return output_df
+
+
+@numba.jit
+def generate_tminus_values(df):
     """
-        Runs the process of loading, executing predictions and (optionally) evaluating the
-          predictions for a data-set
+        Generate return medians for previous 10, 20 & 40 days
     """
+
+    print('Generating median returns for previous 10, 20 & 40 days',)
+
+    # Retrieve unique symbols
+    symbols = df['symbol'].drop_duplicates()
+    symbol_counter = 0
+
+    # Array to hold completed dataframes
+    symbol_dfs = []
+
+    for symbol in symbols:
+        gc.collect()
+        symbol_counter = symbol_counter + 1
+        # print(80 * '-')
+        print('Generating tminus values for:', symbol, 'num:', symbol_counter)
+        # Retrieve data for symbol and sort by date
+        symbol_df = df.loc[df['symbol'] == symbol, :]
+        symbol_df.sort_values(by=['quoteDate'], inplace=True)
+
+        # Generate median value for past 1 - 10 days
+        median_val = generate_range_median(1, 10, symbol_df[LABEL_COLUMN])
+        symbol_df[LABEL_COLUMN + '_T1_10P'] = median_val
+
+        # Generate median value for past 1 - 20 days
+        median_val = generate_range_median(1, 20, symbol_df[LABEL_COLUMN])
+        symbol_df[LABEL_COLUMN + '_T1_20P'] = median_val
+
+        # Generate median value for past 1 - 40 days
+        median_val = generate_range_median(1, 40, symbol_df[LABEL_COLUMN])
+        symbol_df[LABEL_COLUMN + '_T1_40P'] = median_val
+
+        # Append dataframe to dataframe array
+        symbol_dfs.append(symbol_df)
+
+    # Generate concatenated dataframe
+    output_df = pd.concat(symbol_dfs)
+
+    # Use most efficient storage for memory
+    output_df.loc[:, LABEL_COLUMN + '_T1_10P'] = output_df[LABEL_COLUMN + '_T1_10P'].astype(
+        'float32', errors='ignore')
+
+    output_df.loc[:, LABEL_COLUMN + '_T1_20P'] = output_df[LABEL_COLUMN + '_T1_20P'].astype(
+        'float32', errors='ignore')
+
+    output_df.loc[:, LABEL_COLUMN + '_T1_40P'] = output_df[LABEL_COLUMN + '_T1_40P'].astype(
+        'float32', errors='ignore')
+
+    return output_df
+
+
+@numba.jit
+def divide_labelled_unlabelled(df, num_weeks, reference_date):
+    """
+        Generate two datasets.
+        Keep quotes > (reference_date - num_weeks)
+        labelled - keep data before reference period with a label
+        Unlabelled - remove all data which is before the reference period.
+    """
+    print('Calculating reference date compairson, reference_date:',
+          reference_date, ', num_weeks:', num_weeks)
+
+    weeks_delta = timedelta(weeks=num_weeks)
+    converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
+    comparison_date = converted_ref_date - weeks_delta
+    print('Calculated comparison date:', comparison_date)
+
+    labelled_df = df.loc[df.index <= comparison_date]
+    print('Retaining', len(labelled_df.index), 'labelled records')
+
+    unlabelled_df = df.loc[df.index > comparison_date]
+    print('Retaining', len(unlabelled_df.index), 'unlabelled records')
+
+    return labelled_df, unlabelled_df
+
+
+def main(**kwargs):
+    """Runs the process of loading, pre-processing and generating labels for the raw sharecast data
+       Arguments:
+        run_str=None
+        load_individual_data_files=True
+        base_path=None
+        add_industry_categories=True
+        symbol_industry_path=None
+        no_files=None
+        generate_labels=True
+        generate_tminus_labels=True
+        generate_label_weeks=None
+        labelled_file_name=None
+        unlabelled_file_name=None
+        reference_date=None
+        unlabelled_data_file=None
+        labelled_data_file=None
+    """
+
+    run_str = kwargs.get('run_str', None)
+    load_individual_data_files = kwargs.get('load_individual_data_files', True)
+    base_path = kwargs.get('base_path', None)
+    add_industry_categories = kwargs.get('add_industry_categories', True)
+    symbol_industry_path = kwargs.get('symbol_industry_path', None)
+    no_files = kwargs.get('no_files', None)
+    generate_labels = kwargs.get('generate_labels', True)
+    generate_tminus_labels = kwargs.get('generate_tminus_labels', True)
+    generate_label_weeks = kwargs.get('generate_label_weeks', None)
+    reference_date = kwargs.get('reference_date', None)
+
     # Check whether to load individual files or an aggregated file
-    if load_config.get('load_individual_data_files') is True:
+    if load_individual_data_files:
         print('Loading individual data files')
         l_1 = timer()
-        df = load_data(load_config.get('base_path'),
-                       load_config.get('no_files'))
+        df = load_data(base_path, no_files)
         gc.collect()
         print('Optimising data')
         df = optimise_df(df)
         print('Saving data')
         df.to_pickle(
-            'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
+            'data/ml-' + run_str + '-data.pkl.gz', compression='gzip')
         l_2 = timer()
         print('Loading and saving individual data took:', l_2 - l_1)
     else:
         print('Loading aggregated data files')
         l_1 = timer()
         df = pd.read_pickle(
-            'data/ml-' + load_config.get('run_str') + '-data.pkl.gz', compression='gzip')
+            'data/ml-' + run_str + '-data.pkl.gz', compression='gzip')
         l_2 = timer()
         print('Loading aggregated data file took:', l_2 - l_1)
 
     # Load the industry-symbol values
-    if load_config.get('add_industry_categories') is True:
-        categories_df = pd.read_csv(load_config.get('symbol_industry_path'))
-        df = add_industry_categories(df, categories_df)
+    if add_industry_categories:
+        categories_df = pd.read_csv(symbol_industry_path)
+        df = append_industry_categories(df, categories_df)
 
     # Processing data
     print('Processing returns and recurrent columns for each symbol')
     processed_data = process_dataset(df)
 
-    print('Saving processed data')
-    processed_data.to_pickle(
-        'data/ml-' + load_config.get('run_str') + '-processed.pkl.gz', compression='gzip')
+    # generate labels if required
+    if generate_labels and generate_label_weeks and reference_date:
+        processed_data = generate_label_column(
+            processed_data, generate_label_weeks, reference_date, 'quoteDate')
+        gc.collect()
+
+        # Generate t-n for label data
+        if generate_tminus_labels:
+            processed_data = generate_tminus_values(processed_data)
+
+        # split data into labelled and unlabelled
+        labelled_df, unlabelled_df = divide_labelled_unlabelled(
+            processed_data, generate_label_weeks, reference_date)
+
+        labelled_file_name = 'data/ml-' + run_str + '-labelled.pkl.gz'
+        print('Saving labelled data to:', labelled_file_name)
+        labelled_df.to_pickle(labelled_file_name, compression='gzip')
+
+        unlabelled_file_name = 'data/ml-' + run_str + '-unlabelled.pkl.gz'
+        print('Saving processed data to:', unlabelled_file_name)
+        unlabelled_df.to_pickle(unlabelled_file_name, compression='gzip')
+
+    gc.collect()
+    proc_file_name = 'data/ml-' + run_str + '-processed.pkl.gz'
+    print('Saving processed data to:', proc_file_name)
+    processed_data.to_pickle(proc_file_name, compression='gzip')
 
     print(80*'-')
     print('Data processing finished')
@@ -523,15 +733,16 @@ def main(load_config: dict):
 
 if __name__ == "__main__":
     # run_str = datetime.now().strftime('%Y%m%d')
-    RUN_STR = '20180512'
+    RUN_STR = '20180714'
 
-    LOAD_CONFIG = {
-        'run_str': RUN_STR,
-        'load_individual_data_files': True,
-        'base_path': 'data/companyQuotes-20180512-%03d.csv.gz',
-        'add_industry_categories': True,
-        'symbol_industry_path': 'data/symbol-industry-lookup.csv',
-        'no_files': 64,
-    }
-
-    main(LOAD_CONFIG)
+    main(run_str=RUN_STR,
+         load_individual_data_files=True,
+         base_path='data/companyQuotes-20180714-%03d.csv.gz',
+         add_industry_categories=True,
+         symbol_industry_path='data/symbol-industry-lookup.csv',
+         no_files=65,
+         generate_labels=True,
+         generate_label_weeks=8,
+         reference_date='2018-06-30',
+         generate_tminus_labels=True
+         )
