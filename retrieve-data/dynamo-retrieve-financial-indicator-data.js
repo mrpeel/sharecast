@@ -5,8 +5,6 @@ const utils = require('./utils');
 const credentials = require('../credentials/credentials.json');
 const apiKey = credentials['quandl-api-key'];
 const dynamodb = require('./dynamodb');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 
 let baseUrl = 'https://www.quandl.com/api/v3/datasets/';
 let urlSuffix = '?api_key=' + apiKey;
@@ -127,7 +125,7 @@ let indicatorRetrievalValues = {
  *      value: value
  *    }]
  */
-let retrieveQuandlIndicator = asyncify(function(indicatorDetails) {
+let retrieveQuandlIndicator = function(indicatorDetails) {
   return new Promise(function(resolve, reject) {
     let indicatorData = [];
 
@@ -137,7 +135,6 @@ let retrieveQuandlIndicator = asyncify(function(indicatorDetails) {
       })
       .then((responseJson) => {
         // console.log(responseJson);
-
         responseJson.dataset.data.forEach((row) => {
           indicatorData.push({
             'symbol': indicatorDetails.symbol,
@@ -152,15 +149,15 @@ let retrieveQuandlIndicator = asyncify(function(indicatorDetails) {
         reject(err);
       });
   });
-});
+};
 
 /**
  * Returns a list of financial indicators
  * @return {Array}  list of indicator codes to retrieve
  */
-let getIndicatorList = asyncify(function() {
+let getIndicatorList = function() {
   return Object.keys(indicatorRetrievalValues);
-});
+};
 
 /**
  * Returns a list of financial indicators
@@ -171,7 +168,7 @@ let getIndicatorList = asyncify(function() {
  *      start-date: startDate,
  *    }
  */
-let getIndicatorRequestDates = asyncify(function(indicatorIds) {
+let getIndicatorRequestDates = async function(indicatorIds) {
   if (!indicatorIds) {
     throw new Error('No indicators supplied: ');
   }
@@ -187,16 +184,14 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
       limit: 1,
     };
 
-    for (let c = 0; c < indicatorIds.length; c++) {
-      // Prepare and insert row
-      let indicatorId = indicatorIds[c];
+    for (const indicatorId of indicatorIds) {
       let indicatorDate;
 
       queryDetails.expressionAttributeValues = {
         ':symbol': indicatorId,
       };
 
-      let result = awaitify(dynamodb.queryTable(queryDetails));
+      let result = await dynamodb.queryTable(queryDetails);
 
       if (result.length > 0) {
         indicatorDate = result[0]['valueDate'];
@@ -217,7 +212,7 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
   } catch (err) {
     console.log(err);
   }
-});
+};
 
 
 /**
@@ -230,14 +225,14 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
  *      ...
  *    }
  */
-let returnIndicatorValuesForDate = asyncify(function(valueDate) {
+let returnIndicatorValuesForDate = async function(valueDate) {
   if (!valueDate || !utils.isDate(valueDate)) {
     throw new Error('valueDate supplied is invalid: ' + valueDate);
   }
 
   try {
     let indicatorValues = {};
-    let indicatorIds = awaitify(getIndicatorList());
+    let indicatorIds = await getIndicatorList();
 
     let queryDetails = {
       tableName: 'financialIndicatorValues',
@@ -247,15 +242,14 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
       limit: 1,
     };
 
-    for (let c = 0; c < indicatorIds.length; c++) {
+    for (const indicatorId of indicatorIds) {
       // Prepare and insert row
-      let indicatorId = indicatorIds[c];
       queryDetails.expressionAttributeValues = {
         ':symbol': indicatorId,
         ':created': valueDate,
       };
 
-      let result = awaitify(dynamodb.queryTable(queryDetails));
+      let result = await dynamodb.queryTable(queryDetails);
 
       if (result.length > 0) {
         indicatorValues[indicatorId] = result[0]['value'];
@@ -266,38 +260,54 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
   } catch (err) {
     console.log(err);
   }
-});
+};
 
 /**
  * Retrieves and processes each financial indicator to look up new values
  */
-let updateIndicatorValues = asyncify(function() {
+let updateIndicatorValues = async function() {
   try {
     console.log('----- Start financial indicator retrieval -----');
-    let indicatorIds = awaitify(getIndicatorList());
-    let indicatorDates = awaitify(getIndicatorRequestDates(indicatorIds));
+    let indicatorIds = await getIndicatorList();
+    let indicatorDates = await getIndicatorRequestDates(indicatorIds);
+    let indicatorStats = {
+      indicatorsToRetrieve: indicatorDates.length,
+      retrievalErrors: 0,
+      succesfullyInsertedIndicators: 0,
+      insertResults: {},
+    };
 
-    indicatorDates.forEach((indicatorDate) => {
-      let retrievalDetails = {};
-      let symbol = indicatorDate.symbol;
+    for (const indicatorDate of indicatorDates) {
+      try {
+        let retrievalDetails = {};
+        let symbol = indicatorDate.symbol;
 
-      retrievalDetails.symbol = symbol;
-      retrievalDetails.url = baseUrl + indicatorRetrievalValues[symbol].url
-      + urlSuffix + dateParameter + indicatorDate['startDate'];
-      retrievalDetails.dataColumn = indicatorRetrievalValues[symbol]
-        .dataColumn;
-      let indicatorResults = awaitify(
-        retrieveQuandlIndicator(retrievalDetails));
+        retrievalDetails.symbol = symbol;
+        retrievalDetails.url = baseUrl + indicatorRetrievalValues[symbol].url +
+          urlSuffix + dateParameter + indicatorDate['startDate'];
+        retrievalDetails.dataColumn = indicatorRetrievalValues[symbol].dataColumn;
+        let indicatorResults = await retrieveQuandlIndicator(retrievalDetails);
 
-      // Insert the value in the db
-      indicatorResults.forEach((indicatorResult) => {
-        awaitify(insertIndicatorValue(indicatorResult));
-      });
-    });
+        // Insert the value in the db
+        for (const indicatorResult of indicatorResults) {
+          let insertResult = await insertIndicatorValue(indicatorResult);
+
+          if (!indicatorStats.insertResults[insertResult.result]) {
+            indicatorStats.insertResults[insertResult.result] = 0;
+          }
+
+          indicatorStats.insertResults[insertResult.result]++;
+        }
+      } catch (err) {
+        console.log(`Error while retrieiving ${symbol}.  ${err}`);
+        indicatorStats.retrievalErrors++;
+      }
+    }
+    return indicatorStats;
   } catch (err) {
     console.log(err);
   }
-});
+};
 
 /**
  * Inserts an indicator value
@@ -308,7 +318,7 @@ let updateIndicatorValues = asyncify(function() {
  *      value: value,
  *    }
  */
-let insertIndicatorValue = asyncify(function(indicatorValue) {
+let insertIndicatorValue = async function(indicatorValue) {
   if (!indicatorValue['symbol'] || !indicatorValue['valueDate'] ||
     !indicatorValue['value']) {
     console.log('indicatorValue parameters missing: ' +
@@ -329,11 +339,15 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
       primaryKey: ['symbol', 'valueDate'],
     };
 
-    awaitify(dynamodb.insertRecord(insertDetails));
+    return await dynamodb.insertRecord(insertDetails);
   } catch (err) {
     console.log(err);
+    return {
+      result: 'failed',
+      message: JSON.stringify(err),
+    };
   }
-});
+};
 
 
 module.exports = {

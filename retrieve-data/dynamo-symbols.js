@@ -1,35 +1,31 @@
 'use strict';
 
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 const dynamodb = require('./dynamodb');
 
 
-let getCompanies = asyncify(function () {
-  return new Promise(function (resolve, reject) {
-    try {
-      let companies = [];
-      let getDetails = {
-        tableName: 'companies',
-      };
+let getCompanies = async function() {
+  try {
+    let companies = [];
+    let getDetails = {
+      tableName: 'companies',
+    };
 
-      let rows = awaitify(dynamodb.getTable(getDetails));
+    let rows = await dynamodb.getTable(getDetails);
 
-      rows.forEach((row) => {
-        companies.push({
-          'symbol': row.symbol,
-          'yahoo-symbol': row.symbolYahoo,
-        });
+    rows.forEach((row) => {
+      companies.push({
+        'symbol': row.symbol,
+        'yahoo-symbol': row.symbolYahoo,
       });
-      resolve(companies);
-    } catch (err) {
-      console.log(err);
-      reject(err);
-    }
-  });
-});
+    });
+    return companies;
+  } catch (err) {
+    console.log(err);
+    throw new Error(err);
+  }
+};
 
-let addCompany = asyncify(function (companyDetails) {
+let addCompany = async function(companyDetails) {
   if (!companyDetails.symbol) {
     console.error('companyDetails missing symbol: ' +
       JSON.stringify(companyDetails));
@@ -52,13 +48,13 @@ let addCompany = asyncify(function (companyDetails) {
       primaryKey: ['symbol'],
     };
 
-    awaitify(dynamodb.insertRecord(insertDetails));
+    await dynamodb.insertRecord(insertDetails);
   } catch (err) {
     console.error(err);
   }
-});
+};
 
-let removeCompany = asyncify(function (companySymbol) {
+let removeCompany = async function(companySymbol) {
   if (!companySymbol) {
     console.error('Missing symbol');
     return 'Missing symbol';
@@ -72,35 +68,33 @@ let removeCompany = asyncify(function (companySymbol) {
       },
     };
 
-    awaitify(dynamodb.deleteRecord(deleteDetails));
+    await dynamodb.deleteRecord(deleteDetails);
   } catch (err) {
     console.error(err);
   }
-});
+};
 
-let getIndices = asyncify(function () {
-  return new Promise(function (resolve, reject) {
-    try {
-      let companies = [];
-      let getDetails = {
-        tableName: 'indices',
-      };
+let getIndices = async function() {
+  try {
+    let companies = [];
+    let getDetails = {
+      tableName: 'indices',
+    };
 
-      let rows = awaitify(dynamodb.getTable(getDetails));
+    let rows = await dynamodb.getTable(getDetails);
 
-      rows.forEach((row) => {
-        companies.push({
-          'symbol': row.symbol,
-          'yahoo-symbol': row.symbolYahoo,
-        });
+    rows.forEach((row) => {
+      companies.push({
+        'symbol': row.symbol,
+        'yahoo-symbol': row.symbolYahoo,
       });
-      resolve(companies);
-    } catch (err) {
-      console.log(err);
-      reject(err);
-    }
-  });
-});
+    });
+    return companies;
+  } catch (err) {
+    console.log(err);
+    throw new Error(err);
+  }
+};
 
 
 module.exports = {

@@ -2,32 +2,47 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
+let maxExecutionTime = 300;
+
+// Set the base retry to wait 500ms
+AWS.config.update({
+  retryDelayOptions: {
+    base: 500,
+  },
+  maxRetries: 50,
+});
 
 let client = new AWS.DynamoDB.DocumentClient();
 let dynamoTables = {};
 
+
 /** Sets access to AWS for local execution
  */
-let setLocalAccessConfig = function () {
-  AWS.config.loadFromPath('../credentials/aws.json');
+let setLocalAccessConfig = function() {
+  AWS.config.loadFromPath(`${__dirname}/../credentials/aws.json`);
   client = new AWS.DynamoDB.DocumentClient();
+  /* Set max execution time to a large number to prevent
+      re-invocation of lambda when running locally */
+  maxExecutionTime = 1000000;
+};
+
+let getExecutionMaxTime = function() {
+  return maxExecutionTime;
 };
 
 /** Gets all the dynamo tables and records their provisioned capacity
  * @return {Boolean} whether the get info worked
  */
-let getTableInfo = asyncify(function () {
+let getTableInfo = async function() {
   // Check if already done`
   if (!Object.keys(dynamoTables).length) {
     let db = new AWS.DynamoDB();
 
-    let tableNames = awaitify(listTables(db));
+    let tableNames = await listTables(db);
 
-    tableNames.forEach((tableName) => {
+    for (const tableName of tableNames) {
       try {
-        let tableData = awaitify(describeTable(db, tableName));
+        let tableData = await describeTable(db, tableName);
         dynamoTables[tableName] = {};
         dynamoTables[tableName]['readCapacity'] = tableData.ProvisionedThroughput.ReadCapacityUnits;
         dynamoTables[tableName]['writeCapacity'] = tableData.ProvisionedThroughput.WriteCapacityUnits;
@@ -35,46 +50,40 @@ let getTableInfo = asyncify(function () {
         console.error(err);
         return false;
       }
-    });
+    };
     return true;
   } else {
     return true;
   }
-});
+};
 
 /** Returns tab;le info from dynamo
  * @param {Object} db - dynamo db reference
  * @param {String} tableName - name of table to describe
  * @return {Promise} promise with table info
  */
-let describeTable = function (db, tableName) {
-  return new Promise(function (resolve, reject) {
-    db.describeTable({
+let describeTable = async function(db, tableName) {
+  try {
+    let data = await db.describeTable({
       TableName: tableName,
-    }, function (err, data) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data.Table);
-      }
-    });
-  });
+    }).promise();
+    return data.Table;
+  } catch (err) {
+    throw err;
+  }
 };
 
 /** Returns a list of dynamo db tables
  * @param {Object} db - dynamo db reference
  * @return {Array} table names
  */
-let listTables = function (db) {
-  return new Promise(function (resolve, reject) {
-    db.listTables({}, function (err, data) {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(data.TableNames);
-      }
-    });
-  });
+let listTables = async function(db) {
+  try {
+    let data = await db.listTables({}).promise();
+    return data.TableNames;
+  } catch (err) {
+    throw err;
+  }
 };
 
 
@@ -100,80 +109,67 @@ let listTables = function (db) {
 *   message: error message (optional)
 * }
 */
-let insertRecord = asyncify(function (insertDetails) {
-  return new Promise(function (resolve, reject) {
-    // Set-up item details for insert
-    let item = {};
-    let backoff = 1;
+let insertRecord = async function(insertDetails) {
+  await getTableInfo();
 
-    awaitify(getTableInfo());
+  // Set-up item details for insert
+  let item = {};
 
-
-    Object.keys(insertDetails.values).forEach((valueKey) => {
-      item[valueKey] = insertDetails.values[valueKey];
-    });
-
-    // Add created timestamp if missing
-    if (!item['created']) {
-      item['created'] = moment().tz('Australia/Sydney').format();
-    }
-
-    let params = {
-      TableName: insertDetails.tableName,
-      Item: item,
-      ReturnConsumedCapacity: 'TOTAL',
-    };
-
-    if (insertDetails.primaryKey) {
-      params.ConditionExpression = 'attribute_not_exists(' +
-        insertDetails.primaryKey[0] + ')';
-    }
-
-
-    // Retrieve primary key vals
-    let keyVals = [];
-    insertDetails.primaryKey.forEach((keyValue) => {
-      keyVals.push(insertDetails.values[keyValue]);
-    });
-
-    console.log('Put table request: ', insertDetails.tableName,
-      ' ', JSON.stringify(keyVals));
-
-    let onPut = asyncify(function (err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
-        backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750));
-        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
-        awaitify(sleep(backoffTime));
-        // Increment backoff
-        backoff++;
-        client.put(params, onPut);
-      } else if (err && err.code === 'ConditionalCheckFailedException') {
-        console.log(`Skipping add to ${insertDetails.tableName} : `,
-          JSON.stringify(insertDetails.primaryKey), ' already exists');
-        resolve({
-          result: 'skipped',
-          message: `Skipping add to ${insertDetails.tableName} : ` +
-            JSON.stringify(insertDetails.primaryKey) + ' already exists.',
-        });
-      } else if (err) {
-        console.error(`Unable to add to ${insertDetails.tableName} values: `,
-          '. Error JSON:', JSON.stringify(err, null, 2));
-        reject({
-          result: 'failed',
-          message: JSON.stringify(err, null, 2),
-        });
-      } else {
-        console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
-        resolve({
-          result: 'inserted',
-        });
-      }
-    });
-
-    client.put(params, onPut);
+  Object.keys(insertDetails.values).forEach((valueKey) => {
+    item[valueKey] = insertDetails.values[valueKey];
   });
-});
+
+  // Add created timestamp if missing
+  if (!item['created']) {
+    item['created'] = moment().tz('Australia/Sydney').format();
+  }
+
+  let params = {
+    TableName: insertDetails.tableName,
+    Item: item,
+    ReturnConsumedCapacity: 'TOTAL',
+  };
+
+  if (insertDetails.primaryKey) {
+    params.ConditionExpression = 'attribute_not_exists(' +
+      insertDetails.primaryKey[0] + ')';
+  }
+
+
+  // Retrieve primary key vals
+  let keyVals = [];
+  insertDetails.primaryKey.forEach((keyValue) => {
+    keyVals.push(insertDetails.values[keyValue]);
+  });
+
+  console.log('Put table request: ', insertDetails.tableName,
+    ' ', JSON.stringify(keyVals));
+
+  try {
+    await client.put(params).promise();
+    console.log(`PutItem to ${insertDetails.tableName} succeeded.`);
+    return {
+      result: 'inserted',
+    };
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      console.log(`Skipping add to ${insertDetails.tableName} : `,
+        JSON.stringify(insertDetails.primaryKey), ' already exists');
+      return {
+        result: 'skipped',
+        message: `Skipping add to ${insertDetails.tableName} : ` +
+          JSON.stringify(insertDetails.primaryKey) + ' already exists.',
+      };
+    } else {
+      console.error(`Unable to add to ${insertDetails.tableName} values: `,
+        '. Error JSON:', JSON.stringify(err, null, 2));
+      throw new Error({
+        result: 'failed',
+        message: JSON.stringify(err, null, 2),
+      });
+    }
+  }
+};
 
 /** Query a table and return any matching records
 * @param {Object} queryDetails - an object with all the details for insert
@@ -196,96 +192,85 @@ let insertRecord = asyncify(function (insertDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let queryTable = asyncify(function (queryDetails) {
-  return new Promise(function (resolve, reject) {
-    let queryDataItems = [];
-    let params = {
-      TableName: queryDetails.tableName,
-      KeyConditionExpression: queryDetails.keyConditionExpression,
-      ExpressionAttributeValues: queryDetails.expressionAttributeValues,
-    };
+let queryTable = async function(queryDetails) {
+  await getTableInfo();
 
-    let maxCapacity = 5; // default read capacity to 5
-    let resultsLimit;
-    let backoff = 1;
+  let queryDataItems = [];
+  let params = {
+    TableName: queryDetails.tableName,
+    KeyConditionExpression: queryDetails.keyConditionExpression,
+    ExpressionAttributeValues: queryDetails.expressionAttributeValues,
+  };
 
-    awaitify(getTableInfo());
+  let maxCapacity = 5; // default read capacity to 5
+  let resultsLimit;
 
-    // Set-up max write capacity
-    if (dynamoTables[queryDetails.tableName] &&
-      dynamoTables[queryDetails.tableName]['readCapacity']) {
-      maxCapacity = dynamoTables[queryDetails.tableName]['readCapacity'];
+  // Set-up max write capacity
+  if (dynamoTables[queryDetails.tableName] &&
+    dynamoTables[queryDetails.tableName]['readCapacity']) {
+    maxCapacity = dynamoTables[queryDetails.tableName]['readCapacity'];
+  }
+
+  params.Limit = maxCapacity;
+
+  if (queryDetails.limit) {
+    resultsLimit = queryDetails.limit;
+    if (resultsLimit < maxCapacity) {
+      params.Limit = resultsLimit;
     }
+  }
 
-    params.Limit = maxCapacity;
+  if (queryDetails.indexName) {
+    params.IndexName = queryDetails.indexName;
+  }
 
-    if (queryDetails.limit) {
-      resultsLimit = queryDetails.limit;
-      if (resultsLimit < maxCapacity) {
-        params.Limit = resultsLimit;
-      }
-    }
+  if (queryDetails.reverseOrder) {
+    params.ScanIndexForward = false;
+  } else {
+    params.ScanIndexForward = true;
+  }
 
-    if (queryDetails.indexName) {
-      params.IndexName = queryDetails.indexName;
-    }
-
-    if (queryDetails.reverseOrder) {
-      params.ScanIndexForward = false;
-    } else {
-      params.ScanIndexForward = true;
-    }
-
-    if (queryDetails.filterExpression) {
-      params.FilterExpression = queryDetails.filterExpression;
-    }
+  if (queryDetails.filterExpression) {
+    params.FilterExpression = queryDetails.filterExpression;
+  }
 
 
-    if (queryDetails.projectionExpression) {
-      params.ProjectionExpression = queryDetails.projectionExpression;
-    }
+  if (queryDetails.projectionExpression) {
+    params.ProjectionExpression = queryDetails.projectionExpression;
+  }
 
-    if (queryDetails.expressionAttributeNames) {
-      params.ExpressionAttributeNames = queryDetails.expressionAttributeNames;
-    }
+  if (queryDetails.expressionAttributeNames) {
+    params.ExpressionAttributeNames = queryDetails.expressionAttributeNames;
+  }
 
-    console.log('Query table request: ', JSON.stringify(params));
+  console.log('Query table request: ', JSON.stringify(params));
 
-    let onQuery = asyncify(function (err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
-        backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750));
-        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
-        awaitify(sleep(backoffTime));
-        backoff++;
-        client.query(params, onQuery);
-      } else if (err) {
-        console.error(`Unable to query ${queryDetails.tableName}. Error: `,
-          JSON.stringify(err, null, 2));
-        reject(JSON.stringify(err, null, 2));
+  let continueQuerying = true;
+
+  while (continueQuerying) {
+    try {
+      let data = await client.query(params).promise();
+      queryDataItems = queryDataItems.concat(data.Items);
+
+      // continue querying if we have more records, because
+      // query can retrieve a maximum of 1MB of data
+      if (typeof data.LastEvaluatedKey !== 'undefined' &&
+        (!resultsLimit || queryDataItems.length < resultsLimit)) {
+        // console.log('Querying for more data...');
+        params.ExclusiveStartKey = data.LastEvaluatedKey;
+        continueQuerying = true;
       } else {
-        /* console.log(`Query table ${queryDetails.tableName} succeeded.  `,
-          `${data.Items.length} records returned.`);*/
-
-        queryDataItems = queryDataItems.concat(data.Items);
-
-        // continue scanning if we have more movies, because
-        // scan can retrieve a maximum of 1MB of data
-        if (typeof data.LastEvaluatedKey !== 'undefined' &&
-          (!resultsLimit || queryDataItems.length < resultsLimit)) {
-          // console.log('Querying for more data...');
-          params.ExclusiveStartKey = data.LastEvaluatedKey;
-          client.query(params, onQuery);
-        } else {
-          console.log(`Querying returned ${queryDataItems.length} items`);
-          resolve(queryDataItems || []);
-        }
+        console.log(`Querying returned ${queryDataItems.length} items`);
+        continueQuerying = false;
+        return (queryDataItems || []);
       }
-    });
-
-    client.query(params, onQuery);
-  });
-});
+    } catch (err) {
+      console.error(`Unable to query ${queryDetails.tableName}. Error: `,
+        JSON.stringify(err, null, 2));
+      throw new Error(JSON.stringify(err, null, 2));
+    }
+  }
+};
 
 /** Scan a table and return any matching records
 * @param {Object} scanDetails - an object with all the details for insert
@@ -302,78 +287,67 @@ let queryTable = asyncify(function (queryDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let scanTable = asyncify(function (scanDetails) {
-  return new Promise(function (resolve, reject) {
-    let scanDataItems = [];
-    let params = {
-      TableName: scanDetails.tableName,
-      FilterExpression: scanDetails.filterExpression,
-      ExpressionAttributeValues: scanDetails.expressionAttributeValues,
-    };
+let scanTable = async function(scanDetails) {
+  await getTableInfo();
 
-    let maxCapacity = 5; // default read capacity to 5
-    let resultsLimit;
-    let backoff = 1;
+  let scanDataItems = [];
+  let params = {
+    TableName: scanDetails.tableName,
+    FilterExpression: scanDetails.filterExpression,
+    ExpressionAttributeValues: scanDetails.expressionAttributeValues,
+  };
 
-    awaitify(getTableInfo());
+  let maxCapacity = 5; // default read capacity to 5
+  let resultsLimit;
 
-    // Set-up max write capacity
-    if (dynamoTables[scanDetails.tableName] &&
-      dynamoTables[scanDetails.tableName]['readCapacity']) {
-      maxCapacity = dynamoTables[scanDetails.tableName]['readCapacity'];
+  // Set-up max write capacity
+  if (dynamoTables[scanDetails.tableName] &&
+    dynamoTables[scanDetails.tableName]['readCapacity']) {
+    maxCapacity = dynamoTables[scanDetails.tableName]['readCapacity'];
+  }
+
+  params.Limit = maxCapacity;
+
+  if (scanDetails.limit) {
+    resultsLimit = scanDetails.limit;
+    if (resultsLimit < maxCapacity) {
+      params.Limit = resultsLimit;
     }
+  }
 
-    params.Limit = maxCapacity;
+  if (scanDetails.projectionExpression) {
+    params.ProjectionExpression = scanDetails.projectionExpression;
+  }
 
-    if (scanDetails.limit) {
-      resultsLimit = scanDetails.limit;
-      if (resultsLimit < maxCapacity) {
-        params.Limit = resultsLimit;
-      }
-    }
+  console.log('Scan table request: ', JSON.stringify(params));
 
-    if (scanDetails.projectionExpression) {
-      params.ProjectionExpression = scanDetails.projectionExpression;
-    }
+  let continueScanning = true;
 
-    console.log('Scan table request: ', JSON.stringify(params));
+  while (continueScanning) {
+    try {
+      let data = await client.scan(params).promise();
 
-    let onScan = asyncify(function (err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
-        backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750));
-        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
-        awaitify(sleep(backoffTime));
-        // Increment backoff
-        backoff++;
-        client.scan(params, onScan);
-      } else if (err) {
-        console.error(`Unable to scan ${scanDetails.tableName}. Error: `,
-          JSON.stringify(err, null, 2));
-        reject(JSON.stringify(err, null, 2));
+      scanDataItems = scanDataItems.concat(data.Items);
+
+      // continue scanning if we have more reords, because
+      // scan can retrieve a maximum of 1MB of data
+      if (typeof data.LastEvaluatedKey !== 'undefined' &&
+        (!resultsLimit || scanDataItems.length < resultsLimit)) {
+        // console.log('Scanning for more data...');
+        params.ExclusiveStartKey = data.LastEvaluatedKey;
+        continueScanning = true;
       } else {
-        /* console.log(`Scan table ${scanDetails.tableName} succeeded. `,
-          `${data.Items.length} records returned.`); */
-
-        scanDataItems = scanDataItems.concat(data.Items);
-
-        // continue scanning if we have more movies, because
-        // scan can retrieve a maximum of 1MB of data
-        if (typeof data.LastEvaluatedKey !== 'undefined' &&
-          (!resultsLimit || scanDataItems.length < resultsLimit)) {
-          // console.log('Scanning for more data...');
-          params.ExclusiveStartKey = data.LastEvaluatedKey;
-          client.scan(params, onScan);
-        } else {
-          console.log(`Scan returned ${scanDataItems.length} items`);
-          resolve(scanDataItems || []);
-        }
+        console.log(`Scan returned ${scanDataItems.length} items`);
+        continueScanning = false;
+        return (scanDataItems || []);
       }
-    });
-
-    client.scan(params, onScan);
-  });
-});
+    } catch (err) {
+      console.error(`Unable to scan ${scanDetails.tableName}. Error: `,
+        JSON.stringify(err, null, 2));
+      throw new Error(JSON.stringify(err, null, 2));
+    }
+  }
+};
 
 /** Scan a table and return all records
 * @param {Object} tableDetails - an object with all the details
@@ -386,71 +360,59 @@ let scanTable = asyncify(function (scanDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let getTable = asyncify(function (tableDetails) {
-  return new Promise(function (resolve, reject) {
-    let params = {
-      TableName: tableDetails.tableName,
-    };
+let getTable = async function(tableDetails) {
+  await getTableInfo();
 
-    let scanDataItems = [];
-    let backoff = 1;
+  let params = {
+    TableName: tableDetails.tableName,
+  };
 
-    let maxCapacity = 5; // default read capacity to 5
+  let scanDataItems = [];
+  let maxCapacity = 5; // default read capacity to 5
 
-    awaitify(getTableInfo());
+  // Set-up max write capacity
+  if (dynamoTables[tableDetails.tableName] &&
+    dynamoTables[tableDetails.tableName]['readCapacity']) {
+    maxCapacity = dynamoTables[tableDetails.tableName]['readCapacity'];
+  }
 
-    // Set-up max write capacity
-    if (dynamoTables[tableDetails.tableName] &&
-      dynamoTables[tableDetails.tableName]['readCapacity']) {
-      maxCapacity = dynamoTables[tableDetails.tableName]['readCapacity'];
-    }
+  params.Limit = maxCapacity;
 
-    params.Limit = maxCapacity;
+  if (tableDetails.reverseOrder) {
+    params.ScanIndexForward = false;
+  }
 
-    if (tableDetails.reverseOrder) {
-      params.ScanIndexForward = false;
-    }
+  if (tableDetails.projectionExpression) {
+    params.ProjectionExpression = tableDetails.projectionExpression;
+  }
 
-    if (tableDetails.projectionExpression) {
-      params.ProjectionExpression = tableDetails.projectionExpression;
-    }
+  console.log('Get table request: ', JSON.stringify(params));
 
-    console.log('Get table request: ', JSON.stringify(params));
+  let continueScanning = true;
 
-    let onScan = asyncify(function (err, data) {
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
-        backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750));
-        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
-        awaitify(sleep(backoffTime));
-        // Increment backoff
-        backoff++;
-        client.scan(params, onScan);
-      } else if (err) {
-        console.error(`Unable to get table  ${tableDetails.tableName}. Error: `,
-          JSON.stringify(err, null, 2));
-        reject(JSON.stringify(err, null, 2));
+  while (continueScanning) {
+    try {
+      let data = await client.scan(params).promise();
+      scanDataItems = scanDataItems.concat(data.Items);
+
+      // continue scanning if we have more movies, because
+      // scan can retrieve a maximum of 1MB of data
+      if (typeof data.LastEvaluatedKey !== 'undefined') {
+        // console.log('Scanning for more data...');
+        params.ExclusiveStartKey = data.LastEvaluatedKey;
+        continueScanning = true;
       } else {
-        /* console.log(`Get table ${tableDetails.tableName} succeeded.  `,
-          `${data.Items.length} records returned.`); */
-        scanDataItems = scanDataItems.concat(data.Items);
-
-        // continue scanning if we have more movies, because
-        // scan can retrieve a maximum of 1MB of data
-        if (typeof data.LastEvaluatedKey !== 'undefined') {
-          // console.log('Scanning for more data...');
-          params.ExclusiveStartKey = data.LastEvaluatedKey;
-          client.scan(params, onScan);
-        } else {
-          console.log(`Get table returned ${scanDataItems.length} items`);
-          resolve(scanDataItems || []);
-        }
+        console.log(`Get table returned ${scanDataItems.length} items`);
+        continueScanning = false;
+        return (scanDataItems || []);
       }
-    });
-
-    client.scan(params, onScan);
-  });
-});
+    } catch (err) {
+      console.error(`Unable to get table  ${tableDetails.tableName}. Error: `,
+        JSON.stringify(err, null, 2));
+      throw new Error(JSON.stringify(err, null, 2));
+    }
+  }
+};
 
 /** Update a record in a table
 * @param {Object} updateDetails - an object with all the details
@@ -475,76 +437,59 @@ let getTable = asyncify(function (tableDetails) {
 @return {Promise} which resolves with:
 *   array of data items
 */
-let updateRecord = asyncify(function (updateDetails) {
-  return new Promise(function (resolve, reject) {
-    let params = {
-      TableName: updateDetails.tableName,
-      Key: updateDetails.key,
-      UpdateExpression: updateDetails.updateExpression,
-      ExpressionAttributeValues: updateDetails.expressionAttributeValues,
+let updateRecord = async function(updateDetails) {
+  await getTableInfo();
+
+  let params = {
+    TableName: updateDetails.tableName,
+    Key: updateDetails.key,
+    UpdateExpression: updateDetails.updateExpression,
+    ExpressionAttributeValues: updateDetails.expressionAttributeValues,
+  };
+
+  // Make sure updates have a timestamp
+  params.ExpressionAttributeValues[':updated'] = moment().tz('Australia/Sydney').format();
+  params.UpdateExpression = params.UpdateExpression +
+    ', #updated = :updated';
+
+  if (updateDetails.expressionAttributeNames) {
+    params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
+    params.ExpressionAttributeNames['#updated'] = 'updated';
+  } else {
+    params.ExpressionAttributeNames = {
+      '#updated': 'updated',
     };
+  }
 
-    let backoff = 1;
+  if (updateDetails.conditionExpression) {
+    params.ConditionExpression = updateDetails.conditionExpression;
+  }
 
-    awaitify(getTableInfo());
+  params.ReturnValues = 'UPDATED_NEW';
 
-    // Make sure updates have a timestamp
-    params.ExpressionAttributeValues[':updated'] = moment().tz('Australia/Sydney').format();
-    params.UpdateExpression = params.UpdateExpression +
-      ', #updated = :updated';
+  console.log('Update table request: ', updateDetails.tableName,
+    ' ', JSON.stringify(params.Key));
 
-    if (updateDetails.expressionAttributeNames) {
-      params.ExpressionAttributeNames = updateDetails.expressionAttributeNames;
-      params.ExpressionAttributeNames['#updated'] = 'updated';
-    } else {
-      params.ExpressionAttributeNames = {
-        '#updated': 'updated',
+  try {
+    let data = await client.update(params).promise();
+    console.log(`Update table ${updateDetails.tableName} succeeded.`);
+    return (data || null);
+  } catch (err) {
+    if (err.code === 'ConditionalCheckFailedException') {
+      console.log(`Skipping update to table  ${updateDetails.tableName}.`,
+        ` Condition expression not satisifed`);
+      return {
+        result: 'skipped',
+        message: `Skipping update to table  ${updateDetails.tableName}.` +
+          ' Condition expression not satisifed',
       };
+    } else {
+      console.error(`Unable to update table  ${updateDetails.tableName}.` +
+        ' Error:', JSON.stringify(err, null, 2));
+      throw new Error(JSON.stringify(err, null, 2));
     }
-
-    if (updateDetails.conditionExpression) {
-      params.ConditionExpression = updateDetails.conditionExpression;
-    }
-
-    params.ReturnValues = 'UPDATED_NEW';
-
-    console.log('Update table request: ', updateDetails.tableName,
-      ' ', JSON.stringify(params.Key));
-
-    let onUpdate = asyncify(function (err, data) {
-      // Check for throughput exceeded
-      if (err && err.code && err.code == 'ProvisionedThroughputExceededException' &&
-        backoff < 20) {
-        let backoffTime = (backoff * getRandomInt(250, 750));
-        console.log(`ProvisionedThroughputExceededException, backing off for ${backoffTime}`);
-        awaitify(sleep(backoffTime));
-        // Increment backoff
-        backoff++;
-        client.update(params, onUpdate);
-      } else if (err && err.code === 'ConditionalCheckFailedException') {
-        console.log(`Skipping update to table  ${updateDetails.tableName}.`,
-          ` Condition expression not satisifed`);
-        resolve({
-          result: 'skipped',
-          message: `Skipping update to table  ${updateDetails.tableName}.` +
-            ' Condition expression not satisifed',
-        });
-      } else if (err) {
-        console.error(`Unable to update table  ${updateDetails.tableName}.` +
-          ' Error:', JSON.stringify(err, null, 2));
-        reject(JSON.stringify(err, null, 2));
-      } else {
-        // Reset backoff
-        backoff = 1;
-
-        console.log(`Update table ${updateDetails.tableName} succeeded.`);
-        resolve(data || null);
-      }
-    });
-
-    client.update(params, onUpdate);
-  });
-});
+  }
+};
 
 
 /** Delets a record from dynamodb
@@ -569,49 +514,46 @@ let updateRecord = asyncify(function (updateDetails) {
 *   message: error message (optional)
 * }
 */
-let deleteRecord = asyncify(function (deleteDetails) {
-  return new Promise(function (resolve, reject) {
-    // Set-up item details for insert
-    let params = {
-      TableName: deleteDetails.tableName,
-      Key: deleteDetails.key,
+let deleteRecord = async function(deleteDetails) {
+  // Set-up item details for insert
+  let params = {
+    TableName: deleteDetails.tableName,
+    Key: deleteDetails.key,
+  };
+
+  if (deleteDetails.expressionAttributeValues) {
+    params.ExpressionAttributeValues = deleteDetails.expressionAttributeValues;
+  }
+
+  if (deleteDetails.expressionAttributeNames) {
+    params.ExpressionAttributeNames = deleteDetails.expressionAttributeNames;
+  }
+
+
+  if (deleteDetails.conditionExpression) {
+    params.ConditionExpression = deleteDetails.conditionExpression;
+  }
+
+
+  console.log('Delete item request: ', JSON.stringify(params));
+
+  try {
+    await client.delete(params).promise();
+    console.log(`Delete item from ${deleteDetails.tableName} succeeded.`);
+    return {
+      result: 'deleted',
     };
-
-    if (deleteDetails.expressionAttributeValues) {
-      params.ExpressionAttributeValues = deleteDetails.expressionAttributeValues;
-    }
-
-    if (deleteDetails.expressionAttributeNames) {
-      params.ExpressionAttributeNames = deleteDetails.expressionAttributeNames;
-    }
-
-
-    if (deleteDetails.conditionExpression) {
-      params.ConditionExpression = deleteDetails.conditionExpression;
-    }
-
-
-    console.log('Delete item request: ', JSON.stringify(params));
-
-    client.delete(params, function (err, data) {
-      if (err) {
-        console.error(`Unable to delete ${deleteDetails.key}`,
-          '. Error JSON:', JSON.stringify(err, null, 2));
-        reject({
-          result: 'failed',
-          message: JSON.stringify(err, null, 2),
-        });
-      } else {
-        console.log(`Delete item from ${deleteDetails.tableName} succeeded.`);
-        resolve({
-          result: 'deleted',
-        });
-      }
+  } catch (err) {
+    console.error(`Unable to delete ${deleteDetails.key}`,
+      '. Error JSON:', JSON.stringify(err, null, 2));
+    throw new Error({
+      result: 'failed',
+      message: JSON.stringify(err, null, 2),
     });
-  });
-});
+  }
+};
 
-let sleep = function (ms) {
+let sleep = function(ms) {
   if (!ms) {
     ms = 1;
   }
@@ -620,7 +562,7 @@ let sleep = function (ms) {
   });
 };
 
-let getRandomInt = function (min, max) {
+let getRandomInt = function(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   // The maximum is exclusive and the minimum is inclusive
@@ -635,4 +577,5 @@ module.exports = {
   updateRecord: updateRecord,
   deleteRecord: deleteRecord,
   setLocalAccessConfig: setLocalAccessConfig,
+  getExecutionMaxTime: getExecutionMaxTime,
 };

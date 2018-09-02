@@ -7,26 +7,26 @@ const del = require('del');
 const awsLambda = require('gulp-aws-lambda');
 const credentials = require('./credentials/aws.json');
 
-const lambdaParamsRetrieveDaily = {
-  FunctionName: 'retrieveShareData',
-  Handler: 'index.dailyHandler',
-  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs6.10',
-  Description: 'Retrieve share data and store in dynamodb',
-  MemorySize: 256,
-  Timeout: 300,
-  Publish: true,
-  Code: {
-    S3Bucket: 'cake-lambda-zips',
-    S3Key: 'retrieve-share-data.zip',
-  },
-};
+// const lambdaParamsRetrieveDaily = {
+//   FunctionName: 'retrieveShareData',
+//   Handler: 'index.dailyHandler',
+//   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+//   Runtime: 'nodejs8.10 ',
+//   Description: 'Retrieve share data and store in dynamodb',
+//   MemorySize: 256,
+//   Timeout: 300,
+//   Publish: true,
+//   Code: {
+//     S3Bucket: 'cake-lambda-zips',
+//     S3Key: 'retrieve-share-data.zip',
+//   },
+// };
 
 const lambdaParamsRetrieveFunction = {
   FunctionName: 'retrieveFunction',
   Handler: 'index.retrievalHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs6.10',
+  Runtime: 'nodejs8.10 ',
   Description: 'Run single retrieve function for share data and store in dynamodb',
   MemorySize: 256,
   Timeout: 300,
@@ -42,7 +42,7 @@ const lambdaParamsCheckAdjustedPrices = {
   FunctionName: 'checkForAdjustments',
   Handler: 'index.checkForAdjustmentsHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs6.10',
+  Runtime: 'nodejs8.10 ',
   Description: 'Check for prices which have been adjusted in the last 8 days',
   MemorySize: 256,
   Timeout: 300,
@@ -57,7 +57,7 @@ const lambdaParamsReloadQuote = {
   FunctionName: 'reloadQuote',
   Handler: 'index.reloadQuote',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs6.10',
+  Runtime: 'nodejs8.10 ',
   Description: 'Reload quotes for identified symbols and date periods',
   MemorySize: 256,
   Timeout: 300,
@@ -68,20 +68,6 @@ const lambdaParamsReloadQuote = {
   },
 };
 
-const lambdaParamsProcessReturns = {
-  FunctionName: 'processReturns',
-  Handler: 'index.processReturnsHandler',
-  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs6.10',
-  Description: 'Calculate returns using the previous week\'s data',
-  MemorySize: 256,
-  Timeout: 300,
-  Publish: false,
-  Code: {
-    S3Bucket: 'cake-lambda-zips',
-    S3Key: 'retrieve-share-data.zip',
-  },
-};
 
 const awsCredentials = {
   accessKeyId: credentials['accessKeyId'],
@@ -93,49 +79,52 @@ gulp.task('clean', function() {
   return del(['./dist/**/*']);
 });
 
-gulp.task('rootjs', ['clean'], function() {
+gulp.task('rootjs', gulp.series('clean', function() {
   return gulp.src(['./lambda-handler/index.js',
-    './lambda-handler/publish-sns.js'])
+      './lambda-handler/publish-sns.js',
+    ])
     .pipe(gulp.dest('dist/'));
-});
+}));
 
-gulp.task('retrievejs', ['rootjs'], function() {
-  return gulp.src(['./retrieve-data/*.js'])
+gulp.task('retrievejs', gulp.series('rootjs', function() {
+  return gulp.src(['./retrieve-data/*.js*'])
     .pipe(gulp.dest('dist/retrieve'));
-});
+}));
 
-gulp.task('credentials', ['retrievejs'], function() {
+gulp.task('credentials', gulp.series('retrievejs', function() {
   return gulp.src(['./credentials/credentials.json'])
     .pipe(gulp.dest('dist/credentials'));
-});
+}));
 
 
-gulp.task('install_dependencies', ['credentials'], function() {
+gulp.task('install_dependencies', gulp.series('credentials', function() {
   return gulp.src('./package.json')
     .pipe(gulp.dest('./dist'))
     .pipe(install({
       production: true,
     }));
-});
+}));
 
-gulp.task('deploy', ['install_dependencies'], function() {
+gulp.task('deploy', gulp.series('install_dependencies', function(done) {
   gulp.src(['dist/**/*'])
     .pipe(zip('retrieve-share-data.zip'))
-    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
+    // .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveFunction))
     .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
-    .pipe(awsLambda(awsCredentials, lambdaParamsReloadQuote))
-    .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
+    .pipe(awsLambda(awsCredentials, lambdaParamsReloadQuote));
+  // .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
 
-    // gulp.src(['dist/**/*'])
-    //  .pipe(zip('check-adjusted-data.zip'))
-    //  .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices));
+  // gulp.src(['dist/**/*'])
+  //  .pipe(zip('check-adjusted-data.zip'))
+  //  .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices));
 
-    // gulp.src(['dist/**/*'])
-    //  .pipe(zip('retrieve-adjusted-data.zip'))
-    //  .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices));
+  // gulp.src(['dist/**/*'])
+  //  .pipe(zip('retrieve-adjusted-data.zip'))
+  //  .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveAdjustedPrices));
 
-// gulp.src(['dist/**/*'])
-//  .pipe(zip('process-returns.zip'))
-//  .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
-});
+  // gulp.src(['dist/**/*'])
+  //  .pipe(zip('process-returns.zip'))
+  //  .pipe(awsLambda(awsCredentials, lambdaParamsProcessReturns));
+
+  done();
+}));

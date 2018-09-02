@@ -1,15 +1,12 @@
 'use strict';
 
 const utils = require('./utils');
-const retrieveData = require('./dynamo-retrieve-share-data');
-const yahooFinance = require('yahoo-finance');
 const dynamodb = require('./dynamodb');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
+const retrieveQuote = require('./retrieve-quote');
+const retrieveData = require('./dynamo-retrieve-share-data');
 const sns = require('./publish-sns');
 const snsArn = 'arn:aws:sns:ap-southeast-2:815588223950:lambda-activity';
 const aws = require('aws-sdk');
-// const dynamodb = require('./dynamodb');
 
 
 const lambda = new aws.Lambda({
@@ -17,62 +14,24 @@ const lambda = new aws.Lambda({
 });
 
 
-/** Retrieve daily history values for symbol(s) from yahoo finance
- * @param {Array} symbol - one or more yahoo symbols to lookup
- * @param {String} startDate - the first day of the lookup period
- * @param {String} endDate - the last day of the lookup period
- * @return {Promise} resolves with the history record in form:
- *    {
- *    date: 20 Jan 2017,
- *    open: 28.77,
- *    high: 28.84,
- *    low: 28.42,
- *    close: 28.81,
- *    volume: 536800,
- *    adjClose: 27.73,
- *    symbol: 'JBH.AX'
- * }
- */
-let retrieveDailyHistory = function(symbol, startDate, endDate) {
-  return new Promise(function(resolve, reject) {
-    let historyOptions = {
-      from: startDate,
-      to: endDate,
-      period: 'd',
-    };
-
-    // Check if one or many symbols
-    if (Array.isArray(symbol)) {
-      historyOptions.symbols = symbol;
-    } else {
-      historyOptions.symbol = symbol;
-    }
-
-    yahooFinance.historical(historyOptions).then(function(result) {
-      resolve(result);
-    }).catch(function(err) {
-      reject(err);
-    });
-  });
-};
-
 /** Check through each company symbol, retrieve the last 8 days history data
  *    and see if any prices have closePrice !== adjustedPrice.  If a discrepancy
  *    is found, then all prices for that symbol need to be re-checked back to
  *    2006-07-01, so trigger a complete re-check of prices.
- *
+ *  @param {Object} event - lambda event trigger
  */
-let checkForAdjustments = asyncify(function(event) {
+let checkForAdjustments = async function(event) {
   let endDate = event.compDate || utils.returnDateAsString(Date.now());
   /* This assumes process is being run on a Friday night and the look back
       period allows going back over the last days of the previous week */
   let startDate = utils.dateAdd(endDate, 'days', -8);
-  let symbolResult = awaitify(retrieveData.setupSymbols());
+  let symbolResult = await retrieveData.setupSymbols();
 
   let companies = symbolResult.companies;
   let symbolLookup = symbolResult.symbolLookup;
   let symbolGroups = [];
   let startYear = 2007;
+  let processStats;
 
   let t0 = new Date();
 
@@ -88,6 +47,15 @@ let checkForAdjustments = asyncify(function(event) {
     }
   }
 
+  if (event.processStats) {
+    processStats = event.processStats;
+  } else {
+    processStats = {
+      symbolsChecked: 0,
+      symbolReloadRecordsCreated: 0,
+    };
+  }
+
   let insertDetails = {
     tableName: 'quoteReload',
     values: {},
@@ -101,24 +69,21 @@ let checkForAdjustments = asyncify(function(event) {
     let symbolGroup = symbolGroups.shift(1);
 
     try {
-      let results = awaitify(retrieveDailyHistory(symbolGroup,
-        startDate, endDate));
+      let adjustmentResults = await retrieveQuote.checkForAdjustedPrices({
+        symbols: symbolGroup,
+        startDate: startDate,
+        endDate: endDate,
+      });
 
-      Object.keys(results).forEach((resultSymbol) => {
+      console.log(`Number of succesfull results: ${JSON.stringify(Object.keys(adjustmentResults.results).length)}`);
+      console.log(`Number of errors: ${adjustmentResults.errorCount}`);
+
+
+      for (const adjustmentResult of adjustmentResults.results) {
         // Retrieve individual result
-        let result = results[resultSymbol];
-        /* If the adjusted price differs from the close price on any of the days
-           then adjustments have happened and the entire history needs to be
-           re-retrieved */
-        if (result.some((historyRecord) => {
-            if (historyRecord.adjClose && historyRecord.close) {
-              return (historyRecord.adjClose !== historyRecord.close);
-            } else {
-              return false;
-            }
-          })) {
+        if (adjustmentResult.adjustedResult) {
           // Retrieve original symbol from yahoo symbol
-          let retrieveSymbol = symbolLookup[resultSymbol];
+          let retrieveSymbol = symbolLookup[adjustmentResult.symbol];
           let reloadYear = startYear;
 
           while (String(reloadYear) < endDate) {
@@ -133,22 +98,24 @@ let checkForAdjustments = asyncify(function(event) {
             insertDetails.values = {
               'symbolYear': symbolYear,
               'symbol': retrieveSymbol,
-              'yahooSymbol': resultSymbol,
+              'yahooSymbol': adjustmentResult.symbol,
               'startDate': reloadStartDate,
               'endDate': reloadEndDate,
             };
-            awaitify(dynamodb.insertRecord(insertDetails));
+            await dynamodb.insertRecord(insertDetails);
+            processStats.symbolReloadRecordsCreated++;
 
             reloadYear += 1;
           }
         }
-      });
+        processStats.symbolsChecked++;
+      }
     } catch (err) {
       console.error(err);
     }
     let t1 = new Date();
 
-    if (utils.dateDiff(t0, t1, 'seconds') > 220) {
+    if (utils.dateDiff(t0, t1, 'seconds') > (dynamodb.getExecutionMaxTime() - 80)) {
       break;
     }
   }
@@ -159,56 +126,53 @@ let checkForAdjustments = asyncify(function(event) {
     let reinvokeEvent = {
       'symbolGroups': symbolGroups,
       'compDate': endDate,
+      'processStats': processStats,
     };
 
     let description = `Continuing checkForAdjustments. ` +
       `${symbolGroups.length} symbol groups still to complete`;
 
-    awaitify(invokeLambda('checkForAdjustments', reinvokeEvent, description));
+    await invokeLambda('checkForAdjustments', reinvokeEvent, description);
   } else {
     let description = `Completed checkForAdjustments. Executing reloadQuote`;
-    awaitify(invokeLambda('reloadQuote', {}, description));
+    await invokeLambda('reloadQuote', {}, description);
 
-    awaitify(
-      sns.publishMsg(snsArn, 'checkForAdjustments completed.',
-        'checkForAdjustments completed.'));
+    await
+    sns.publishMsg(snsArn, `${JSON.stringify(processStats, null, 2)}`,
+      'checkForAdjustments completed.');
   }
 
   return true;
-});
+};
 
-let invokeLambda = function(lambdaName, event, description) {
-  return new Promise(function(resolve, reject) {
-    console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
-    if (description) {
-      console.log(description);
-    }
+let invokeLambda = async function(lambdaName, event, description) {
+  console.log(`Invoking lambda ${lambdaName} with event: ${JSON.stringify(event)}`);
+  if (description) {
+    console.log(description);
+  }
 
-    /*
-    // Simulate lambda invoke
-    if (lambdaName === 'checkForAdjustments') {
-      checkForAdjustments(event);
-    } else if (lambdaName === 'retrieveAdjustedHistoryData') {
-      retrieveAdjustedData.retrieveAdjustedHistoryData(event);
-    }
+  /*
+  // Simulate lambda invoke
+  if (lambdaName === 'checkForAdjustments') {
+    checkForAdjustments(event);
+  } else if (lambdaName === 'retrieveAdjustedHistoryData') {
+    retrieveAdjustedData.retrieveAdjustedHistoryData(event);
+  }
 
-    resolve(true);
-    return; */
-
-    lambda.invoke({
+  resolve(true);
+  return; */
+  try {
+    await lambda.invoke({
       FunctionName: lambdaName,
       InvocationType: 'Event',
       Payload: JSON.stringify(event, null, 2),
-    }, function(err, data) {
-      if (err) {
-        reject(err);
-      } else {
-        console.log(`Function ${lambdaName} executed with event: `,
-          `${JSON.stringify(event)}`);
-        resolve(true);
-      }
-    });
-  });
+    }).promise();
+    console.log(`Function ${lambdaName} executed with event: `,
+      `${JSON.stringify(event)}`);
+    return true;
+  } catch (err) {
+    throw err;
+  }
 };
 
 module.exports = {
@@ -217,5 +181,9 @@ module.exports = {
 
 // dynamodb.setLocalAccessConfig();
 // checkForAdjustments({
-//   compDate: '2017-09-08',
+//   compDate: '2018-08-10',
+//   processStats: {
+//     symbolsChecked: 5,
+//     symbolReloadRecordsCreated: 1,
+//   },
 // });
