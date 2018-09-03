@@ -109,7 +109,8 @@ RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpre
                      'GRCPNRAD_T2_5P', 'GRCPNRAD_T6_10P', 'GRCPNRAD_T11_20P', 'GRCPRCAD_T1P', 'GRCPRCAD_T2_5P',
                      'GRCPRCAD_T6_10P', 'GRCPRCAD_T11_20P', 'H01_GGDPCVGDPFY_T1P', 'H01_GGDPCVGDPFY_T2_5P',
                      'H01_GGDPCVGDPFY_T6_10P', 'H01_GGDPCVGDPFY_T11_20P', 'H05_GLFSEPTPOP_T1P', 'H05_GLFSEPTPOP_T2_5P',
-                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P']
+                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P', 'future_eight_week_return_T1_10P',
+                     'future_eight_week_return_T1_20P', 'future_eight_week_return_T1_40P']
 
 HIGH_NAN_COLUMNS = ['Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume', 'EBITDMargin',
                     'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',

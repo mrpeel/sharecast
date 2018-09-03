@@ -36,7 +36,7 @@ def range_results(predictions, actuals):
                 'err': err,
                 'mae': mae,
                 'mape': mape,
-                'r2': r2,
+                'rsquared': rsquared,
             }
         }
      }
@@ -63,7 +63,7 @@ def range_results(predictions, actuals):
                 all_predictions.shape[0], 1)
             range_predictions = all_predictions[range_mask]
 
-            if range_predictions:
+            if range_predictions.any():
                 prediction_range_results[prediction_name] = {
                     'mae': mean_absolute_error(range_actuals, range_predictions),
                     'mape': safe_mape(range_actuals, range_predictions),
@@ -125,7 +125,7 @@ def eval_results(predictions):
             'err': err,
             'mae': mae,
             'mape': mape,
-            'r2': r2,
+            'rsquared': rsquared,
         }
      }
     """
@@ -160,8 +160,8 @@ def eval_results(predictions):
         print('Mean absolute error: %s' % mae)
         mape = safe_mape(actual_y, y_predict)
         print('Mean absolute percentage error: %s' % mape)
-        r2 = r2_score(actual_y, y_predict)
-        print('r2: %s' % r2)
+        rsquared = r2_score(actual_y, y_predict)
+        print('rsquared: %s' % rsquared)
         explain_variance = explained_variance_score(actual_y, y_predict)
         print('Explained variance: %s' % explain_variance)
         medae = median_absolute_error(actual_y, y_predict)
@@ -172,7 +172,7 @@ def eval_results(predictions):
                 'err': err,
                 'mae': mae,
                 'mape': mape,
-                'r2': r2,
+                'rsquared': rsquared,
                 'explain_variance': explain_variance,
                 'medae': medae,
                 'num_vals': num_vals,
@@ -181,7 +181,7 @@ def eval_results(predictions):
             results[prediction_name] = {
                 'mae': mae,
                 'mape': mape,
-                'r2': r2,
+                'rsquared': rsquared,
                 'explain_variance': explain_variance,
                 'medae': medae,
                 'num_vals': num_vals,
