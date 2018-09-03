@@ -275,11 +275,11 @@ def main(**kwargs):
 
 
 if __name__ == "__main__":
-    main(load_data_file=True,
+    main(load_data_file=False,
          labelled_data_file='./data/ml-20180714-labelled.pkl.gz',
-         train_pre_process=True,
+         train_pre_process=False,
          load_and_execute_pre_process=False,
-         load_processed_data=False,
+         load_processed_data=True,
          train_keras=True,
          use_previous_training_weights=False,
          train_xgb=True,

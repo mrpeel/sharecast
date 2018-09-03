@@ -974,7 +974,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     # reduce_lr = ReduceLROnPlateau(
     #     monitor='val_loss', factor=0.2, verbose=1, patience=3)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=12)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=25)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-1.hdf5', verbose=0, save_best_only=True)
@@ -1019,7 +1019,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'activation': 'relu',
         'optimizer': 'Adamax',
         'kernel_initializer': 'normal',
-        'dropout': 0,
+        'dropout': 0.05,
         'batch_size': 512,
         'model_type': 'mae',
         'int_layer': 30,
@@ -1034,7 +1034,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         model.load_weights('./weights/weights-2.hdf5')
 
     # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=12)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=25)
     csv_logger = CSVLogger('./logs/log-training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-2.hdf5', verbose=0, save_best_only=True)
