@@ -974,7 +974,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
 
     # reduce_lr = ReduceLROnPlateau(
     #     monitor='val_loss', factor=0.2, verbose=1, patience=3)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=25)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-1.hdf5', verbose=0, save_best_only=True)
@@ -996,7 +996,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     p_model.fit(x_shuffled_train,
                 y_shuffled_train,
                 validation_split=0.15,
-                epochs=20000,
+                epochs=1000,
                 batch_size=network['batch_size'],
                 callbacks=[  # reduce_lr,#
                     early_stopping, csv_logger, checkpointer, clr],
@@ -1019,7 +1019,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'activation': 'relu',
         'optimizer': 'Adamax',
         'kernel_initializer': 'normal',
-        'dropout': 0.05,
+        'dropout': 0.1,
         'batch_size': 512,
         'model_type': 'mae',
         'int_layer': 30,
@@ -1034,7 +1034,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         model.load_weights('./weights/weights-2.hdf5')
 
     # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=25)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/log-training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-2.hdf5', verbose=0, save_best_only=True)
@@ -1059,7 +1059,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     model.fit(x_shuffled_train,
               y_shuffled_train,
               validation_split=0.15,
-              epochs=20000,
+              epochs=1000,
               batch_size=network['batch_size'],
               callbacks=[  # reduce_lr,
                   early_stopping, checkpointer, csv_logger, clr],
