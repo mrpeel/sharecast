@@ -136,6 +136,7 @@ BAP,Consumer Discretionary,Retailing,Distributors
 BDA,Consumer Discretionary,Retailing,Distributors
 BPG,Consumer Discretionary,Retailing,Distributors
 DW8,Consumer Discretionary,Retailing,Distributors
+BNV,Consumer Discretionary,Retailing,Distributors
 DLC,Consumer Discretionary,Retailing,Distributors
 FUN,Consumer Discretionary,Retailing,Distributors
 JAT,Consumer Discretionary,Retailing,Distributors
@@ -348,6 +349,7 @@ GPP,Energy,Energy,"Oil, Gas & Consumable Fuels"
 GRV,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HOG,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HE8,Energy,Energy,"Oil, Gas & Consumable Fuels"
+NHO,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HPR,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HZN,Energy,Energy,"Oil, Gas & Consumable Fuels"
 ICN,Energy,Energy,"Oil, Gas & Consumable Fuels"
@@ -823,6 +825,7 @@ UCM,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplie
 VTI,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
 MLA,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
 UNS,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+OIL,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
 ONT,Health Care,Health Care Equipment & Services,Health Care Providers & Services
 AHX,Health Care,Health Care Equipment & Services,Health Care Providers & Services
 AJJ,Health Care,Health Care Equipment & Services,Health Care Providers & Services
@@ -890,6 +893,7 @@ CUV,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 CSL,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 CYP,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 DXB,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+SBN,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 DVL,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 FTT,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 GBI,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
@@ -1074,6 +1078,7 @@ ECG,Industrials,Commercial & Professional Services,Commercial Services & Supplie
 ESI,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 HRL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 IGE,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+FOY,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 IVT,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 MSG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 MIL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
@@ -1308,6 +1313,7 @@ IRI,Information Technology,Software & Services,Software
 IAM,Information Technology,Software & Services,Software
 IRE,Information Technology,Software & Services,Software
 JAN,Information Technology,Software & Services,Software
+HJB,Information Technology,Software & Services,Software
 JCS,Information Technology,Software & Services,Software
 K2F,Information Technology,Software & Services,Software
 KNM,Information Technology,Software & Services,Software
@@ -1335,6 +1341,7 @@ RFN,Information Technology,Software & Services,Software
 RCW,Information Technology,Software & Services,Software
 RUL,Information Technology,Software & Services,Software
 SNS,Information Technology,Software & Services,Software
+OEG,Information Technology,Software & Services,Software
 SIS,Information Technology,Software & Services,Software
 SMA,Information Technology,Software & Services,Software
 SHO,Information Technology,Software & Services,Software
@@ -1387,6 +1394,7 @@ SMN,Information Technology,Technology Hardware & Equipment,"Electronic Equipment
 TZL,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
 NUH,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
 QFY,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
+WHN,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
 STL,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
 WBT,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
 ANO,Materials,Materials,Chemicals
@@ -1411,6 +1419,7 @@ SDV,Materials,Materials,Chemicals
 SES,Materials,Materials,Chemicals
 TTT,Materials,Materials,Chemicals
 ZNO,Materials,Materials,Chemicals
+GSD,Materials,Materials,Chemicals
 NOE,Materials,Materials,Chemicals
 ABC,Materials,Materials,Construction Materials
 BLD,Materials,Materials,Construction Materials
@@ -1533,6 +1542,7 @@ BMT,Materials,Materials,Metals & Mining
 BHP,Materials,Materials,Metals & Mining
 BGS,Materials,Materials,Metals & Mining
 BIR,Materials,Materials,Metals & Mining
+LCG,Materials,Materials,Metals & Mining
 BIS,Materials,Materials,Metals & Mining
 BC8,Materials,Materials,Metals & Mining
 BMZ,Materials,Materials,Metals & Mining
@@ -1549,6 +1559,7 @@ BBR,Materials,Materials,Metals & Mining
 BOE,Materials,Materials,Metals & Mining
 BOC,Materials,Materials,Metals & Mining
 BCB,Materials,Materials,Metals & Mining
+CBS,Materials,Materials,Metals & Mining
 BRB,Materials,Materials,Metals & Mining
 BCK,Materials,Materials,Metals & Mining
 BPL,Materials,Materials,Metals & Mining
@@ -1557,6 +1568,7 @@ BNR,Materials,Materials,Metals & Mining
 BUX,Materials,Materials,Metals & Mining
 CAD,Materials,Materials,Metals & Mining
 CAI,Materials,Materials,Metals & Mining
+PNO,Materials,Materials,Metals & Mining
 CAE,Materials,Materials,Metals & Mining
 CAY,Materials,Materials,Metals & Mining
 CFE,Materials,Materials,Metals & Mining
@@ -1749,6 +1761,7 @@ IVR,Materials,Materials,Metals & Mining
 IRD,Materials,Materials,Metals & Mining
 IBG,Materials,Materials,Metals & Mining
 JDR,Materials,Materials,Metals & Mining
+SXI,Materials,Materials,Metals & Mining
 JAL,Materials,Materials,Metals & Mining
 JRV,Materials,Materials,Metals & Mining
 JRL,Materials,Materials,Metals & Mining
@@ -1892,6 +1905,7 @@ OGX,Materials,Materials,Metals & Mining
 ORM,Materials,Materials,Metals & Mining
 ORN,Materials,Materials,Metals & Mining
 ONX,Materials,Materials,Metals & Mining
+MLI,Materials,Materials,Metals & Mining
 OVL,Materials,Materials,Metals & Mining
 ORE,Materials,Materials,Metals & Mining
 OZL,Materials,Materials,Metals & Mining
@@ -1924,6 +1938,7 @@ PRX,Materials,Materials,Metals & Mining
 ABU,Materials,Materials,Metals & Mining
 PSC,Materials,Materials,Metals & Mining
 PM1,Materials,Materials,Metals & Mining
+ENL,Materials,Materials,Metals & Mining
 PUR,Materials,Materials,Metals & Mining
 QGL,Materials,Materials,Metals & Mining
 QBL,Materials,Materials,Metals & Mining
@@ -1963,6 +1978,7 @@ S2R,Materials,Materials,Metals & Mining
 SBR,Materials,Materials,Metals & Mining
 SFR,Materials,Materials,Metals & Mining
 SFM,Materials,Materials,Metals & Mining
+EZA,Materials,Materials,Metals & Mining
 SMI,Materials,Materials,Metals & Mining
 SAR,Materials,Materials,Metals & Mining
 STN,Materials,Materials,Metals & Mining
@@ -2060,6 +2076,7 @@ VKA,Materials,Materials,Metals & Mining
 VML,Materials,Materials,Metals & Mining
 VRC,Materials,Materials,Metals & Mining
 VYS,Materials,Materials,Metals & Mining
+MHM,Materials,Materials,Metals & Mining
 WKT,Materials,Materials,Metals & Mining
 WAL,Materials,Materials,Metals & Mining
 WAF,Materials,Materials,Metals & Mining
@@ -2073,6 +2090,7 @@ WFE,Materials,Materials,Metals & Mining
 WLF,Materials,Materials,Metals & Mining
 WLC,Materials,Materials,Metals & Mining
 WML,Materials,Materials,Metals & Mining
+ARK,Materials,Materials,Metals & Mining
 WPG,Materials,Materials,Metals & Mining
 XAM,Materials,Materials,Metals & Mining
 ZAM,Materials,Materials,Metals & Mining
@@ -2568,6 +2586,7 @@ PTR,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 RNE,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 TLT,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 VPR,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+ERJ,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 WND,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 ZEN,Utilities,Utilities,Independent Power and Renewable Electricity Producers
 AGL,Utilities,Utilities,Multi-Utilities
@@ -2575,3 +2594,2202 @@ DUE,Utilities,Utilities,Multi-Utilities
 DEM,Utilities,Utilities,Water Utilities
 D2O,Utilities,Utilities,Water Utilities
 PO3,Utilities,Utilities,Water Utilities
+AAA1,Unknown,Unknown,Unknown
+AAB,Financials,Diversified Financials,Diversified Financial Services
+AAD1,Unknown,Unknown,Unknown
+AAG,Materials,Materials,Metals & Mining
+AAG1,Unknown,Unknown,Unknown
+AAH,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+AAK,Real Estate,Real Estate,Real Estate Management & Development
+AAN,Utilities,Utilities,Gas Utilities
+AAP1,Unknown,Unknown,Unknown
+AAS,Information Technology,Software & Services,Internet Software & Services
+AAS1,Unknown,Unknown,Unknown
+AAT,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+AAX,Industrials,Capital Goods,Construction & Engineering
+ABA1,Financials,Banks,Banks
+ABB,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+ABF,Consumer Discretionary,Media,Media
+ABF1,Unknown,Unknown,Unknown
+ABG,Industrials,Capital Goods,Construction & Engineering
+ABN1,Unknown,Unknown,Unknown
+ABS,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+ABV1,Unknown,Unknown,Unknown
+ABX1,Unknown,Unknown,Unknown
+ABX2,Materials,Materials,Metals & Mining
+ABY,Materials,Materials,Metals & Mining
+ACE1,Unknown,Unknown,Unknown
+ACG1,Unknown,Unknown,Unknown
+ACH,Unknown,Unknown,Unknown
+ACM,Unknown,Unknown,Unknown
+ACN,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ACP1,Unknown,Unknown,Unknown
+ACQ1,Unknown,Unknown,Unknown
+ACS1,Unknown,Unknown,Unknown
+ACY,Unknown,Unknown,Unknown
+ADB,Financials,Banks,Banks
+ADD1,Unknown,Unknown,Unknown
+ADE1,Unknown,Unknown,Unknown
+ADG,Consumer Discretionary,Retailing,Specialty Retail
+ADI,Energy,Energy,Energy Equipment & Services
+ADI1,Unknown,Unknown,Unknown
+ADL1,Unknown,Unknown,Unknown
+ADO1,Unknown,Unknown,Unknown
+ADP,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+ADQ,Industrials,Capital Goods,Trading Companies & Distributors
+ADT1,Financials,Diversified Financials,Diversified Financial Services
+ADV1,Financials,Diversified Financials,Diversified Financial Services
+ADY1,Unknown,Unknown,Unknown
+ADZ,Industrials,Transportation,Transportation Infrastructure
+AEC,Materials,Materials,Metals & Mining
+AED,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AEE1,Unknown,Unknown,Unknown
+AEH,Financials,Real Estate,Real Estate Management & Development
+AEH1,Industrials,Capital Goods,Aerospace & Defense
+AEJ,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+AEK,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AEL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AEN,Utilities,Utilities,Electric Utilities
+AEO,Consumer Discretionary,Media,Media
+AEP1,Unknown,Unknown,Unknown
+AEQ1,Unknown,Unknown,Unknown
+AES,Utilities,Utilities,Electric Utilities
+AES1,Unknown,Unknown,Unknown
+AET,Industrials,Capital Goods,Machinery
+AEZ,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+AFF,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+AFG1,Financials,Banks,Thrifts & Mortgage Finance
+AFN,Unknown,Unknown,Unknown
+AFQ,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AFU,Financials,Diversified Financials,Diversified Financial Services
+AGB,Materials,Materials,Metals & Mining
+AGC,Materials,Materials,Metals & Mining
+AGD1,Unknown,Unknown,Unknown
+AGE1,Unknown,Unknown,Unknown
+AGF,Financials,Diversified Financials,Capital Markets
+AGF1,Unknown,Unknown,Unknown
+AGH1,Financials,Real Estate,Real Estate Management & Development
+AGL1,Utilities,Utilities,Multi-Utilities
+AGM,Materials,Materials,Metals & Mining
+AGN1,Unknown,Unknown,Unknown
+AGO1,Unknown,Unknown,Unknown
+AGP,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AGR1,Materials,Materials,Metals & Mining
+AGU,Materials,Materials,Metals & Mining
+AGZ,Materials,Materials,Metals & Mining
+AHA1,Materials,Materials,Metals & Mining
+AHC,Financials,Real Estate,Real Estate Management & Development
+AHF1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+AHG1,Unknown,Unknown,Unknown
+AHG2,Consumer Discretionary,Retailing,Specialty Retail
+AHI,Financials,Diversified Financials,Diversified Financial Services
+AHI1,Unknown,Unknown,Unknown
+AHJ,Industrials,Capital Goods,Building Products
+AHL1,Unknown,Unknown,Unknown
+AHO,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+AHU,Financials,Diversified Financials,Capital Markets
+AHX1,Unknown,Unknown,Unknown
+AHY1,Unknown,Unknown,Unknown
+AIC,Unknown,Unknown,Unknown
+AIE,Consumer Discretionary,Automobiles & Components,Auto Components
+AIG,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+AIH,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+AII,Materials,Materials,Metals & Mining
+AII1,Unknown,Unknown,Unknown
+AIO,Industrials,Transportation,Road & Rail
+AIP,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+AIR1,Unknown,Unknown,Unknown
+AJF,Unknown,Unknown,Unknown
+AJR1,Unknown,Unknown,Unknown
+AJS,Unknown,Unknown,Unknown
+AKI1,Unknown,Unknown,Unknown
+AKL,Unknown,Unknown,Unknown
+AKR,Financials,Diversified Financials,Diversified Financial Services
+AKR1,Unknown,Unknown,Unknown
+AKS,Financials,Diversified Financials,Capital Markets
+AKT,Financials,Diversified Financials,Capital Markets
+AKW,Financials,Diversified Financials,Diversified Financial Services
+AKX,Financials,Diversified Financials,Diversified Financial Services
+AKY,Financials,Diversified Financials,Diversified Financial Services
+ALA1,Unknown,Unknown,Unknown
+ALD,Materials,Materials,Metals & Mining
+ALD1,Unknown,Unknown,Unknown
+ALF1,Unknown,Unknown,Unknown
+ALG1,Unknown,Unknown,Unknown
+ALH,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+ALM,Materials,Materials,Metals & Mining
+ALM1,Unknown,Unknown,Unknown
+ALN,Utilities,Utilities,Gas Utilities
+ALO,Consumer Discretionary,Retailing,Distributors
+ALQ1,Unknown,Unknown,Unknown
+ALS,Industrials,Capital Goods,Trading Companies & Distributors
+ALT1,Unknown,Unknown,Unknown
+ALW,Information Technology,Software & Services,IT Services
+ALZ,Financials,Real Estate,Real Estate Management & Development
+AMA1,Unknown,Unknown,Unknown
+AMD1,Unknown,Unknown,Unknown
+AMK1,Unknown,Unknown,Unknown
+AMM,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+AMO1,Unknown,Unknown,Unknown
+AMT1,Unknown,Unknown,Unknown
+AMV,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+AMW,Unknown,Unknown,Unknown
+AMX,Materials,Materials,Metals & Mining
+AMX1,Unknown,Unknown,Unknown
+ANB,Materials,Materials,Chemicals
+ANB1,Unknown,Unknown,Unknown
+ANC,Consumer Discretionary,Retailing,Specialty Retail
+AND,Materials,Materials,Metals & Mining
+AND1,Unknown,Unknown,Unknown
+ANE,Materials,Materials,Paper & Forest Products
+ANG1,Unknown,Unknown,Unknown
+ANH1,Unknown,Unknown,Unknown
+ANI,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+ANI1,Unknown,Unknown,Unknown
+ANS1,Unknown,Unknown,Unknown
+ANT1,Unknown,Unknown,Unknown
+AOE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AOG1,Energy,Energy,Energy Equipment & Services
+AOM1,Unknown,Unknown,Unknown
+AOR1,Unknown,Unknown,Unknown
+APA1,Unknown,Unknown,Unknown
+APB,Consumer Discretionary,Consumer Durables & Apparel,"Textiles, Apparel & Luxury Goods"
+APD1,Unknown,Unknown,Unknown
+APF,Unknown,Unknown,Unknown
+APH,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+APH1,Unknown,Unknown,Unknown
+APK,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+APL1,Unknown,Unknown,Unknown
+APL2,Materials,Materials,Paper & Forest Products
+APM1,Unknown,Unknown,Unknown
+APO1,Unknown,Unknown,Unknown
+APP1,Unknown,Unknown,Unknown
+APR,Financials,Diversified Financials,Capital Markets
+APS1,Unknown,Unknown,Unknown
+APW1,Unknown,Unknown,Unknown
+APY1,Materials,Materials,Chemicals
+AQA,Materials,Materials,Metals & Mining
+AQC1,Unknown,Unknown,Unknown
+AQE,Financials,Diversified Financials,Diversified Financial Services
+AQO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AQP,Materials,Materials,Metals & Mining
+ARE1,Unknown,Unknown,Unknown
+ARF1,Unknown,Unknown,Unknown
+ARJ,Financials,Real Estate,Real Estate Management & Development
+ARJ1,Unknown,Unknown,Unknown
+ARM1,Unknown,Unknown,Unknown
+ARN1,Unknown,Unknown,Unknown
+ARQ1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ARR1,Unknown,Unknown,Unknown
+ARS1,Unknown,Unknown,Unknown
+ART,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+ARV1,Unknown,Unknown,Unknown
+ARW1,Unknown,Unknown,Unknown
+ASC1,Unknown,Unknown,Unknown
+ASE1,Unknown,Unknown,Unknown
+ASH1,Unknown,Unknown,Unknown
+ASP1,Unknown,Unknown,Unknown
+ASR,Financials,Diversified Financials,Diversified Financial Services
+ASU,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+ATE,Materials,Materials,Metals & Mining
+ATF,Unknown,Unknown,Unknown
+ATH1,Unknown,Unknown,Unknown
+ATI,Materials,Materials,Metals & Mining
+ATN1,Unknown,Unknown,Unknown
+ATQ1,Unknown,Unknown,Unknown
+ATT1,Unknown,Unknown,Unknown
+ATU1,Unknown,Unknown,Unknown
+ATY1,Unknown,Unknown,Unknown
+AUC1,Unknown,Unknown,Unknown
+AUD,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+AUE1,Unknown,Unknown,Unknown
+AUG1,Materials,Materials,Metals & Mining
+AUO,Materials,Materials,Metals & Mining
+AUP1,Unknown,Unknown,Unknown
+AUR1,Unknown,Unknown,Unknown
+AUS,Materials,Materials,Metals & Mining
+AUS1,Unknown,Unknown,Unknown
+AUT,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AUT1,Unknown,Unknown,Unknown
+AUW,Financials,Diversified Financials,Diversified Financial Services
+AVE,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+AVF,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+AVG1,Unknown,Unknown,Unknown
+AVI1,Unknown,Unknown,Unknown
+AVO,Materials,Materials,Metals & Mining
+AVP1,Unknown,Unknown,Unknown
+AVR,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+AVS,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+AVT,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+AWA1,Unknown,Unknown,Unknown
+AWB,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+AWG1,Unknown,Unknown,Unknown
+AWM,Unknown,Unknown,Unknown
+AWP1,Unknown,Unknown,Unknown
+AXA,Financials,Insurance,Insurance
+AXG,Consumer Staples,"Food, Beverage & Tobacco",Tobacco
+AXM,Materials,Materials,Metals & Mining
+AXN,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+AXO,Materials,Materials,Metals & Mining
+AXS1,Unknown,Unknown,Unknown
+AXSBSC,Unknown,Unknown,Unknown
+AYD,Financials,Diversified Financials,Diversified Financial Services
+AYH,Financials,Diversified Financials,Diversified Financial Services
+AYN,Materials,Materials,Metals & Mining
+AYT,Financials,Diversified Financials,Diversified Financial Services
+AYX,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+AZA,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AZC,Materials,Materials,Metals & Mining
+AZC1,Unknown,Unknown,Unknown
+AZD,Financials,Diversified Financials,Consumer Finance
+AZG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+AZG1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+AZH,Materials,Materials,Metals & Mining
+AZO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+AZO1,Unknown,Unknown,Unknown
+AZQ,Materials,Materials,Metals & Mining
+AZR,Materials,Materials,Metals & Mining
+AZT1,Unknown,Unknown,Unknown
+AZU,Information Technology,Software & Services,IT Services
+BAA1,Unknown,Unknown,Unknown
+BAB,Materials,Materials,Metals & Mining
+BAB1,Unknown,Unknown,Unknown
+BAE,Consumer Discretionary,Media,Media
+BAO,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+BAT1,Unknown,Unknown,Unknown
+BAX,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+BAY,Unknown,Unknown,Unknown
+BBB,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+BBD,Unknown,Unknown,Unknown
+BBI,Utilities,Utilities,Multi-Utilities
+BBS1,Unknown,Unknown,Unknown
+BBT,Unknown,Unknown,Unknown
+BCA1,Unknown,Unknown,Unknown
+BCC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+BCC1,Unknown,Unknown,Unknown
+BCD,Materials,Materials,Metals & Mining
+BCO,Materials,Materials,Metals & Mining
+BCO1,Unknown,Unknown,Unknown
+BCR1,Unknown,Unknown,Unknown
+BCS,Industrials,Transportation,Transportation Infrastructure
+BDE1,Unknown,Unknown,Unknown
+BDL,Industrials,Capital Goods,Construction & Engineering
+BDM,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+BDS,Consumer Discretionary,Automobiles & Components,Auto Components
+BEA1,Unknown,Unknown,Unknown
+BEC,Financials,Real Estate,Real Estate Management & Development
+BEC1,Unknown,Unknown,Unknown
+BEE1,Unknown,Unknown,Unknown
+BEG,Industrials,Capital Goods,Construction & Engineering
+BEI,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+BEI1,Unknown,Unknown,Unknown
+BEZ,Materials,Materials,Metals & Mining
+BFG1,Unknown,Unknown,Unknown
+BGF,Materials,Materials,Metals & Mining
+BGL1,Unknown,Unknown,Unknown
+BGN,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+BGO1,Unknown,Unknown,Unknown
+BHA,Unknown,Unknown,Unknown
+BHG,Information Technology,Software & Services,Internet Software & Services
+BHG1,Unknown,Unknown,Unknown
+BHH,Unknown,Unknown,Unknown
+BHI,Unknown,Unknown,Unknown
+BHL1,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+BHM,Unknown,Unknown,Unknown
+BHO,Unknown,Unknown,Unknown
+BHT,Unknown,Unknown,Unknown
+BHU,Materials,Materials,Metals & Mining
+BIH,Unknown,Unknown,Unknown
+BIR1,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+BIV,Financials,Diversified Financials,Diversified Financial Services
+BIY,Unknown,Unknown,Unknown
+BKA,Materials,Materials,Metals & Mining
+BKD,Unknown,Unknown,Unknown
+BKR,Consumer Discretionary,Media,Media
+BKT1,Unknown,Unknown,Unknown
+BLE,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+BLK1,Unknown,Unknown,Unknown
+BLL,Unknown,Unknown,Unknown
+BLR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+BLU,Consumer Discretionary,Media,Media
+BMB,Information Technology,Technology Hardware & Equipment,Communications Equipment
+BMC1,Unknown,Unknown,Unknown
+BMD,Unknown,Unknown,Unknown
+BMG1,Unknown,Unknown,Unknown
+BML1,Unknown,Unknown,Unknown
+BMM,Materials,Materials,Metals & Mining
+BMP1,Unknown,Unknown,Unknown
+BMR,Financials,Real Estate,Real Estate Management & Development
+BMS,Materials,Materials,Metals & Mining
+BMX,Materials,Materials,Metals & Mining
+BNB,Financials,Diversified Financials,Capital Markets
+BNC,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+BNC1,Unknown,Unknown,Unknown
+BNK,Unknown,Unknown,Unknown
+BNT,Energy,Energy,Energy Equipment & Services
+BOA1,Unknown,Unknown,Unknown
+BOK,Materials,Materials,Metals & Mining
+BON1,Materials,Materials,Metals & Mining
+BOO,Unknown,Unknown,Unknown
+BOP,Consumer Discretionary,Retailing,Distributors
+BPC,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+BPK,Industrials,Capital Goods,Building Products
+BPS1,Unknown,Unknown,Unknown
+BQF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+BRB1,Unknown,Unknown,Unknown
+BRD1,Unknown,Unknown,Unknown
+BRE1,Unknown,Unknown,Unknown
+BRG1,Unknown,Unknown,Unknown
+BRH,Unknown,Unknown,Unknown
+BRI1,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+BRK1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+BRL1,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+BRM1,Unknown,Unknown,Unknown
+BRS1,Materials,Materials,Construction Materials
+BRT1,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+BRU1,Unknown,Unknown,Unknown
+BRW,Materials,Materials,Metals & Mining
+BRW1,Unknown,Unknown,Unknown
+BRY,Financials,Diversified Financials,Diversified Financial Services
+BRZ,Consumer Discretionary,Retailing,Specialty Retail
+BSD,Unknown,Unknown,Unknown
+BSG,Materials,Materials,Metals & Mining
+BSI1,Unknown,Unknown,Unknown
+BSO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+BSP1,Unknown,Unknown,Unknown
+BTA,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+BTH1,Unknown,Unknown,Unknown
+BTL,Unknown,Unknown,Unknown
+BTM,Unknown,Unknown,Unknown
+BTN,Materials,Materials,Metals & Mining
+BTP,Unknown,Unknown,Unknown
+BTR,Materials,Materials,Metals & Mining
+BTR1,Unknown,Unknown,Unknown
+BTS,Unknown,Unknown,Unknown
+BTY,Unknown,Unknown,Unknown
+BUE,Industrials,Commercial & Professional Services,Professional Services
+BUN1,Unknown,Unknown,Unknown
+BUR1,Unknown,Unknown,Unknown
+BVA,Information Technology,Software & Services,Software
+BVM,Unknown,Unknown,Unknown
+BWA,Financials,Banks,Banks
+BWD,Materials,Materials,Metals & Mining
+BWN,Energy,Energy,"Oil, Gas & Consumable Fuels"
+BXP,Information Technology,Software & Services,Software
+BYN,Unknown,Unknown,Unknown
+BYP,Unknown,Unknown,Unknown
+BZL,Materials,Materials,Metals & Mining
+CAD1,Unknown,Unknown,Unknown
+CAG1,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+CAI1,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+CAL,Industrials,Capital Goods,Trading Companies & Distributors
+CAL1,Unknown,Unknown,Unknown
+CAP1,Unknown,Unknown,Unknown
+CAT1,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+CBC1,Industrials,Capital Goods,Construction & Engineering
+CBD,Industrials,Capital Goods,Construction & Engineering
+CBE1,Unknown,Unknown,Unknown
+CBH,Materials,Materials,Metals & Mining
+CBI,Unknown,Unknown,Unknown
+CBK,Information Technology,Software & Services,Software
+CBM,Materials,Materials,Metals & Mining
+CBR,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+CBR1,Unknown,Unknown,Unknown
+CBS1,Unknown,Unknown,Unknown
+CBT,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+CBX,Materials,Materials,Metals & Mining
+CCB1,Unknown,Unknown,Unknown
+CCC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CCC1,Unknown,Unknown,Unknown
+CCD,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CCE1,Unknown,Unknown,Unknown
+CCK,Information Technology,Software & Services,Software
+CCN,Unknown,Unknown,Unknown
+CCW,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CCY1,Unknown,Unknown,Unknown
+CCZ1,Unknown,Unknown,Unknown
+CD11,Unknown,Unknown,Unknown
+CDA1,Unknown,Unknown,Unknown
+CDC1,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CDE,Unknown,Unknown,Unknown
+CDF,Financials,Diversified Financials,Diversified Financial Services
+CDG1,Unknown,Unknown,Unknown
+CDI1,Unknown,Unknown,Unknown
+CDL,Financials,Real Estate,Real Estate Management & Development
+CDM1,Unknown,Unknown,Unknown
+CDO,Consumer Discretionary,Retailing,Specialty Retail
+CDR,Information Technology,Technology Hardware & Equipment,Communications Equipment
+CDT1,Unknown,Unknown,Unknown
+CDX,Industrials,Capital Goods,Machinery
+CEG,Industrials,Capital Goods,Construction & Engineering
+CEH,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+CEL1,Unknown,Unknown,Unknown
+CEN1,Utilities,Utilities,Electric Utilities
+CEN2,Materials,Materials,Metals & Mining
+CEP,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CEQ,Financials,Real Estate,Real Estate Management & Development
+CES1,Unknown,Unknown,Unknown
+CET1,Unknown,Unknown,Unknown
+CEU,Industrials,Transportation,Transportation Infrastructure
+CEW,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+CEY,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CFD,Unknown,Unknown,Unknown
+CFE1,Unknown,Unknown,Unknown
+CFG,Financials,Diversified Financials,Diversified Financial Services
+CFI,Financials,Diversified Financials,Diversified Financial Services
+CFK,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+CFT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CFU,Industrials,Capital Goods,Electrical Equipment
+CGG,Materials,Materials,Metals & Mining
+CGH,Industrials,Capital Goods,Construction & Engineering
+CGH1,Unknown,Unknown,Unknown
+CGI,Materials,Materials,Metals & Mining
+CGJ,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+CGM1,Unknown,Unknown,Unknown
+CGP1,Unknown,Unknown,Unknown
+CGP2,Unknown,Unknown,Unknown
+CGR1,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+CGS1,Unknown,Unknown,Unknown
+CGT,Materials,Materials,Metals & Mining
+CGW,Consumer Discretionary,Consumer Durables & Apparel,"Textiles, Apparel & Luxury Goods"
+CGX,Materials,Materials,Metals & Mining
+CGY1,Unknown,Unknown,Unknown
+CHB,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+CHB1,Unknown,Unknown,Unknown
+CHD1,Unknown,Unknown,Unknown
+CHE,Unknown,Unknown,Unknown
+CHF,Financials,Diversified Financials,Diversified Financial Services
+CHG,Financials,Real Estate,Real Estate Management & Development
+CHI1,Unknown,Unknown,Unknown
+CHL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CHM1,Unknown,Unknown,Unknown
+CHO,Financials,Diversified Financials,Diversified Financial Services
+CHQ,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+CHT1,Unknown,Unknown,Unknown
+CHV,Financials,Diversified Financials,Diversified Financial Services
+CHX,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CHY,Materials,Materials,Paper & Forest Products
+CIA1,Unknown,Unknown,Unknown
+CIE1,Unknown,Unknown,Unknown
+CIF,Utilities,Utilities,Multi-Utilities
+CIF1,Unknown,Unknown,Unknown
+CIG1,Unknown,Unknown,Unknown
+CIH,Industrials,Capital Goods,Construction & Engineering
+CIL,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+CIL1,Unknown,Unknown,Unknown
+CIP1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CIX,Financials,Insurance,Insurance
+CIY,Financials,Diversified Financials,Diversified Financial Services
+CJG,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+CJO,Materials,Materials,Metals & Mining
+CJT,Financials,Real Estate,Real Estate Management & Development
+CKC,Unknown,Unknown,Unknown
+CKL,Materials,Materials,Containers & Packaging
+CKP,Financials,Real Estate,Real Estate Management & Development
+CKT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CLA1,Information Technology,Software & Services,Software
+CLD1,Unknown,Unknown,Unknown
+CLE1,Unknown,Unknown,Unknown
+CLG,Unknown,Unknown,Unknown
+CLI1,Industrials,Commercial & Professional Services,Professional Services
+CLK,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+CLL1,Materials,Materials,Metals & Mining
+CLN1,Unknown,Unknown,Unknown
+CLO,Industrials,Capital Goods,Construction & Engineering
+CLP,Unknown,Unknown,Unknown
+CLR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CLR1,Unknown,Unknown,Unknown
+CLS,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+CLS1,Unknown,Unknown,Unknown
+CLY1,Unknown,Unknown,Unknown
+CLZ1,Materials,Materials,Metals & Mining
+CMB,Unknown,Unknown,Unknown
+CMC1,Unknown,Unknown,Unknown
+CME1,Unknown,Unknown,Unknown
+CMF1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CMG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CMJ,Consumer Discretionary,Media,Media
+CMK,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CMN,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CMN1,Unknown,Unknown,Unknown
+CMO1,Unknown,Unknown,Unknown
+CMP1,Unknown,Unknown,Unknown
+CMQ,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+CMR,Materials,Materials,Metals & Mining
+CMS1,Unknown,Unknown,Unknown
+CMT1,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+CMV,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CMX,Materials,Materials,Metals & Mining
+CNA1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CNB,Financials,Real Estate,Real Estate Management & Development
+CNC,Consumer Discretionary,Retailing,Specialty Retail
+CNC1,Unknown,Unknown,Unknown
+CNE,Financials,Diversified Financials,Diversified Financial Services
+CNG1,Materials,Materials,Metals & Mining
+CNI1,Unknown,Unknown,Unknown
+CNL1,Unknown,Unknown,Unknown
+CNR,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CNR1,Unknown,Unknown,Unknown
+CNT,Materials,Materials,Metals & Mining
+CO1,Materials,Materials,Metals & Mining
+COA,Industrials,Capital Goods,Construction & Engineering
+COC,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+COF,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+COJ,Consumer Discretionary,Media,Media
+COM1,Unknown,Unknown,Unknown
+COS1,Unknown,Unknown,Unknown
+COT1,Unknown,Unknown,Unknown
+COV,Materials,Materials,Metals & Mining
+COV1,Unknown,Unknown,Unknown
+COW,Unknown,Unknown,Unknown
+CPA,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CPD1,Unknown,Unknown,Unknown
+CPH1,Unknown,Unknown,Unknown
+CPI,Industrials,Capital Goods,Industrial Conglomerates
+CPK,Financials,Real Estate,Real Estate Management & Development
+CPL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CPL1,Unknown,Unknown,Unknown
+CPM1,Unknown,Unknown,Unknown
+CPN,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CPN1,Unknown,Unknown,Unknown
+CPR,Consumer Discretionary,Retailing,Specialty Retail
+CPR1,Unknown,Unknown,Unknown
+CPS,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+CPS1,Unknown,Unknown,Unknown
+CPT1,Unknown,Unknown,Unknown
+CPV1,Unknown,Unknown,Unknown
+CPW,Unknown,Unknown,Unknown
+CPY,Unknown,Unknown,Unknown
+CQC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CQT,Materials,Materials,Metals & Mining
+CRB1,Unknown,Unknown,Unknown
+CRC,Materials,Materials,Metals & Mining
+CRC1,Unknown,Unknown,Unknown
+CRE1,Unknown,Unknown,Unknown
+CRF1,Unknown,Unknown,Unknown
+CRG,Industrials,Capital Goods,Machinery
+CRH1,Unknown,Unknown,Unknown
+CRL1,Unknown,Unknown,Unknown
+CRO1,Unknown,Unknown,Unknown
+CRP1,Unknown,Unknown,Unknown
+CRT,Materials,Materials,Metals & Mining
+CRU,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CRV1,Unknown,Unknown,Unknown
+CRX1,Financials,Diversified Financials,Diversified Financial Services
+CSD1,Unknown,Unknown,Unknown
+CSF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CSG1,Unknown,Unknown,Unknown
+CSH,Industrials,Capital Goods,Construction & Engineering
+CSJ,Financials,Diversified Financials,Diversified Financial Services
+CSM,Materials,Materials,Metals & Mining
+CSO,Unknown,Unknown,Unknown
+CST,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+CST1,Unknown,Unknown,Unknown
+CSU,Financials,Diversified Financials,Capital Markets
+CSX,Information Technology,Software & Services,IT Services
+CTD1,Unknown,Unknown,Unknown
+CTH,Unknown,Unknown,Unknown
+CTI,Information Technology,Software & Services,Internet Software & Services
+CTL1,Information Technology,Software & Services,Software
+CTM1,Unknown,Unknown,Unknown
+CTP1,Unknown,Unknown,Unknown
+CTR1,Materials,Materials,Metals & Mining
+CTS1,Unknown,Unknown,Unknown
+CTT1,Unknown,Unknown,Unknown
+CTV1,Unknown,Unknown,Unknown
+CTW1,Unknown,Unknown,Unknown
+CTZ,Materials,Materials,Metals & Mining
+CUA1,Unknown,Unknown,Unknown
+CUD,Unknown,Unknown,Unknown
+CUO,Materials,Materials,Metals & Mining
+CUP1,Unknown,Unknown,Unknown
+CUR,Materials,Materials,Metals & Mining
+CUY,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CVA,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+CVB,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+CVG1,Unknown,Unknown,Unknown
+CVH,Unknown,Unknown,Unknown
+CVI,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CVR,Materials,Materials,Metals & Mining
+CVR1,Unknown,Unknown,Unknown
+CVY,Materials,Materials,Metals & Mining
+CWC1,Unknown,Unknown,Unknown
+CWH1,Unknown,Unknown,Unknown
+CWO,Unknown,Unknown,Unknown
+CWS,Unknown,Unknown,Unknown
+CWT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+CXC,Materials,Materials,Metals & Mining
+CXD,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+CXH,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+CXP,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+CXR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+CXS,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+CYC1,Unknown,Unknown,Unknown
+CYL1,Unknown,Unknown,Unknown
+CYO,Information Technology,Software & Services,IT Services
+CYP1,Unknown,Unknown,Unknown
+CYR,Unknown,Unknown,Unknown
+CYS1,Unknown,Unknown,Unknown
+CYT,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+CZF,Unknown,Unknown,Unknown
+DAC,Unknown,Unknown,Unknown
+DAT1,Unknown,Unknown,Unknown
+DAU1,Unknown,Unknown,Unknown
+DBO,Unknown,Unknown,Unknown
+DBS,Information Technology,Software & Services,Internet Software & Services
+DCA,Unknown,Unknown,Unknown
+DCI,Unknown,Unknown,Unknown
+DCO,Unknown,Unknown,Unknown
+DEA,Unknown,Unknown,Unknown
+DEL,Unknown,Unknown,Unknown
+DEN,Unknown,Unknown,Unknown
+DES,Consumer Discretionary,Media,Media
+DEX,Industrials,Capital Goods,Machinery
+DFI,Unknown,Unknown,Unknown
+DFM1,Unknown,Unknown,Unknown
+DFS,Unknown,Unknown,Unknown
+DGA,Unknown,Unknown,Unknown
+DGD,Unknown,Unknown,Unknown
+DGM,Materials,Materials,Metals & Mining
+DGY,Unknown,Unknown,Unknown
+DHB,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+DHU,Unknown,Unknown,Unknown
+DID,Materials,Materials,Chemicals
+DIG1,Unknown,Unknown,Unknown
+DIO,Materials,Materials,Metals & Mining
+DIP,Unknown,Unknown,Unknown
+DIR,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+DIS1,Unknown,Unknown,Unknown
+DJP,Unknown,Unknown,Unknown
+DJS,Consumer Discretionary,Retailing,Multiline Retail
+DKN,Financials,Diversified Financials,Diversified Financial Services
+DKS,Consumer Discretionary,Retailing,Distributors
+DLS,Energy,Energy,"Oil, Gas & Consumable Fuels"
+DML,Materials,Materials,Metals & Mining
+DMM,Materials,Materials,Metals & Mining
+DMR,Unknown,Unknown,Unknown
+DMS1,Unknown,Unknown,Unknown
+DMX,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+DNF,Unknown,Unknown,Unknown
+DNS,Materials,Materials,Metals & Mining
+DNX,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+DOM,Materials,Materials,Metals & Mining
+DOR1,Unknown,Unknown,Unknown
+DPA,Unknown,Unknown,Unknown
+DPT,Unknown,Unknown,Unknown
+DRD,Materials,Materials,Metals & Mining
+DRE,Materials,Materials,Metals & Mining
+DRM1,Unknown,Unknown,Unknown
+DRR1,Unknown,Unknown,Unknown
+DRS,Unknown,Unknown,Unknown
+DSQ,Information Technology,Software & Services,Software
+DTC,Unknown,Unknown,Unknown
+DTE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+DTF,Unknown,Unknown,Unknown
+DTO,Consumer Discretionary,Media,Media
+DTV,Unknown,Unknown,Unknown
+DVC,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+DVL1,Unknown,Unknown,Unknown
+DWT,Unknown,Unknown,Unknown
+DXF,Financials,Diversified Financials,Diversified Financial Services
+DXL,Materials,Materials,Chemicals
+DYL1,Unknown,Unknown,Unknown
+EAC,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+EAL1,Unknown,Unknown,Unknown
+EAM,Unknown,Unknown,Unknown
+EAU,Materials,Materials,Metals & Mining
+ECH1,Unknown,Unknown,Unknown
+ECI,Information Technology,Technology Hardware & Equipment,Communications Equipment
+ECL1,Unknown,Unknown,Unknown
+ECO,Financials,Banks,Thrifts & Mortgage Finance
+ECP,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+ECT,Unknown,Unknown,Unknown
+ECV,Industrials,Commercial & Professional Services,Professional Services
+EDC1,Unknown,Unknown,Unknown
+EDI,Unknown,Unknown,Unknown
+EDN,Materials,Materials,Metals & Mining
+EDT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+EEI,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+EFC,Financials,Diversified Financials,Diversified Financial Services
+EFG,Financials,Diversified Financials,Diversified Financial Services
+EFT,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+EFT1,Unknown,Unknown,Unknown
+EGA1,Materials,Materials,Metals & Mining
+EGF,Financials,Diversified Financials,Diversified Financial Services
+EGR,Unknown,Unknown,Unknown
+EGX,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+EIG,Financials,Diversified Financials,Capital Markets
+EII,Unknown,Unknown,Unknown
+EIM,Industrials,Capital Goods,Construction & Engineering
+EIS,Unknown,Unknown,Unknown
+EKA,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ELC,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+ELI,Financials,Diversified Financials,Capital Markets
+ELL,Materials,Materials,Metals & Mining
+ELR,Materials,Materials,Metals & Mining
+ELS1,Unknown,Unknown,Unknown
+ELT1,Unknown,Unknown,Unknown
+EMA1,Unknown,Unknown,Unknown
+EMC1,Unknown,Unknown,Unknown
+EMH1,Unknown,Unknown,Unknown
+EML1,Unknown,Unknown,Unknown
+EMM,Industrials,Capital Goods,Machinery
+EMN,Unknown,Unknown,Unknown
+EMP1,Materials,Materials,Metals & Mining
+ENE,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+ENG,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+ENK,Materials,Materials,Metals & Mining
+ENT1,Unknown,Unknown,Unknown
+ENV,Utilities,Utilities,Gas Utilities
+ENY,Unknown,Unknown,Unknown
+EOG,Unknown,Unknown,Unknown
+EON,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+EON1,Unknown,Unknown,Unknown
+EPC1,Unknown,Unknown,Unknown
+EPF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+EPI,Unknown,Unknown,Unknown
+EPL,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+EPX,Utilities,Utilities,Gas Utilities
+EPY,Information Technology,Software & Services,Internet Software & Services
+EQI,Materials,Materials,Metals & Mining
+EQK,Unknown,Unknown,Unknown
+EQM,Materials,Materials,Metals & Mining
+EQN,Materials,Materials,Metals & Mining
+ERC,Financials,Diversified Financials,Capital Markets
+ERS,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+ESC,Unknown,Unknown,Unknown
+ESL,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+ESS,Industrials,Capital Goods,Machinery
+ETG,Unknown,Unknown,Unknown
+ETPAGR,Unknown,Unknown,Unknown
+ETPCMD,Unknown,Unknown,Unknown
+ETPCOP,Unknown,Unknown,Unknown
+ETPCRN,Unknown,Unknown,Unknown
+ETPGAS,Unknown,Unknown,Unknown
+ETPGRN,Unknown,Unknown,Unknown
+ETPIND,Unknown,Unknown,Unknown
+ETPNRG,Unknown,Unknown,Unknown
+ETPOIL,Unknown,Unknown,Unknown
+ETPWHT,Unknown,Unknown,Unknown
+ETR,Financials,Diversified Financials,Diversified Financial Services
+EVF,Materials,Materials,Paper & Forest Products
+EVO1,Unknown,Unknown,Unknown
+EVR,Materials,Materials,Metals & Mining
+EWN,Industrials,Capital Goods,Building Products
+EXC1,Unknown,Unknown,Unknown
+EXI,Unknown,Unknown,Unknown
+EXL1,Consumer Staples,Household & Personal Products,Personal Products
+EXR1,Unknown,Unknown,Unknown
+EYT,Unknown,Unknown,Unknown
+FAB,Unknown,Unknown,Unknown
+FAC,Information Technology,Software & Services,Internet Software & Services
+FAF,Unknown,Unknown,Unknown
+FAI,Unknown,Unknown,Unknown
+FAS,Materials,Materials,Metals & Mining
+FBI,Unknown,Unknown,Unknown
+FCO,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+FCR1,Unknown,Unknown,Unknown
+FCT1,Unknown,Unknown,Unknown
+FCX,Unknown,Unknown,Unknown
+FDL1,Unknown,Unknown,Unknown
+FDR,Industrials,Capital Goods,Machinery
+FDW,Unknown,Unknown,Unknown
+FEA,Materials,Materials,Paper & Forest Products
+FFL,Consumer Discretionary,Retailing,Specialty Retail
+FGI,Industrials,Capital Goods,Building Products
+FHF,Unknown,Unknown,Unknown
+FHL,Unknown,Unknown,Unknown
+FIF,Unknown,Unknown,Unknown
+FIN1,Unknown,Unknown,Unknown
+FIP,Unknown,Unknown,Unknown
+FIT,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+FIT1,Unknown,Unknown,Unknown
+FIX,Unknown,Unknown,Unknown
+FKH,Unknown,Unknown,Unknown
+FLH,Unknown,Unknown,Unknown
+FLL,Unknown,Unknown,Unknown
+FLR,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+FLX,Energy,Energy,"Oil, Gas & Consumable Fuels"
+FMH,Unknown,Unknown,Unknown
+FML1,Unknown,Unknown,Unknown
+FNA,Unknown,Unknown,Unknown
+FNC,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+FNR,Unknown,Unknown,Unknown
+FOA,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+FOH,Unknown,Unknown,Unknown
+FOI,Unknown,Unknown,Unknown
+FOL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+FOR1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+FOX,Consumer Discretionary,Media,Media
+FOX1,Unknown,Unknown,Unknown
+FPA,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+FPC1,Unknown,Unknown,Unknown
+FPT,Unknown,Unknown,Unknown
+FRE1,Unknown,Unknown,Unknown
+FRG1,Unknown,Unknown,Unknown
+FRH,Unknown,Unknown,Unknown
+FRS,Materials,Materials,Metals & Mining
+FRT,Industrials,Capital Goods,Machinery
+FRU,Unknown,Unknown,Unknown
+FSE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+FSN,Materials,Materials,Metals & Mining
+FST,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+FST1,Unknown,Unknown,Unknown
+FTE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+FTE1,Unknown,Unknown,Unknown
+FTH,Materials,Materials,Metals & Mining
+FTM,Unknown,Unknown,Unknown
+FTW,Unknown,Unknown,Unknown
+FUL,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+FXR,Materials,Materials,Metals & Mining
+GAL1,Unknown,Unknown,Unknown
+GAS1,Utilities,Utilities,Gas Utilities
+GAU,Materials,Materials,Metals & Mining
+GAV,Unknown,Unknown,Unknown
+GBI1,Unknown,Unknown,Unknown
+GBS1,Unknown,Unknown,Unknown
+GCA,Financials,Diversified Financials,Diversified Financial Services
+GCD,Unknown,Unknown,Unknown
+GCE,Financials,Diversified Financials,Diversified Financial Services
+GCG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+GCH,Financials,Diversified Financials,Diversified Financial Services
+GCI1,Unknown,Unknown,Unknown
+GCO,Unknown,Unknown,Unknown
+GCP,Unknown,Unknown,Unknown
+GCX,Materials,Materials,Metals & Mining
+GDA,Materials,Materials,Metals & Mining
+GDL,Unknown,Unknown,Unknown
+GDO,Materials,Materials,Metals & Mining
+GDS,Unknown,Unknown,Unknown
+GEE1,Information Technology,Technology Hardware & Equipment,"Technology Hardware, Storage & Peripherals"
+GEG1,Unknown,Unknown,Unknown
+GEH1,Unknown,Unknown,Unknown
+GEM1,Unknown,Unknown,Unknown
+GEN,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+GEN1,Unknown,Unknown,Unknown
+GES1,Unknown,Unknown,Unknown
+GET,Unknown,Unknown,Unknown
+GFD,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+GFF,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+GFM,Unknown,Unknown,Unknown
+GGB,Materials,Materials,Metals & Mining
+GGL1,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+GGM,Unknown,Unknown,Unknown
+GGN,Materials,Materials,Metals & Mining
+GGU,Financials,Diversified Financials,Diversified Financial Services
+GHG,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+GHI,Unknown,Unknown,Unknown
+GHO,Unknown,Unknown,Unknown
+GHT,Utilities,Utilities,Electric Utilities
+GIA,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+GIA1,Unknown,Unknown,Unknown
+GIL1,Unknown,Unknown,Unknown
+GIO,Unknown,Unknown,Unknown
+GIR,Materials,Materials,Metals & Mining
+GKL,Unknown,Unknown,Unknown
+GLC1,Unknown,Unknown,Unknown
+GLF1,Unknown,Unknown,Unknown
+GLG,Consumer Discretionary,Consumer Durables & Apparel,Household Durables
+GLG1,Unknown,Unknown,Unknown
+GLS,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+GLT,Unknown,Unknown,Unknown
+GLY,Materials,Materials,Metals & Mining
+GMF1,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+GMH,Unknown,Unknown,Unknown
+GMI,Financials,Diversified Financials,Capital Markets
+GMK,Unknown,Unknown,Unknown
+GMM,Materials,Materials,Metals & Mining
+GMS,Materials,Materials,Metals & Mining
+GNB,Utilities,Utilities,Electric Utilities
+GNF,Unknown,Unknown,Unknown
+GNS,Materials,Materials,Paper & Forest Products
+GNV,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+GOD,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+GOG,Energy,Energy,"Oil, Gas & Consumable Fuels"
+GOP,Energy,Energy,"Oil, Gas & Consumable Fuels"
+GOP1,Unknown,Unknown,Unknown
+GPA,Unknown,Unknown,Unknown
+GPE,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+GPF,Unknown,Unknown,Unknown
+GPH1,Unknown,Unknown,Unknown
+GPM1,Unknown,Unknown,Unknown
+GPR1,Unknown,Unknown,Unknown
+GPS1,Unknown,Unknown,Unknown
+GPY,Unknown,Unknown,Unknown
+GQH,Materials,Materials,Construction Materials
+GRD,Industrials,Capital Goods,Construction & Engineering
+GRF,Materials,Materials,Metals & Mining
+GRG,Industrials,Capital Goods,Trading Companies & Distributors
+GRG1,Unknown,Unknown,Unknown
+GRL,Materials,Materials,Metals & Mining
+GRL1,Unknown,Unknown,Unknown
+GRM1,Unknown,Unknown,Unknown
+GRN,Materials,Materials,Metals & Mining
+GRO1,Unknown,Unknown,Unknown
+GRO2,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+GRP1,Unknown,Unknown,Unknown
+GRY,Materials,Materials,Metals & Mining
+GSM,Unknown,Unknown,Unknown
+GSN,Unknown,Unknown,Unknown
+GSO,Unknown,Unknown,Unknown
+GSS1,Unknown,Unknown,Unknown
+GSTIN,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+GSZ,Materials,Materials,Metals & Mining
+GTC,Unknown,Unknown,Unknown
+GTP,Materials,Materials,Paper & Forest Products
+GTR1,Unknown,Unknown,Unknown
+GTV,Consumer Discretionary,Media,Media
+GUI,Information Technology,Software & Services,Internet Software & Services
+GUJ,Materials,Materials,Metals & Mining
+GVG,Unknown,Unknown,Unknown
+GVN,Unknown,Unknown,Unknown
+GWC,Unknown,Unknown,Unknown
+GWF,Unknown,Unknown,Unknown
+GWI,Unknown,Unknown,Unknown
+GWL,Unknown,Unknown,Unknown
+HAL1,Unknown,Unknown,Unknown
+HAM,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+HAN,Materials,Materials,Construction Materials
+HAP1,Unknown,Unknown,Unknown
+HAR1,Unknown,Unknown,Unknown
+HCC,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+HCD,Industrials,Transportation,Transportation Infrastructure
+HCN,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+HCO1,Unknown,Unknown,Unknown
+HCR,Unknown,Unknown,Unknown
+HDF,Utilities,Utilities,Electric Utilities
+HDF1,Unknown,Unknown,Unknown
+HDG,Materials,Materials,Metals & Mining
+HDH,Unknown,Unknown,Unknown
+HDI,Energy,Energy,"Oil, Gas & Consumable Fuels"
+HDR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+HER,Materials,Materials,Metals & Mining
+HFL,Unknown,Unknown,Unknown
+HFY,Materials,Materials,Metals & Mining
+HIC,Financials,Diversified Financials,Diversified Financial Services
+HIH,Unknown,Unknown,Unknown
+HII,Consumer Discretionary,Retailing,Specialty Retail
+HIN,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+HIP1,Unknown,Unknown,Unknown
+HKL,Unknown,Unknown,Unknown
+HLC1,Unknown,Unknown,Unknown
+HLG1,Unknown,Unknown,Unknown
+HLK,Unknown,Unknown,Unknown
+HLN1,Unknown,Unknown,Unknown
+HLR1,Unknown,Unknown,Unknown
+HLY,Industrials,Transportation,Transportation Infrastructure
+HMA,Unknown,Unknown,Unknown
+HMC,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+HME,Financials,Banks,Banks
+HMI,Materials,Materials,Metals & Mining
+HMR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+HMT,Unknown,Unknown,Unknown
+HNC,Unknown,Unknown,Unknown
+HNL,Unknown,Unknown,Unknown
+HOA,Unknown,Unknown,Unknown
+HOL,Unknown,Unknown,Unknown
+HOS,Unknown,Unknown,Unknown
+HOY,Unknown,Unknown,Unknown
+HPG,Unknown,Unknown,Unknown
+HPX,Information Technology,Software & Services,IT Services
+HRE1,Unknown,Unknown,Unknown
+HRG,Unknown,Unknown,Unknown
+HRL1,Unknown,Unknown,Unknown
+HRP,Unknown,Unknown,Unknown
+HRS,Materials,Materials,Metals & Mining
+HRZ,Utilities,Utilities,Electric Utilities
+HSG,Unknown,Unknown,Unknown
+HSH,Unknown,Unknown,Unknown
+HSL,Consumer Discretionary,Retailing,Multiline Retail
+HSM,Materials,Materials,Metals & Mining
+HSP,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+HST,Industrials,Capital Goods,Machinery
+HTC1,Unknown,Unknown,Unknown
+HTE1,Unknown,Unknown,Unknown
+HTS,Financials,Diversified Financials,Diversified Financial Services
+HUD,Unknown,Unknown,Unknown
+HWE,Industrials,Capital Goods,Construction & Engineering
+HWG,Information Technology,Software & Services,Internet Software & Services
+HWR,Unknown,Unknown,Unknown
+HWT,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+HWW,Consumer Discretionary,Media,Media
+HXL,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+HYD,Unknown,Unknown,Unknown
+HZA,Unknown,Unknown,Unknown
+HZP,Unknown,Unknown,Unknown
+IAL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+IAM1,Unknown,Unknown,Unknown
+IAS,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+IBC1,Unknown,Unknown,Unknown
+IBR,Materials,Materials,Metals & Mining
+ICC1,Unknown,Unknown,Unknown
+ICH,Consumer Discretionary,Media,Media
+ICL,Materials,Materials,Metals & Mining
+ICT1,Materials,Materials,Chemicals
+ICZ,Energy,Energy,"Oil, Gas & Consumable Fuels"
+IDC,Materials,Materials,Metals & Mining
+IDC1,Unknown,Unknown,Unknown
+IDD,Unknown,Unknown,Unknown
+IDG,Materials,Materials,Metals & Mining
+IDL,Industrials,Capital Goods,Electrical Equipment
+IDL1,Unknown,Unknown,Unknown
+IDM,Materials,Materials,Metals & Mining
+IDP,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+IDP1,Unknown,Unknown,Unknown
+IDS,Unknown,Unknown,Unknown
+IDV,Unknown,Unknown,Unknown
+IDX1,Unknown,Unknown,Unknown
+IEC1,Unknown,Unknown,Unknown
+IEL1,Unknown,Unknown,Unknown
+IEP,Unknown,Unknown,Unknown
+IFA,Unknown,Unknown,Unknown
+IFS,Industrials,Capital Goods,Construction & Engineering
+IGA,Unknown,Unknown,Unknown
+IGD,Materials,Materials,Metals & Mining
+IGE1,Unknown,Unknown,Unknown
+IGF,Materials,Materials,Metals & Mining
+IGG,Information Technology,Software & Services,IT Services
+IGX,Materials,Materials,Metals & Mining
+IHL1,Unknown,Unknown,Unknown
+IHN,Unknown,Unknown,Unknown
+IIF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+IIN,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+IIP,Unknown,Unknown,Unknown
+ILA,Unknown,Unknown,Unknown
+IMC1,Unknown,Unknown,Unknown
+IML1,Unknown,Unknown,Unknown
+IMT1,Unknown,Unknown,Unknown
+INA1,Unknown,Unknown,Unknown
+INC,Unknown,Unknown,Unknown
+INI,Materials,Materials,Metals & Mining
+INO,Information Technology,Software & Services,Software
+INR1,Unknown,Unknown,Unknown
+INT1,Unknown,Unknown,Unknown
+INV1,Unknown,Unknown,Unknown
+IOA,Unknown,Unknown,Unknown
+IOC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+IOH,Materials,Materials,Metals & Mining
+ION,Consumer Discretionary,Automobiles & Components,Auto Components
+IOR1,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+IPA,Financials,Diversified Financials,Diversified Financial Services
+IPA1,Unknown,Unknown,Unknown
+IPG,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+IPG1,Unknown,Unknown,Unknown
+IPH1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+IPM,Energy,Energy,"Oil, Gas & Consumable Fuels"
+IPN,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+IPO,Materials,Materials,Metals & Mining
+IPP,Information Technology,Software & Services,Internet Software & Services
+IPR1,Unknown,Unknown,Unknown
+IPT1,Unknown,Unknown,Unknown
+IPW,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+IPX,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+IQE,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+IRH1,Unknown,Unknown,Unknown
+IRL1,Unknown,Unknown,Unknown
+IRN,Materials,Materials,Metals & Mining
+IRP,Unknown,Unknown,Unknown
+ISB,Unknown,Unknown,Unknown
+ISF,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+ISS,Information Technology,Software & Services,Software
+ITA,Unknown,Unknown,Unknown
+ITC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ITF,Materials,Materials,Paper & Forest Products
+ITG,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+ITG1,Unknown,Unknown,Unknown
+ITM,Unknown,Unknown,Unknown
+ITN,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+ITO,Industrials,Transportation,Transportation Infrastructure
+ITP,Information Technology,Software & Services,IT Services
+ITQ,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+ITR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ITX,Information Technology,Software & Services,Internet Software & Services
+IUL,Information Technology,Software & Services,Internet Software & Services
+IVA,Materials,Materials,Metals & Mining
+IVG,Materials,Materials,Metals & Mining
+IVN,Materials,Materials,Metals & Mining
+IVS,Financials,Real Estate,Real Estate Management & Development
+IWF,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+IWI,Financials,Diversified Financials,Diversified Financial Services
+IWL,Financials,Diversified Financials,Diversified Financial Services
+IWT,Unknown,Unknown,Unknown
+IXL,Information Technology,Software & Services,Software
+IYS,Financials,Diversified Financials,Diversified Financial Services
+JAK,Materials,Materials,Metals & Mining
+JBM,Materials,Materials,Metals & Mining
+JCO,Unknown,Unknown,Unknown
+JCP,Unknown,Unknown,Unknown
+JDL,Unknown,Unknown,Unknown
+JDV,Financials,Diversified Financials,Diversified Financial Services
+JEL1,Consumer Discretionary,Media,Media
+JEN,Unknown,Unknown,Unknown
+JFA,Unknown,Unknown,Unknown
+JFG,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+JFH,Unknown,Unknown,Unknown
+JGM,Unknown,Unknown,Unknown
+JHV,Unknown,Unknown,Unknown
+JIN1,Unknown,Unknown,Unknown
+JJS,Unknown,Unknown,Unknown
+JMB1,Unknown,Unknown,Unknown
+JMH,Unknown,Unknown,Unknown
+JML,Materials,Materials,Metals & Mining
+JMO,Unknown,Unknown,Unknown
+JMS1,Materials,Materials,Metals & Mining
+JNA,Unknown,Unknown,Unknown
+JOD,Unknown,Unknown,Unknown
+JPT,Unknown,Unknown,Unknown
+JSH,Unknown,Unknown,Unknown
+JST,Consumer Discretionary,Retailing,Specialty Retail
+JUP,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+KAA,Unknown,Unknown,Unknown
+KAB,Materials,Materials,Metals & Mining
+KAZ,Information Technology,Software & Services,IT Services
+KBS,Financials,Real Estate,Real Estate Management & Development
+KCC,Unknown,Unknown,Unknown
+KDE,Unknown,Unknown,Unknown
+KDL1,Unknown,Unknown,Unknown
+KDR1,Unknown,Unknown,Unknown
+KDS,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+KEI,Unknown,Unknown,Unknown
+KEN,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+KGH,Unknown,Unknown,Unknown
+KGI,Unknown,Unknown,Unknown
+KGM1,Materials,Materials,Metals & Mining
+KHF,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+KIC,Unknown,Unknown,Unknown
+KIM,Materials,Materials,Metals & Mining
+KIT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+KLC,Unknown,Unknown,Unknown
+KLM,Information Technology,Technology Hardware & Equipment,Communications Equipment
+KLZ,Unknown,Unknown,Unknown
+KMC,Materials,Materials,Metals & Mining
+KMC1,Unknown,Unknown,Unknown
+KMG,Unknown,Unknown,Unknown
+KMR,Materials,Materials,Metals & Mining
+KOL,Unknown,Unknown,Unknown
+KPC1,Unknown,Unknown,Unknown
+KPE,Unknown,Unknown,Unknown
+KPG1,Unknown,Unknown,Unknown
+KPL1,Unknown,Unknown,Unknown
+KPR,Materials,Materials,Metals & Mining
+KRN,Unknown,Unknown,Unknown
+KSP,Unknown,Unknown,Unknown
+KTL,Industrials,Capital Goods,Building Products
+KTM,Unknown,Unknown,Unknown
+KTN,Unknown,Unknown,Unknown
+KTO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+KTR,Unknown,Unknown,Unknown
+KUP,Unknown,Unknown,Unknown
+KWD,Unknown,Unknown,Unknown
+KWL,Unknown,Unknown,Unknown
+KYC,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+KYG,Unknown,Unknown,Unknown
+LAH,Unknown,Unknown,Unknown
+LAK,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+LAL,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+LAN,Unknown,Unknown,Unknown
+LAS,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+LBN,Unknown,Unknown,Unknown
+LCA1,Financials,Diversified Financials,Diversified Financial Services
+LCL,Industrials,Capital Goods,Electrical Equipment
+LDA,Unknown,Unknown,Unknown
+LDM,Energy,Energy,"Oil, Gas & Consumable Fuels"
+LDN,Consumer Discretionary,Retailing,Specialty Retail
+LDY,Unknown,Unknown,Unknown
+LEV,Industrials,Capital Goods,Industrial Conglomerates
+LFC1,Unknown,Unknown,Unknown
+LGI,Unknown,Unknown,Unknown
+LGL,Materials,Materials,Metals & Mining
+LGM,Materials,Materials,Metals & Mining
+LHD,Energy,Energy,Energy Equipment & Services
+LIB,Information Technology,Software & Services,IT Services
+LIF,Unknown,Unknown,Unknown
+LIM,Materials,Materials,Metals & Mining
+LIP,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+LIT1,Unknown,Unknown,Unknown
+LJF,Unknown,Unknown,Unknown
+LLP,Financials,Real Estate,Real Estate Management & Development
+LLR,Unknown,Unknown,Unknown
+LMA,Unknown,Unknown,Unknown
+LMC,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+LME,Energy,Energy,Energy Equipment & Services
+LMH,Unknown,Unknown,Unknown
+LMR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+LMS,Information Technology,Software & Services,Software
+LNC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+LNN,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+LNR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+LOK,Information Technology,Software & Services,Internet Software & Services
+LRF,Financials,Diversified Financials,Capital Markets
+LRG1,Unknown,Unknown,Unknown
+LRL,Materials,Materials,Metals & Mining
+LRX,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+LSC,Unknown,Unknown,Unknown
+LSG,Materials,Materials,Metals & Mining
+LSH1,Unknown,Unknown,Unknown
+LSI,Unknown,Unknown,Unknown
+LSL,Financials,Diversified Financials,Diversified Financial Services
+LST,Materials,Materials,Metals & Mining
+LTA,Unknown,Unknown,Unknown
+LTI,Unknown,Unknown,Unknown
+LUT,Unknown,Unknown,Unknown
+LVG,Materials,Materials,Metals & Mining
+LVL,Financials,Real Estate,Real Estate Management & Development
+LVR,Materials,Materials,Metals & Mining
+LVR1,Unknown,Unknown,Unknown
+LWB,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+LWF,Unknown,Unknown,Unknown
+LWI,Unknown,Unknown,Unknown
+LWP1,Unknown,Unknown,Unknown
+LYN,Unknown,Unknown,Unknown
+MAG1,Materials,Materials,Metals & Mining
+MAM1,Unknown,Unknown,Unknown
+MAN,Materials,Materials,Metals & Mining
+MAP1,Unknown,Unknown,Unknown
+MAS1,Unknown,Unknown,Unknown
+MAT1,Unknown,Unknown,Unknown
+MAV,Materials,Materials,Metals & Mining
+MBB,Unknown,Unknown,Unknown
+MBC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MBC1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MBD,Industrials,Capital Goods,Building Products
+MBE1,Unknown,Unknown,Unknown
+MBF,Industrials,Capital Goods,Industrial Conglomerates
+MBK1,Materials,Materials,Metals & Mining
+MBS1,Unknown,Unknown,Unknown
+MCB1,Unknown,Unknown,Unknown
+MCG,Consumer Discretionary,Media,Media
+MCK,Financials,Diversified Financials,Diversified Financial Services
+MCK1,Unknown,Unknown,Unknown
+MCL1,Unknown,Unknown,Unknown
+MCO,Materials,Materials,Metals & Mining
+MCQ,Financials,Diversified Financials,Capital Markets
+MCS,Industrials,Transportation,Road & Rail
+MCU,Consumer Discretionary,Media,Media
+MDA1,Unknown,Unknown,Unknown
+MDC1,Industrials,Capital Goods,Construction & Engineering
+MDE,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+MDI1,Materials,Materials,Metals & Mining
+MDO,Materials,Materials,Metals & Mining
+MDV,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+MEA1,Consumer Discretionary,Media,Media
+MED1,Unknown,Unknown,Unknown
+MEG,Consumer Discretionary,Media,Media
+MEG1,Unknown,Unknown,Unknown
+MEH1,Unknown,Unknown,Unknown
+MEL1,Unknown,Unknown,Unknown
+MEP1,Unknown,Unknown,Unknown
+MES,Consumer Discretionary,Consumer Durables & Apparel,"Textiles, Apparel & Luxury Goods"
+MES1,Unknown,Unknown,Unknown
+MET1,Unknown,Unknown,Unknown
+MFC1,Unknown,Unknown,Unknown
+MFX,Unknown,Unknown,Unknown
+MGE1,Materials,Materials,Metals & Mining
+MGH1,Unknown,Unknown,Unknown
+MGI,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MGM,Financials,Real Estate,Real Estate Management & Development
+MGN,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MGN1,Unknown,Unknown,Unknown
+MGO,Materials,Materials,Metals & Mining
+MGP1,Unknown,Unknown,Unknown
+MGP2,Financials,Diversified Financials,Diversified Financial Services
+MGV1,Unknown,Unknown,Unknown
+MHC1,Unknown,Unknown,Unknown
+MHS,Unknown,Unknown,Unknown
+MIA,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+MIC,Materials,Materials,Metals & Mining
+MIF,Financials,Real Estate,Real Estate Management & Development
+MIL1,Unknown,Unknown,Unknown
+MIM,Materials,Materials,Metals & Mining
+MIN1,Unknown,Unknown,Unknown
+MIO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MIP,Unknown,Unknown,Unknown
+MIS,Materials,Materials,Metals & Mining
+MIT1,Unknown,Unknown,Unknown
+MIX,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MKC,Unknown,Unknown,Unknown
+MKE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MKH,Unknown,Unknown,Unknown
+MKM,Unknown,Unknown,Unknown
+MKO,Materials,Materials,Metals & Mining
+MKP,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+MKR1,Unknown,Unknown,Unknown
+MLA1,Unknown,Unknown,Unknown
+MLC,Consumer Discretionary,Retailing,Specialty Retail
+MLD1,Unknown,Unknown,Unknown
+MLK,Unknown,Unknown,Unknown
+MLM1,Unknown,Unknown,Unknown
+MLP,Unknown,Unknown,Unknown
+MLS1,Unknown,Unknown,Unknown
+MMC,Materials,Materials,Metals & Mining
+MMC1,Unknown,Unknown,Unknown
+MME,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MMF,Unknown,Unknown,Unknown
+MMG1,Unknown,Unknown,Unknown
+MMH,Unknown,Unknown,Unknown
+MMK,Unknown,Unknown,Unknown
+MML1,Unknown,Unknown,Unknown
+MMU,Unknown,Unknown,Unknown
+MMX,Materials,Materials,Metals & Mining
+MMZ,Information Technology,Software & Services,Software
+MNA,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+MNC1,Unknown,Unknown,Unknown
+MNE1,Unknown,Unknown,Unknown
+MNR,Materials,Materials,Metals & Mining
+MNS1,Unknown,Unknown,Unknown
+MNS2,Materials,Materials,Construction Materials
+MOA,Unknown,Unknown,Unknown
+MOE1,Financials,Diversified Financials,Capital Markets
+MOG,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MOI1,Unknown,Unknown,Unknown
+MON1,Unknown,Unknown,Unknown
+MOR1,Unknown,Unknown,Unknown
+MOS,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MOT1,Unknown,Unknown,Unknown
+MPA,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+MPB,Financials,Banks,Banks
+MPF1,Unknown,Unknown,Unknown
+MPG,Financials,Diversified Financials,Capital Markets
+MPG1,Unknown,Unknown,Unknown
+MPH,Consumer Discretionary,Media,Media
+MPM,Materials,Materials,Metals & Mining
+MPR,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MPT,Unknown,Unknown,Unknown
+MQR1,Unknown,Unknown,Unknown
+MRE,Materials,Materials,Metals & Mining
+MRE1,Unknown,Unknown,Unknown
+MRI,Financials,Diversified Financials,Diversified Financial Services
+MRN1,Unknown,Unknown,Unknown
+MRO1,Unknown,Unknown,Unknown
+MRT,Financials,Diversified Financials,Diversified Financial Services
+MRU,Materials,Materials,Metals & Mining
+MRV1,Unknown,Unknown,Unknown
+MRW,Unknown,Unknown,Unknown
+MRZ,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MSA,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MSA1,Unknown,Unknown,Unknown
+MSL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+MSL1,Unknown,Unknown,Unknown
+MST,Industrials,Capital Goods,Aerospace & Defense
+MSX,Financials,Diversified Financials,Diversified Financial Services
+MTA1,Unknown,Unknown,Unknown
+MTA2,Unknown,Unknown,Unknown
+MTD,Financials,Real Estate,Real Estate Management & Development
+MTE1,Unknown,Unknown,Unknown
+MTH1,Unknown,Unknown,Unknown
+MTL1,Unknown,Unknown,Unknown
+MTN1,Unknown,Unknown,Unknown
+MTR1,Unknown,Unknown,Unknown
+MTR2,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+MTU,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+MTX,Materials,Materials,Metals & Mining
+MTX1,Unknown,Unknown,Unknown
+MUB,Materials,Materials,Metals & Mining
+MUC,Unknown,Unknown,Unknown
+MUE,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+MUH,Unknown,Unknown,Unknown
+MUV,Unknown,Unknown,Unknown
+MVG,Unknown,Unknown,Unknown
+MVU,Information Technology,Software & Services,IT Services
+MWC,Information Technology,Software & Services,Internet Software & Services
+MWE,Materials,Materials,Metals & Mining
+MWG,Financials,Diversified Financials,Capital Markets
+MWL,Unknown,Unknown,Unknown
+MWM1,Unknown,Unknown,Unknown
+MWP,Unknown,Unknown,Unknown
+MXG,Financials,Real Estate,Real Estate Management & Development
+MXQ,Financials,Diversified Financials,Capital Markets
+MXX,Financials,Diversified Financials,Diversified Financial Services
+MYD,Unknown,Unknown,Unknown
+MYG,Materials,Materials,Metals & Mining
+MYO1,Information Technology,Software & Services,Software
+MYP,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+MZU,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+NAL1,Unknown,Unknown,Unknown
+NBH,Unknown,Unknown,Unknown
+NBS1,Unknown,Unknown,Unknown
+NCA,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+NCC1,Unknown,Unknown,Unknown
+NCH1,Unknown,Unknown,Unknown
+NCL1,Unknown,Unknown,Unknown
+NCO1,Unknown,Unknown,Unknown
+NCU,Unknown,Unknown,Unknown
+NDP,Unknown,Unknown,Unknown
+NDY,Materials,Materials,Metals & Mining
+NEC1,Consumer Discretionary,Media,Media
+NEL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+NEM,Materials,Materials,Metals & Mining
+NER,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+NEV,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+NFA,Unknown,Unknown,Unknown
+NFD,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+NFG,Industrials,Capital Goods,Machinery
+NFK,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+NFM,Materials,Materials,Metals & Mining
+NFO,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+NFR,Materials,Materials,Metals & Mining
+NGA,Unknown,Unknown,Unknown
+NGF,Materials,Materials,Metals & Mining
+NGM,Materials,Materials,Metals & Mining
+NGX,Materials,Materials,Metals & Mining
+NHG,Unknown,Unknown,Unknown
+NHL1,Health Care,Health Care Equipment & Services,Health Care Technology
+NHS,Unknown,Unknown,Unknown
+NIC,Materials,Materials,Metals & Mining
+NIO1,Unknown,Unknown,Unknown
+NIX,Industrials,Capital Goods,Electrical Equipment
+NKV,Unknown,Unknown,Unknown
+NLG,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+NLX,Industrials,Capital Goods,Industrial Conglomerates
+NMB1,Unknown,Unknown,Unknown
+NMF,Unknown,Unknown,Unknown
+NML1,Unknown,Unknown,Unknown
+NMW,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+NNG,Materials,Materials,Metals & Mining
+NNT,Unknown,Unknown,Unknown
+NOC,Financials,Diversified Financials,Diversified Financial Services
+NOC1,Unknown,Unknown,Unknown
+NOL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+NOP,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+NPA,Unknown,Unknown,Unknown
+NPH,Financials,Diversified Financials,Diversified Financial Services
+NPI,Unknown,Unknown,Unknown
+NPX,Materials,Materials,Chemicals
+NQC,Unknown,Unknown,Unknown
+NQL,Unknown,Unknown,Unknown
+NQM,Materials,Materials,Metals & Mining
+NQR,Unknown,Unknown,Unknown
+NQT,Unknown,Unknown,Unknown
+NRI,Unknown,Unknown,Unknown
+NRN,Unknown,Unknown,Unknown
+NSN,Materials,Materials,Metals & Mining
+NSR1,Unknown,Unknown,Unknown
+NTG,Information Technology,Technology Hardware & Equipment,Communications Equipment
+NTH,Unknown,Unknown,Unknown
+NTL1,Unknown,Unknown,Unknown
+NVE,Utilities,Utilities,Multi-Utilities
+NVM,Unknown,Unknown,Unknown
+NVN,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+NVS,Energy,Energy,"Oil, Gas & Consumable Fuels"
+NWC1,Unknown,Unknown,Unknown
+NWL1,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+NWR,Materials,Materials,Metals & Mining
+NWT,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+NYO,Materials,Materials,Metals & Mining
+NYY,Materials,Materials,Metals & Mining
+NZF,Unknown,Unknown,Unknown
+NZO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OAK,Financials,Real Estate,Real Estate Management & Development
+OAK1,Unknown,Unknown,Unknown
+OAM,Unknown,Unknown,Unknown
+OAP,Unknown,Unknown,Unknown
+OBS,Materials,Materials,Metals & Mining
+OCA1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OCE,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+OCH,Unknown,Unknown,Unknown
+OCV,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+ODD,Industrials,Capital Goods,Construction & Engineering
+ODG,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+OGH,Materials,Materials,Metals & Mining
+OGL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OGN,Unknown,Unknown,Unknown
+OKH,Unknown,Unknown,Unknown
+OKN,Information Technology,Software & Services,IT Services
+OLM1,Unknown,Unknown,Unknown
+OMC,Materials,Materials,Chemicals
+OML1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OMO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OMP,Financials,Insurance,Insurance
+ONE1,Unknown,Unknown,Unknown
+ONL,Consumer Discretionary,Media,Media
+ONX1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+OPL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+OPS,Consumer Discretionary,Retailing,Specialty Retail
+ORM1,Unknown,Unknown,Unknown
+ORR1,Unknown,Unknown,Unknown
+ORS,Materials,Materials,Metals & Mining
+ORS1,Unknown,Unknown,Unknown
+OTH,Information Technology,Software & Services,Software
+OTL,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+OTR1,Materials,Materials,Metals & Mining
+OTT,Information Technology,Software & Services,IT Services
+OTT1,Unknown,Unknown,Unknown
+OUM,Materials,Materials,Metals & Mining
+OZM,Unknown,Unknown,Unknown
+PAC1,Unknown,Unknown,Unknown
+PAF1,Unknown,Unknown,Unknown
+PAG,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+PAG1,Unknown,Unknown,Unknown
+PAO,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+PAP,Unknown,Unknown,Unknown
+PAS,Materials,Materials,Metals & Mining
+PAV,Unknown,Unknown,Unknown
+PAW,Energy,Energy,"Oil, Gas & Consumable Fuels"
+PBA,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+PBB,Consumer Discretionary,Automobiles & Components,Auto Components
+PBG,Consumer Discretionary,Retailing,Distributors
+PBM,Unknown,Unknown,Unknown
+PBO,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+PBS,Financials,Banks,Banks
+PBV,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+PBY,Unknown,Unknown,Unknown
+PCF,Unknown,Unknown,Unknown
+PCG1,Financials,Diversified Financials,Capital Markets
+PCN,Unknown,Unknown,Unknown
+PCP,Materials,Materials,Metals & Mining
+PCP1,Unknown,Unknown,Unknown
+PCS,Unknown,Unknown,Unknown
+PDC,Unknown,Unknown,Unknown
+PDG,Materials,Materials,Metals & Mining
+PDH,Unknown,Unknown,Unknown
+PDI1,Unknown,Unknown,Unknown
+PDL1,Materials,Materials,Metals & Mining
+PDM1,Unknown,Unknown,Unknown
+PDR,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+PEM,Materials,Materials,Metals & Mining
+PEO,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+PEP1,Financials,Banks,Thrifts & Mortgage Finance
+PES,Energy,Energy,"Oil, Gas & Consumable Fuels"
+PET,Financials,Diversified Financials,Capital Markets
+PFC,Unknown,Unknown,Unknown
+PFF,Unknown,Unknown,Unknown
+PFM,Real Estate,Real Estate,Real Estate Management & Development
+PFR,Unknown,Unknown,Unknown
+PGD,Unknown,Unknown,Unknown
+PGH1,Unknown,Unknown,Unknown
+PGM1,Unknown,Unknown,Unknown
+PGN1,Unknown,Unknown,Unknown
+PGO1,Unknown,Unknown,Unknown
+PHL,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+PHL1,Unknown,Unknown,Unknown
+PHY,Utilities,Utilities,Electric Utilities
+PID,Unknown,Unknown,Unknown
+PIG,Unknown,Unknown,Unknown
+PIH,Utilities,Utilities,Independent Power and Renewable Electricity Producers
+PIH1,Unknown,Unknown,Unknown
+PIM1,Unknown,Unknown,Unknown
+PIN,Unknown,Unknown,Unknown
+PIR,Materials,Materials,Metals & Mining
+PJP,Unknown,Unknown,Unknown
+PLA,Materials,Materials,Metals & Mining
+PLA1,Unknown,Unknown,Unknown
+PLB,Financials,Diversified Financials,Capital Markets
+PLC1,Unknown,Unknown,Unknown
+PLG1,Unknown,Unknown,Unknown
+PLI,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+PLM,Unknown,Unknown,Unknown
+PLN,Industrials,Capital Goods,Machinery
+PLP1,Unknown,Unknown,Unknown
+PLR,Materials,Materials,Construction Materials
+PLS1,Unknown,Unknown,Unknown
+PLT,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+PLU,Unknown,Unknown,Unknown
+PLW,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+PLY,Materials,Materials,Metals & Mining
+PMG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+PMG1,Unknown,Unknown,Unknown
+PMH,Materials,Materials,Metals & Mining
+PMH1,Unknown,Unknown,Unknown
+PML1,Unknown,Unknown,Unknown
+PMM,Materials,Materials,Metals & Mining
+PMN,Financials,Insurance,Insurance
+PMT,Financials,Diversified Financials,Diversified Financial Services
+PMU,Unknown,Unknown,Unknown
+PMX,Consumer Discretionary,Media,Media
+PMX1,Unknown,Unknown,Unknown
+PNI1,Unknown,Unknown,Unknown
+PNL1,Energy,Energy,"Oil, Gas & Consumable Fuels"
+PNM,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+PNX1,Unknown,Unknown,Unknown
+POA,Unknown,Unknown,Unknown
+POC,Unknown,Unknown,Unknown
+POF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+POL,Materials,Materials,Metals & Mining
+POL1,Unknown,Unknown,Unknown
+POS1,Unknown,Unknown,Unknown
+POW1,Unknown,Unknown,Unknown
+PPA,Unknown,Unknown,Unknown
+PPC1,Unknown,Unknown,Unknown
+PPG1,Unknown,Unknown,Unknown
+PPH1,Information Technology,Software & Services,Software
+PPI,Financials,Real Estate,Real Estate Management & Development
+PPM,Materials,Materials,Metals & Mining
+PPN,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+PPO1,Unknown,Unknown,Unknown
+PPR,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+PPY1,Unknown,Unknown,Unknown
+PRA1,Unknown,Unknown,Unknown
+PRC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+PRF1,Unknown,Unknown,Unknown
+PRH,Materials,Materials,Metals & Mining
+PRH1,Unknown,Unknown,Unknown
+PRK,Industrials,Transportation,Transportation Infrastructure
+PRK1,Unknown,Unknown,Unknown
+PRL1,Unknown,Unknown,Unknown
+PRM,Materials,Materials,Metals & Mining
+PRN,Materials,Materials,Metals & Mining
+PRV,Financials,Diversified Financials,Diversified Financial Services
+PRW,Materials,Materials,Metals & Mining
+PSB,Unknown,Unknown,Unknown
+PSD,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+PSH,Materials,Materials,Chemicals
+PSI1,Financials,Diversified Financials,Diversified Financial Services
+PSL1,Unknown,Unknown,Unknown
+PSN,Industrials,Transportation,Marine
+PSP,Materials,Materials,Metals & Mining
+PST,Industrials,Capital Goods,Construction & Engineering
+PSV,Materials,Materials,Metals & Mining
+PTA,Unknown,Unknown,Unknown
+PTE,Unknown,Unknown,Unknown
+PTG1,Unknown,Unknown,Unknown
+PTL1,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+PTM1,Unknown,Unknown,Unknown
+PTN,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+PTT,Unknown,Unknown,Unknown
+PTZ,Unknown,Unknown,Unknown
+PVH,Unknown,Unknown,Unknown
+PVL1,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+PVM,Materials,Materials,Metals & Mining
+PVM1,Unknown,Unknown,Unknown
+PVT,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+PVT1,Unknown,Unknown,Unknown
+PWK,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+PWT,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+PXG,Materials,Materials,Metals & Mining
+PXU1,Unknown,Unknown,Unknown
+PYR,Unknown,Unknown,Unknown
+PYT,Unknown,Unknown,Unknown
+QAI,Unknown,Unknown,Unknown
+QAL,Unknown,Unknown,Unknown
+QCH,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+QCL,Unknown,Unknown,Unknown
+QDL,Unknown,Unknown,Unknown
+QDX,Unknown,Unknown,Unknown
+QEX,Unknown,Unknown,Unknown
+QFX,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+QGC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+QIL,Information Technology,Software & Services,Internet Software & Services
+QIW,Unknown,Unknown,Unknown
+QMG,Materials,Materials,Metals & Mining
+QMT,Information Technology,Software & Services,IT Services
+QNI,Unknown,Unknown,Unknown
+QNT,Unknown,Unknown,Unknown
+QPP,Unknown,Unknown,Unknown
+QRL1,Unknown,Unknown,Unknown
+QRX,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+QSC,Unknown,Unknown,Unknown
+QTK,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+QUC,Unknown,Unknown,Unknown
+QUM,Unknown,Unknown,Unknown
+QUO,Unknown,Unknown,Unknown
+QVE1,Unknown,Unknown,Unknown
+RAG,Unknown,Unknown,Unknown
+RAI1,Unknown,Unknown,Unknown
+RAL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+RAR1,Unknown,Unknown,Unknown
+RAT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+RAZ,Unknown,Unknown,Unknown
+RBC,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+RBK,Materials,Materials,Metals & Mining
+RBL1,Industrials,Capital Goods,Building Products
+RBP,Unknown,Unknown,Unknown
+RBS,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+RBSRIG,Unknown,Unknown,Unknown
+RBV,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+RBY,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+RCA,Information Technology,Software & Services,IT Services
+RCF,Materials,Materials,Metals & Mining
+RCI,Energy,Energy,"Oil, Gas & Consumable Fuels"
+RCL1,Information Technology,Software & Services,Software
+RCY,Industrials,Transportation,Transportation Infrastructure
+RDP,Unknown,Unknown,Unknown
+RDV1,Unknown,Unknown,Unknown
+REB,Consumer Discretionary,Retailing,Specialty Retail
+REC,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+REC1,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+RED1,Unknown,Unknown,Unknown
+REG1,Consumer Discretionary,Media,Media
+REM,Materials,Materials,Metals & Mining
+RER1,Unknown,Unknown,Unknown
+RES1,Unknown,Unknown,Unknown
+REU,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+REW,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+RFV,Materials,Materials,Metals & Mining
+RFX1,Industrials,Capital Goods,Electrical Equipment
+RGC,Unknown,Unknown,Unknown
+RGK,Unknown,Unknown,Unknown
+RGM1,Unknown,Unknown,Unknown
+RGS1,Materials,Materials,Metals & Mining
+RHD,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+RHG,Financials,Banks,Thrifts & Mortgage Finance
+RIG,Materials,Materials,Metals & Mining
+RIG1,Unknown,Unknown,Unknown
+RIL,Information Technology,Software & Services,Internet Software & Services
+RIN,Materials,Materials,Construction Materials
+RIS,Industrials,Transportation,Marine
+RIV,Energy,Energy,Energy Equipment & Services
+RJT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+RLG,Financials,Real Estate,Real Estate Management & Development
+RMA,Consumer Discretionary,Media,Media
+RML,Materials,Materials,Metals & Mining
+RMT1,Unknown,Unknown,Unknown
+RMW,Consumer Discretionary,Retailing,Specialty Retail
+RNC,Financials,Real Estate,Real Estate Management & Development
+RNS,Materials,Materials,Metals & Mining
+ROC,Energy,Energy,"Oil, Gas & Consumable Fuels"
+ROL,Materials,Materials,Metals & Mining
+ROW,Unknown,Unknown,Unknown
+RPC1,Unknown,Unknown,Unknown
+RPD,Information Technology,Software & Services,Internet Software & Services
+RPF,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+RPL1,Unknown,Unknown,Unknown
+RPM,Energy,Energy,"Oil, Gas & Consumable Fuels"
+RPS,Unknown,Unknown,Unknown
+RPT,Materials,Materials,Metals & Mining
+RPX,Information Technology,Software & Services,IT Services
+RQL,Industrials,Capital Goods,Trading Companies & Distributors
+RRT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+RSM1,Unknown,Unknown,Unknown
+RSP,Energy,Energy,"Oil, Gas & Consumable Fuels"
+RSR,Unknown,Unknown,Unknown
+RTA,Materials,Materials,Metals & Mining
+RTI1,Unknown,Unknown,Unknown
+RTK,Unknown,Unknown,Unknown
+RTN,Information Technology,Software & Services,Software
+RTS,Information Technology,Software & Services,Software
+RTT,Unknown,Unknown,Unknown
+RUP,Consumer Discretionary,Media,Media
+RVL,Unknown,Unknown,Unknown
+RVT,Unknown,Unknown,Unknown
+RWS,Unknown,Unknown,Unknown
+RXF,Unknown,Unknown,Unknown
+RYC,Unknown,Unknown,Unknown
+RYW,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+RZR,Information Technology,Software & Services,Internet Software & Services
+SAB,Unknown,Unknown,Unknown
+SAG,Unknown,Unknown,Unknown
+SAH1,Unknown,Unknown,Unknown
+SAK,Industrials,Transportation,Transportation Infrastructure
+SAK1,Industrials,Transportation,Transportation Infrastructure
+SAKHA,Industrials,Transportation,Transportation Infrastructure
+SAO,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SAP,Financials,Real Estate,Real Estate Management & Development
+SAQ,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+SAT1,Unknown,Unknown,Unknown
+SAX,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+SBC,Consumer Discretionary,Media,Media
+SBE,Consumer Staples,Household & Personal Products,Personal Products
+SBL,Materials,Materials,Metals & Mining
+SBN1,Unknown,Unknown,Unknown
+SBS,Materials,Materials,Metals & Mining
+SBT,Unknown,Unknown,Unknown
+SCB,Financials,Diversified Financials,Diversified Financial Services
+SCB1,Unknown,Unknown,Unknown
+SCC,Industrials,Transportation,Road & Rail
+SCC1,Unknown,Unknown,Unknown
+SCD,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+SCF,Financials,Diversified Financials,Consumer Finance
+SCG1,Information Technology,Software & Services,IT Services
+SCP1,Unknown,Unknown,Unknown
+SCR1,Unknown,Unknown,Unknown
+SCY1,Unknown,Unknown,Unknown
+SDC1,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+SDH,Unknown,Unknown,Unknown
+SDM,Industrials,Capital Goods,Construction & Engineering
+SDR,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+SDS,Industrials,Capital Goods,Machinery
+SDT,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+SDY,Unknown,Unknown,Unknown
+SEC1,Unknown,Unknown,Unknown
+SED,Materials,Materials,Metals & Mining
+SEF,Unknown,Unknown,Unknown
+SEG1,Unknown,Unknown,Unknown
+SEH1,Unknown,Unknown,Unknown
+SEL,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+SEM,Financials,Diversified Financials,Diversified Financial Services
+SER1,Unknown,Unknown,Unknown
+SET,Unknown,Unknown,Unknown
+SFD,Financials,Diversified Financials,Diversified Financial Services
+SFE,Financials,Diversified Financials,Diversified Financial Services
+SFL1,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+SFO,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+SFW,Financials,Diversified Financials,Diversified Financial Services
+SGB,Financials,Banks,Banks
+SGF1,Consumer Discretionary,Media,Media
+SGG,Unknown,Unknown,Unknown
+SGI,Financials,Diversified Financials,Diversified Financial Services
+SGI1,Unknown,Unknown,Unknown
+SGL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SGL1,Unknown,Unknown,Unknown
+SGM1,Unknown,Unknown,Unknown
+SGO1,Financials,Diversified Financials,Diversified Financial Services
+SGS,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+SGT,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+SGT1,Unknown,Unknown,Unknown
+SGW,Materials,Materials,Metals & Mining
+SGX,Materials,Materials,Metals & Mining
+SGZ,Materials,Materials,Metals & Mining
+SHA,Materials,Materials,Metals & Mining
+SHA1,Unknown,Unknown,Unknown
+SHC,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+SHC1,Unknown,Unknown,Unknown
+SHD,Materials,Materials,Metals & Mining
+SHG,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SHO1,Unknown,Unknown,Unknown
+SHR,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+SHX,Materials,Materials,Metals & Mining
+SIB,Materials,Materials,Metals & Mining
+SID,Unknown,Unknown,Unknown
+SIE1,Unknown,Unknown,Unknown
+SIG1,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+SIP1,Unknown,Unknown,Unknown
+SIR,Materials,Materials,Metals & Mining
+SIR1,Unknown,Unknown,Unknown
+SKB1,Unknown,Unknown,Unknown
+SKD,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+SKE,Industrials,Commercial & Professional Services,Professional Services
+SKW,Industrials,Transportation,Airlines
+SLA,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+SLC1,Information Technology,Software & Services,Software
+SLD1,Unknown,Unknown,Unknown
+SLE,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SLG1,Unknown,Unknown,Unknown
+SLH,Unknown,Unknown,Unknown
+SLL1,Unknown,Unknown,Unknown
+SLN,Materials,Materials,Metals & Mining
+SLP,Materials,Materials,Metals & Mining
+SLP1,Materials,Materials,Metals & Mining
+SLR1,Unknown,Unknown,Unknown
+SLS,Unknown,Unknown,Unknown
+SLV,Materials,Materials,Metals & Mining
+SMD1,Unknown,Unknown,Unknown
+SMI1,Unknown,Unknown,Unknown
+SML1,Unknown,Unknown,Unknown
+SNC1,Industrials,Capital Goods,Aerospace & Defense
+SND1,Unknown,Unknown,Unknown
+SNH,Unknown,Unknown,Unknown
+SNL1,Unknown,Unknown,Unknown
+SNN,Information Technology,Software & Services,IT Services
+SNR,Information Technology,Software & Services,Internet Software & Services
+SNR1,Unknown,Unknown,Unknown
+SNX,Information Technology,Software & Services,Internet Software & Services
+SNY1,Unknown,Unknown,Unknown
+SNZ1,Unknown,Unknown,Unknown
+SOF,Information Technology,Software & Services,Internet Software & Services
+SOH,Information Technology,Software & Services,Software
+SON,Unknown,Unknown,Unknown
+SOS,Unknown,Unknown,Unknown
+SPA1,Unknown,Unknown,Unknown
+SPC,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+SPD,Financials,Diversified Financials,Diversified Financial Services
+SPE,Unknown,Unknown,Unknown
+SPF,Unknown,Unknown,Unknown
+SPG1,Unknown,Unknown,Unknown
+SPH,Materials,Materials,Metals & Mining
+SPL1,Unknown,Unknown,Unknown
+SPM1,Unknown,Unknown,Unknown
+SPR,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+SPR1,Unknown,Unknown,Unknown
+SPS1,Unknown,Unknown,Unknown
+SPT,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+SPX1,Materials,Materials,Metals & Mining
+SRA,Consumer Discretionary,Retailing,Specialty Retail
+SRB,Materials,Materials,Metals & Mining
+SRC,Unknown,Unknown,Unknown
+SRE,Materials,Materials,Metals & Mining
+SRG1,Industrials,Capital Goods,Construction & Engineering
+SRM,Materials,Materials,Metals & Mining
+SRM1,Unknown,Unknown,Unknown
+SRP,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+SSC1,Unknown,Unknown,Unknown
+SSI,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+SSR,Consumer Discretionary,Media,Media
+SSX,Materials,Materials,Metals & Mining
+STC1,Unknown,Unknown,Unknown
+STC2,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+STD,Unknown,Unknown,Unknown
+STF1,Unknown,Unknown,Unknown
+STG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+STH,Industrials,Capital Goods,Construction & Engineering
+STI,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+STI1,Unknown,Unknown,Unknown
+STL1,Unknown,Unknown,Unknown
+STR,Information Technology,Technology Hardware & Equipment,Communications Equipment
+STR1,Unknown,Unknown,Unknown
+STU,Energy,Energy,"Oil, Gas & Consumable Fuels"
+STV,Consumer Discretionary,Media,Media
+SUN1,Unknown,Unknown,Unknown
+SVH1,Unknown,Unknown,Unknown
+SVR,Unknown,Unknown,Unknown
+SVT1,Unknown,Unknown,Unknown
+SWD,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+SWE1,Unknown,Unknown,Unknown
+SWH,Unknown,Unknown,Unknown
+SWS,Consumer Staples,"Food, Beverage & Tobacco",Beverages
+SXM,Materials,Materials,Metals & Mining
+SXP,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SXR,Industrials,Transportation,Airlines
+SXS,Energy,Energy,"Oil, Gas & Consumable Fuels"
+SYB,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+SYI1,Unknown,Unknown,Unknown
+SYL,Financials,Diversified Financials,Diversified Financial Services
+TAB,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+TAL,Financials,Insurance,Insurance
+TAL1,Unknown,Unknown,Unknown
+TAN,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+TAS1,Unknown,Unknown,Unknown
+TAT,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+TBC,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+TBC1,Unknown,Unknown,Unknown
+TBG,Industrials,Capital Goods,Trading Companies & Distributors
+TBH1,Unknown,Unknown,Unknown
+TBY,Unknown,Unknown,Unknown
+TCA,Unknown,Unknown,Unknown
+TCH1,Unknown,Unknown,Unknown
+TCM,Energy,Energy,"Oil, Gas & Consumable Fuels"
+TCM1,Unknown,Unknown,Unknown
+TCP1,Unknown,Unknown,Unknown
+TCY,Unknown,Unknown,Unknown
+TDG,Unknown,Unknown,Unknown
+TEA,Materials,Materials,Metals & Mining
+TEM,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+TEO,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Pharmaceuticals
+TEQ,Unknown,Unknown,Unknown
+TER1,Unknown,Unknown,Unknown
+TER2,Financials,Diversified Financials,Consumer Finance
+TFP,Unknown,Unknown,Unknown
+TFS,Financials,Diversified Financials,Diversified Financial Services
+TGR1,Unknown,Unknown,Unknown
+THG,Financials,Real Estate,Real Estate Management & Development
+THO,Industrials,Capital Goods,Construction & Engineering
+THO1,Unknown,Unknown,Unknown
+TIC,Unknown,Unknown,Unknown
+TIF1,Financials,Diversified Financials,Diversified Financial Services
+TIG1,Unknown,Unknown,Unknown
+TIL1,Unknown,Unknown,Unknown
+TIM,Materials,Materials,Paper & Forest Products
+TIR,Materials,Materials,Metals & Mining
+TJH,Unknown,Unknown,Unknown
+TKA,Materials,Materials,Metals & Mining
+TKA1,Unknown,Unknown,Unknown
+TKG,Materials,Materials,Metals & Mining
+TKI,Unknown,Unknown,Unknown
+TKR,Materials,Materials,Metals & Mining
+TLA,Unknown,Unknown,Unknown
+TLC,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+TLC1,Unknown,Unknown,Unknown
+TLH,Materials,Materials,Metals & Mining
+TLP,Unknown,Unknown,Unknown
+TLT1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+TLZ,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+TMA,Materials,Materials,Containers & Packaging
+TMA1,Unknown,Unknown,Unknown
+TML1,Unknown,Unknown,Unknown
+TMN,Information Technology,Technology Hardware & Equipment,Communications Equipment
+TMP1,Unknown,Unknown,Unknown
+TMR,Materials,Materials,Metals & Mining
+TNC1,Unknown,Unknown,Unknown
+TNI,Unknown,Unknown,Unknown
+TNN,Materials,Materials,Paper & Forest Products
+TNR1,Unknown,Unknown,Unknown
+TNS,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+TNT1,Unknown,Unknown,Unknown
+TOF1,Unknown,Unknown,Unknown
+TOL,Industrials,Transportation,Air Freight & Logistics
+TOR,Materials,Materials,Metals & Mining
+TPF,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+TPS1,Unknown,Unknown,Unknown
+TPS2,Unknown,Unknown,Unknown
+TPT1,Unknown,Unknown,Unknown
+TPX,Financials,Diversified Financials,Diversified Financial Services
+TQH,Information Technology,Software & Services,IT Services
+TRA1,Unknown,Unknown,Unknown
+TRF,Materials,Materials,Metals & Mining
+TRF1,Unknown,Unknown,Unknown
+TRG1,Unknown,Unknown,Unknown
+TRM1,Unknown,Unknown,Unknown
+TRO,Materials,Materials,Metals & Mining
+TRQ,Unknown,Unknown,Unknown
+TRS1,Unknown,Unknown,Unknown
+TRU,Financials,Diversified Financials,Diversified Financial Services
+TSC,Unknown,Unknown,Unknown
+TSG,Consumer Discretionary,Media,Media
+TSI,Utilities,Utilities,Electric Utilities
+TSI1,Unknown,Unknown,Unknown
+TSM,Financials,Diversified Financials,Consumer Finance
+TSQ,Unknown,Unknown,Unknown
+TSS,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+TSW,Unknown,Unknown,Unknown
+TTA1,Unknown,Unknown,Unknown
+TTH,Financials,Diversified Financials,Diversified Financial Services
+TTI1,Unknown,Unknown,Unknown
+TTT1,Materials,Materials,Chemicals
+TTY,Materials,Materials,Metals & Mining
+TUC1,Unknown,Unknown,Unknown
+TVL,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+TWH1,Unknown,Unknown,Unknown
+TWO,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+TWT,Consumer Discretionary,Consumer Durables & Apparel,"Textiles, Apparel & Luxury Goods"
+TXA,Unknown,Unknown,Unknown
+TXN,Energy,Energy,"Oil, Gas & Consumable Fuels"
+TXT,Consumer Discretionary,Media,Media
+TYA,Unknown,Unknown,Unknown
+TYC,Materials,Materials,Metals & Mining
+TYC1,Unknown,Unknown,Unknown
+TYN,Unknown,Unknown,Unknown
+TYO,Consumer Discretionary,Consumer Durables & Apparel,Leisure Products
+TYR,Unknown,Unknown,Unknown
+UAI,Unknown,Unknown,Unknown
+UCG,Unknown,Unknown,Unknown
+UCL,Materials,Materials,Metals & Mining
+UEC,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+UEL,Utilities,Utilities,Electric Utilities
+UFI,Unknown,Unknown,Unknown
+UKL,Materials,Materials,Metals & Mining
+ULT,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+ULT1,Unknown,Unknown,Unknown
+UMC,Materials,Materials,Metals & Mining
+UML,Materials,Materials,Metals & Mining
+UMS,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+UNC,Unknown,Unknown,Unknown
+UND,Energy,Energy,"Oil, Gas & Consumable Fuels"
+UNG,Unknown,Unknown,Unknown
+UNP,Unknown,Unknown,Unknown
+UNW,Telecommunication Services,Telecommunication Services,Wireless Telecommunication Services
+UPG,Real Estate,Real Estate,Equity Real Estate Investment Trusts (REITs)
+UPI,Unknown,Unknown,Unknown
+USC,Information Technology,Software & Services,IT Services
+UTB,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+UTL,Unknown,Unknown,Unknown
+UWL,Unknown,Unknown,Unknown
+UXA,Energy,Energy,"Oil, Gas & Consumable Fuels"
+UXC,Information Technology,Software & Services,IT Services
+VAH1,Unknown,Unknown,Unknown
+VAM,Unknown,Unknown,Unknown
+VAN1,Unknown,Unknown,Unknown
+VCL1,Unknown,Unknown,Unknown
+VCM,Information Technology,Software & Services,Software
+VCN,Materials,Materials,Metals & Mining
+VCR,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+VDM,Unknown,Unknown,Unknown
+VEA,Information Technology,Software & Services,IT Services
+VEC1,Unknown,Unknown,Unknown
+VED,Industrials,Commercial & Professional Services,Professional Services
+VEI,Health Care,Health Care Equipment & Services,Health Care Providers & Services
+VES,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+VET1,Unknown,Unknown,Unknown
+VFI,Unknown,Unknown,Unknown
+VGL1,Information Technology,Software & Services,IT Services
+VGN,Unknown,Unknown,Unknown
+VGO,Materials,Materials,Metals & Mining
+VGS1,Unknown,Unknown,Unknown
+VIC1,Unknown,Unknown,Unknown
+VID,Information Technology,Technology Hardware & Equipment,"Electronic Equipment, Instruments & Components"
+VIE,Industrials,Capital Goods,Construction & Engineering
+VIR,Utilities,Utilities,Multi-Utilities
+VKI,Industrials,Transportation,Transportation Infrastructure
+VLI,Unknown,Unknown,Unknown
+VLM1,Unknown,Unknown,Unknown
+VLS1,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+VNR,Unknown,Unknown,Unknown
+VNT1,Unknown,Unknown,Unknown
+VNX,Energy,Energy,"Oil, Gas & Consumable Fuels"
+VOF,Financials,Real Estate,Real Estate Management & Development
+VOL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+VOL1,Unknown,Unknown,Unknown
+VOY,Energy,Energy,"Oil, Gas & Consumable Fuels"
+VPC1,Unknown,Unknown,Unknown
+VPL,Unknown,Unknown,Unknown
+VPM,Unknown,Unknown,Unknown
+VPR1,Unknown,Unknown,Unknown
+VPT,Unknown,Unknown,Unknown
+VRG,Unknown,Unknown,Unknown
+VSC1,Unknown,Unknown,Unknown
+VSG,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+VSL,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
+VTA,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+VTI1,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+VUL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+VWD,Financials,Real Estate,Real Estate Management & Development
+VXS,Information Technology,Technology Hardware & Equipment,Communications Equipment
+VYA,Unknown,Unknown,Unknown
+WAC1,Unknown,Unknown,Unknown
+WAD,Unknown,Unknown,Unknown
+WAH,Unknown,Unknown,Unknown
+WAK1,Unknown,Unknown,Unknown
+WBS,Unknown,Unknown,Unknown
+WBW,Unknown,Unknown,Unknown
+WCG,Information Technology,Software & Services,Software
+WCH,Unknown,Unknown,Unknown
+WCI,Energy,Energy,"Oil, Gas & Consumable Fuels"
+WCL,Energy,Energy,"Oil, Gas & Consumable Fuels"
+WCU,Materials,Materials,Metals & Mining
+WDI,Unknown,Unknown,Unknown
+WDP,Materials,Materials,Containers & Packaging
+WDR,Materials,Materials,Metals & Mining
+WEG1,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+WEL1,Unknown,Unknown,Unknown
+WEL2,Unknown,Unknown,Unknown
+WEO,Unknown,Unknown,Unknown
+WFA,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+WFI,Unknown,Unknown,Unknown
+WFL,Materials,Materials,Paper & Forest Products
+WFT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+WGR,Materials,Materials,Metals & Mining
+WHC1,Unknown,Unknown,Unknown
+WHI,Unknown,Unknown,Unknown
+WHO,Unknown,Unknown,Unknown
+WHS,Consumer Discretionary,Retailing,Multiline Retail
+WHTMAE,Unknown,Unknown,Unknown
+WHTMFI,Unknown,Unknown,Unknown
+WHW,Unknown,Unknown,Unknown
+WIC1,Unknown,Unknown,Unknown
+WIH,Unknown,Unknown,Unknown
+WIL1,Unknown,Unknown,Unknown
+WIN,Materials,Materials,Metals & Mining
+WIN1,Unknown,Unknown,Unknown
+WJM,Consumer Staples,"Food, Beverage & Tobacco",Food Products
+WKC,Financials,Real Estate,Real Estate Management & Development
+WKM,Unknown,Unknown,Unknown
+WLM1,Unknown,Unknown,Unknown
+WMR,Materials,Materials,Metals & Mining
+WMX,Unknown,Unknown,Unknown
+WNA,Unknown,Unknown,Unknown
+WNO,Unknown,Unknown,Unknown
+WNP,Unknown,Unknown,Unknown
+WNS1,Unknown,Unknown,Unknown
+WNZ,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+WOT,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+WOTCA,Financials,Real Estate,Real Estate Investment Trusts (REITs)
+WPM,Unknown,Unknown,Unknown
+WRG1,Unknown,Unknown,Unknown
+WRK,Materials,Materials,Metals & Mining
+WRM1,Unknown,Unknown,Unknown
+WRP,Unknown,Unknown,Unknown
+WSF,Financials,Real Estate,Real Estate Management & Development
+WSK,Unknown,Unknown,Unknown
+WSP1,Unknown,Unknown,Unknown
+WTF,Consumer Discretionary,Retailing,Internet & Direct Marketing Retail
+WTR,Materials,Materials,Metals & Mining
+WTR1,Unknown,Unknown,Unknown
+WTV,Unknown,Unknown,Unknown
+WWA,Industrials,Transportation,Air Freight & Logistics
+WWR,Energy,Energy,"Oil, Gas & Consumable Fuels"
+WXT,Unknown,Unknown,Unknown
+WYL,Materials,Materials,Chemicals
+WYR,Unknown,Unknown,Unknown
+WZI,Unknown,Unknown,Unknown
+XCD,Energy,Energy,"Oil, Gas & Consumable Fuels"
+XXL,Consumer Discretionary,Consumer Services,Diversified Consumer Services
+YAL1,Unknown,Unknown,Unknown
+YSF,Unknown,Unknown,Unknown
+YSL,Industrials,Capital Goods,Building Products
+YTS,Unknown,Unknown,Unknown
+ZAP,Unknown,Unknown,Unknown
+ZBB,Industrials,Capital Goods,Electrical Equipment
+ZBB1,Unknown,Unknown,Unknown
+ZDX,Materials,Materials,Metals & Mining
+ZEI,Unknown,Unknown,Unknown
+ZFX,Materials,Materials,Metals & Mining
+ZPS,Unknown,Unknown,Unknown
+ZTL,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
