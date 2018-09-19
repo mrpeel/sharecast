@@ -194,6 +194,7 @@ CTY,Consumer Discretionary,Retailing,Specialty Retail
 DSH,Consumer Discretionary,Retailing,Specialty Retail
 MTS,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
 WES,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
+WESN,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
 WQW,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
 WOW,Consumer Staples,Food & Staples Retailing,Food & Staples Retailing
 AVG,Consumer Staples,"Food, Beverage & Tobacco",Beverages
@@ -382,6 +383,7 @@ MEU,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MCM,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MMR,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MAY,Energy,Energy,"Oil, Gas & Consumable Fuels"
+MEO,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MEL,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MMI,Energy,Energy,"Oil, Gas & Consumable Fuels"
 MBT,Energy,Energy,"Oil, Gas & Consumable Fuels"
@@ -1048,6 +1050,7 @@ LDW,Industrials,Capital Goods,Machinery
 ACF,Industrials,Capital Goods,Trading Companies & Distributors
 AIR,Industrials,Capital Goods,Trading Companies & Distributors
 BPP,Industrials,Capital Goods,Trading Companies & Distributors
+IMI,Industrials,Capital Goods,Trading Companies & Distributors
 BMH,Industrials,Capital Goods,Trading Companies & Distributors
 BOL,Industrials,Capital Goods,Trading Companies & Distributors
 CYG,Industrials,Capital Goods,Trading Companies & Distributors
@@ -1073,6 +1076,7 @@ CLQ,Industrials,Commercial & Professional Services,Commercial Services & Supplie
 CWY,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 CLH,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 CI1,Industrials,Commercial & Professional Services,Commercial Services & Supplies
+AAL,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 DOW,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 ECG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 ESI,Industrials,Commercial & Professional Services,Commercial Services & Supplies
@@ -1323,6 +1327,7 @@ LVT,Information Technology,Software & Services,Software
 LVE,Information Technology,Software & Services,Software
 MNW,Information Technology,Software & Services,Software
 MBM,Information Technology,Software & Services,Software
+WGO,Information Technology,Software & Services,Software
 MKB,Information Technology,Software & Services,Software
 MSM,Information Technology,Software & Services,Software
 MYQ,Information Technology,Software & Services,Software
@@ -1410,6 +1415,7 @@ KLL,Materials,Materials,Chemicals
 LER,Materials,Materials,Chemicals
 NUF,Materials,Materials,Chemicals
 ORI,Materials,Materials,Chemicals
+ORIPB,Materials,Materials,Chemicals
 PWN,Materials,Materials,Chemicals
 PLX,Materials,Materials,Chemicals
 RAN,Materials,Materials,Chemicals
@@ -1418,6 +1424,7 @@ SO4,Materials,Materials,Chemicals
 SDV,Materials,Materials,Chemicals
 SES,Materials,Materials,Chemicals
 TTT,Materials,Materials,Chemicals
+GSE,Materials,Materials,Chemicals
 ZNO,Materials,Materials,Chemicals
 GSD,Materials,Materials,Chemicals
 NOE,Materials,Materials,Chemicals
@@ -1520,6 +1527,7 @@ AQC,Materials,Materials,Metals & Mining
 APC,Materials,Materials,Metals & Mining
 AVL,Materials,Materials,Metals & Mining
 ANS,Materials,Materials,Metals & Mining
+PDY,Materials,Materials,Metals & Mining
 AVB,Materials,Materials,Metals & Mining
 AEV,Materials,Materials,Metals & Mining
 AVW,Materials,Materials,Metals & Mining
@@ -1731,6 +1739,7 @@ HDY,Materials,Materials,Metals & Mining
 HAS,Materials,Materials,Metals & Mining
 HAV,Materials,Materials,Metals & Mining
 HWK,Materials,Materials,Metals & Mining
+ZYL,Materials,Materials,Metals & Mining
 HAW,Materials,Materials,Metals & Mining
 HLX,Materials,Materials,Metals & Mining
 HRR,Materials,Materials,Metals & Mining
@@ -1940,9 +1949,11 @@ PSC,Materials,Materials,Metals & Mining
 PM1,Materials,Materials,Metals & Mining
 ENL,Materials,Materials,Metals & Mining
 PUR,Materials,Materials,Metals & Mining
+BUA,Materials,Materials,Metals & Mining
 QGL,Materials,Materials,Metals & Mining
 QBL,Materials,Materials,Metals & Mining
 RDN,Materials,Materials,Metals & Mining
+SZG,Materials,Materials,Metals & Mining
 RMS,Materials,Materials,Metals & Mining
 RND,Materials,Materials,Metals & Mining
 RBR,Materials,Materials,Metals & Mining
@@ -2023,6 +2034,7 @@ SPQ,Materials,Materials,Metals & Mining
 SRN,Materials,Materials,Metals & Mining
 SWK,Materials,Materials,Metals & Mining
 SL1,Materials,Materials,Metals & Mining
+SWE,Materials,Materials,Metals & Mining
 SMD,Materials,Materials,Metals & Mining
 SYR,Materials,Materials,Metals & Mining
 TLG,Materials,Materials,Metals & Mining
@@ -2045,6 +2057,7 @@ TIE,Materials,Materials,Metals & Mining
 TGS,Materials,Materials,Metals & Mining
 TIG,Materials,Materials,Metals & Mining
 TTM,Materials,Materials,Metals & Mining
+MIZ,Materials,Materials,Metals & Mining
 TSL,Materials,Materials,Metals & Mining
 TNG,Materials,Materials,Metals & Mining
 TIN,Materials,Materials,Metals & Mining
@@ -2237,6 +2250,7 @@ PAY,Real Estate,Real Estate,Real Estate Management & Development
 BRO,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
 CNU,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
 FSG,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
+FRE,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
 FRX,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
 IAB,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
 MAQ,Telecommunication Services,Telecommunication Services,Diversified Telecommunication Services
@@ -4432,7 +4446,8 @@ SGZ,Materials,Materials,Metals & Mining
 SHA,Materials,Materials,Metals & Mining
 SHA1,Unknown,Unknown,Unknown
 SHC,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
-SHC1,Unknown,Unknown,Unknown
+SHCDA,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
+SHC1,Health Care,"Pharmaceuticals, Biotechnology & Life Sciences",Biotechnology
 SHD,Materials,Materials,Metals & Mining
 SHG,Energy,Energy,"Oil, Gas & Consumable Fuels"
 SHO1,Unknown,Unknown,Unknown
