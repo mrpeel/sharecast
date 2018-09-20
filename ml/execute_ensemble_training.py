@@ -111,7 +111,7 @@ def main(**kwargs):
         test_model_names = df_all_test_x['model'].values
         test_gics_sectors = df_all_test_x['GICSSector'].values
         test_gics_industry_groups = df_all_test_x['GICSIndustryGroup'].values
-        test_gics_industry_groups = df_all_test_x['GICSIndustry'].values
+        test_gics_industries = df_all_test_x['GICSIndustry'].values
 
         # Fix the names used in the GICS data - remove '&' ',' and ' '
         train_gics_sectors = fix_categorical(train_gics_sectors)
@@ -120,7 +120,7 @@ def main(**kwargs):
         train_gics_industries = fix_categorical(train_gics_industries)
         test_gics_sectors = fix_categorical(test_gics_sectors)
         test_gics_industry_groups = fix_categorical(test_gics_industry_groups)
-        test_gics_industry_groups = fix_categorical(test_gics_industry_groups)
+        test_gics_industries = fix_categorical(test_gics_industries)
 
         save(train_model_names, 'data/train_x_model_names.pkl.gz')
         save(train_gics_sectors, 'data/train_x_GICSSector.pkl.gz')
@@ -130,7 +130,7 @@ def main(**kwargs):
         save(test_model_names, 'data/test_x_model_names.pkl.gz')
         save(test_gics_sectors, 'data/test_x_GICSSector.pkl.gz')
         save(test_gics_industry_groups, 'data/test_x_GICSIndustryGroup.pkl.gz')
-        save(test_gics_industry_groups, 'data/test_x_GICSIndustry.pkl.gz')
+        save(test_gics_industries, 'data/test_x_GICSIndustry.pkl.gz')
 
         # Drop model names and GICS values
         df_all_train_x = df_all_train_x.drop(
@@ -280,9 +280,9 @@ if __name__ == "__main__":
          train_pre_process=False,
          load_and_execute_pre_process=False,
          load_processed_data=True,
-         train_keras=True,
+         train_keras=False,
          use_previous_training_weights=False,
-         train_xgb=True,
-         train_industry_xgb=True,
+         train_xgb=False,
+         train_industry_xgb=False,
          train_bagging=True
          )

@@ -610,6 +610,8 @@ def train_xgb_model_set(model_set_name, df_all_train_x, df_all_train_y, df_all_t
     # all_test_log_y = safe_log(all_test_y)
 
     print('Training xgboost log of y model for', model_set_name)
+    print('Number of training instances:', len(all_train_x))
+    print('Number of test instances:', len(all_test_x))
     x_train, x_test, y_train, y_test = train_test_split(
         all_train_x, all_train_y, test_size=0.15)
 
@@ -1116,7 +1118,7 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
 
     # reduce_lr = ReduceLROnPlateau(
     #     monitor='val_loss', factor=0.2, verbose=1, patience=2)
-    early_stopping = EarlyStopping(monitor='val_loss', patience=7)
+    early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-3.hdf5', verbose=0, save_best_only=True)
@@ -1130,7 +1132,7 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
         'activation': 'PReLU',
         'optimizer': 'Nadam',
         'batch_size': 1024,
-        'dropout': 0,
+        'dropout': 0.05,
         'model_type': 'mae_mape',
         'kernel_initializer': 'normal',
         'hidden_layers': [5],
