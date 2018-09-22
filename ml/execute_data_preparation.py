@@ -10,7 +10,7 @@ from optimise_dataframe import optimise_df
 
 
 # S3 copy command to retrieve data
-# aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive""
+# aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive
 
 OLD_RETURN_COLUMNS = ['Future1WeekDividend',
                       'Future1WeekPrice',
@@ -691,6 +691,8 @@ def main(**kwargs):
         l_2 = timer()
         print('Loading aggregated data file took:', l_2 - l_1)
 
+    print(df['symbol'].unique())
+
     # Load the industry-symbol values
     if add_industry_categories:
         categories_df = pd.read_csv(symbol_industry_path)
@@ -733,16 +735,16 @@ def main(**kwargs):
 
 if __name__ == "__main__":
     # run_str = datetime.now().strftime('%Y%m%d')
-    RUN_STR = '20180714'
+    RUN_STR = '20180922'
 
     main(run_str=RUN_STR,
          load_individual_data_files=True,
-         base_path='data/companyQuotes-20180714-%03d.csv.gz',
+         base_path='data/companyQuotes-20180922-%03d.csv.gz',
          add_industry_categories=True,
          symbol_industry_path='data/symbol-industry-lookup.csv',
-         no_files=65,
+         no_files=64,
          generate_labels=True,
          generate_label_weeks=8,
-         reference_date='2018-06-30',
+         reference_date='2018-08-08',
          generate_tminus_labels=True
          )

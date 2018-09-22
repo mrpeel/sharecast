@@ -68,6 +68,7 @@ ALL,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 CKF,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 CTD,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 CWN,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
+PB1,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 DMP,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 DNA,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
 ENN,Consumer Discretionary,Consumer Services,"Hotels, Restaurants & Leisure"
@@ -348,6 +349,7 @@ GBP,Energy,Energy,"Oil, Gas & Consumable Fuels"
 GGE,Energy,Energy,"Oil, Gas & Consumable Fuels"
 GPP,Energy,Energy,"Oil, Gas & Consumable Fuels"
 GRV,Energy,Energy,"Oil, Gas & Consumable Fuels"
+GRVCA,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HOG,Energy,Energy,"Oil, Gas & Consumable Fuels"
 HE8,Energy,Energy,"Oil, Gas & Consumable Fuels"
 NHO,Energy,Energy,"Oil, Gas & Consumable Fuels"
@@ -1208,6 +1210,7 @@ MPW,Information Technology,Software & Services,Internet Software & Services
 NEA,Information Technology,Software & Services,Internet Software & Services
 NET,Information Technology,Software & Services,Internet Software & Services
 NXT,Information Technology,Software & Services,Internet Software & Services
+AJDCA,Information Technology,Software & Services,Internet Software & Services
 NOR,Information Technology,Software & Services,Internet Software & Services
 NOV,Information Technology,Software & Services,Internet Software & Services
 NVO,Information Technology,Software & Services,Internet Software & Services
@@ -1694,6 +1697,7 @@ FML,Materials,Materials,Metals & Mining
 FRC,Materials,Materials,Metals & Mining
 FMG,Materials,Materials,Metals & Mining
 FYA,Materials,Materials,Metals & Mining
+ERX,Materials,Materials,Metals & Mining
 FRN,Materials,Materials,Metals & Mining
 FHS,Materials,Materials,Metals & Mining
 FDX,Materials,Materials,Metals & Mining
@@ -2854,7 +2858,8 @@ AYT,Financials,Diversified Financials,Diversified Financial Services
 AYX,Health Care,Health Care Equipment & Services,Health Care Equipment & Supplies
 AZA,Energy,Energy,"Oil, Gas & Consumable Fuels"
 AZC,Materials,Materials,Metals & Mining
-AZC1,Unknown,Unknown,Unknown
+AZCCA,Materials,Materials,Metals & Mining
+AZC1,Materials,Materials,Metals & Mining
 AZD,Financials,Diversified Financials,Consumer Finance
 AZG,Industrials,Commercial & Professional Services,Commercial Services & Supplies
 AZG1,Financials,Real Estate,Real Estate Investment Trusts (REITs)
@@ -3859,6 +3864,7 @@ LYN,Unknown,Unknown,Unknown
 MAG1,Materials,Materials,Metals & Mining
 MAM1,Unknown,Unknown,Unknown
 MAN,Materials,Materials,Metals & Mining
+MANCA,Materials,Materials,Metals & Mining
 MAP1,Unknown,Unknown,Unknown
 MAS1,Unknown,Unknown,Unknown
 MAT1,Unknown,Unknown,Unknown
