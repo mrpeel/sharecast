@@ -115,6 +115,9 @@ def load_data(file_name, **kwargs):
     df = pd.read_pickle(file_name, compression='gzip')
     gc.collect()
 
+    print('Number of "NA" symbols:',
+        df[df['symbol'] == 'NA'].shape[0])
+
     print(df.info(memory_usage='deep'))
 
     # Convert dates to correct type

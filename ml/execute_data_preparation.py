@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_REF_COLUMNS, HIGH_NAN_COLUMNS
 from optimise_dataframe import optimise_df
-
+from print_logger import initialise_print_logger, print
 
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive
@@ -359,6 +359,8 @@ def transform_symbol_returns(df: pd.DataFrame, symbol: str):
     # t2 = timer()
     # print('Reducing data to ' + symbol + ' took: ', t2 - t1)
 
+    check_for_null_symbols(transformed_df)
+
     # Set the date index for the data frame
     transformed_df[date_ref_col] = transformed_df[date_col]
     transformed_df = transformed_df.set_index(date_ref_col)
@@ -416,10 +418,12 @@ def process_dataset(df: pd.DataFrame):
         axis=1
     )
 
-    symbols = df['symbol'].unique()
+    check_for_null_symbols(df)
+
+    symbols = df['symbol'].drop_duplicates()
 
     # ######## TEMP ###########
-    # symbols = symbols.head(20)
+    # symbols = symbols.head(100)
     # ########################
 
     num_symbols = symbols.shape[0]
@@ -432,6 +436,8 @@ def process_dataset(df: pd.DataFrame):
     for symbol in symbols:
         print(80*'-')
         symbol_df = transform_symbol_returns(df, symbol)
+
+        check_for_null_symbols(symbol_df)
 
         # Add data frame into all results
         symbol_dfs.append(symbol_df)
@@ -447,10 +453,18 @@ def process_dataset(df: pd.DataFrame):
             #   ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
             print(80 * '-')
 
+    print('Concatenating symbol dfs')
+
     # Create empty data frame
     output_df = pd.concat(symbol_dfs)
 
+    print('Number of "NA" symbols in concatenated df:',
+          output_df[output_df['symbol'] == 'NA'].shape[0])
+
     output_df = optimise_df(output_df)
+
+    print('Number of "NA" symbols in optimised df:',
+          output_df[output_df['symbol'] == 'NA'].shape[0])
 
     # Remove extra columns created during calculations
     df.drop(PAST_RESULTS_DATE_REF_COLUMNS,
@@ -500,7 +514,7 @@ def generate_label_column(df, num_weeks, reference_date, date_col):
      """
 
     # Retrieve unique symbols
-    symbols = df['symbol'].drop_duplicates()
+    symbols = df['symbol'].unique()
     symbol_counter = 0
 
     date_ref_col = date_col + '_ref'
@@ -619,11 +633,11 @@ def generate_tminus_values(df):
 def divide_labelled_unlabelled(df, num_weeks, reference_date):
     """
         Generate two datasets.
-        Keep quotes > (reference_date - num_weeks)
+        Reference period = (reference_date - num_weeks)
         labelled - keep data before reference period with a label
-        Unlabelled - remove all data which is before the reference period.
+        unlabelled - remove all data which is before the reference period.
     """
-    print('Calculating reference date compairson, reference_date:',
+    print('Calculating reference date comparison, reference_date:',
           reference_date, ', num_weeks:', num_weeks)
 
     weeks_delta = timedelta(weeks=num_weeks)
@@ -638,6 +652,15 @@ def divide_labelled_unlabelled(df, num_weeks, reference_date):
     print('Retaining', len(unlabelled_df.index), 'unlabelled records')
 
     return labelled_df, unlabelled_df
+
+
+def check_for_null_symbols(df):
+    if 'symbol' in df.columns:
+        print(df['symbol'].dtype)
+        print('Number of null symbols:', df['symbol'].isnull().sum())
+        print('Number of "NA" symbols:', df[df['symbol'] == 'NA'].shape[0])
+    else:
+        print('Symbol column not found')
 
 
 def main(**kwargs):
@@ -670,6 +693,9 @@ def main(**kwargs):
     generate_label_weeks = kwargs.get('generate_label_weeks', None)
     reference_date = kwargs.get('reference_date', None)
 
+    initialise_print_logger('logs/data-preparation-' +
+                            datetime.now().strftime('%Y%m%d%H%M') + '.log')
+
     # Check whether to load individual files or an aggregated file
     if load_individual_data_files:
         print('Loading individual data files')
@@ -698,9 +724,13 @@ def main(**kwargs):
         categories_df = pd.read_csv(symbol_industry_path)
         df = append_industry_categories(df, categories_df)
 
+    check_for_null_symbols(df)
+
     # Processing data
     print('Processing returns and recurrent columns for each symbol')
     processed_data = process_dataset(df)
+
+    check_for_null_symbols(processed_data)
 
     # generate labels if required
     if generate_labels and generate_label_weeks and reference_date:
@@ -708,9 +738,12 @@ def main(**kwargs):
             processed_data, generate_label_weeks, reference_date, 'quoteDate')
         gc.collect()
 
+        check_for_null_symbols(processed_data)
+
         # Generate t-n for label data
         if generate_tminus_labels:
             processed_data = generate_tminus_values(processed_data)
+            check_for_null_symbols(processed_data)
 
         # split data into labelled and unlabelled
         labelled_df, unlabelled_df = divide_labelled_unlabelled(
@@ -723,6 +756,8 @@ def main(**kwargs):
         unlabelled_file_name = 'data/ml-' + run_str + '-unlabelled.pkl.gz'
         print('Saving processed data to:', unlabelled_file_name)
         unlabelled_df.to_pickle(unlabelled_file_name, compression='gzip')
+
+    check_for_null_symbols(processed_data)
 
     gc.collect()
     proc_file_name = 'data/ml-' + run_str + '-processed.pkl.gz'
@@ -738,13 +773,13 @@ if __name__ == "__main__":
     RUN_STR = '20180922'
 
     main(run_str=RUN_STR,
-         load_individual_data_files=True,
+         load_individual_data_files=False,
          base_path='data/companyQuotes-20180922-%03d.csv.gz',
          add_industry_categories=True,
          symbol_industry_path='data/symbol-industry-lookup.csv',
          no_files=64,
          generate_labels=True,
          generate_label_weeks=8,
-         reference_date='2018-08-08',
+         reference_date='2018-09-08',
          generate_tminus_labels=True
          )

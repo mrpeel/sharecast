@@ -114,13 +114,16 @@ def main(**kwargs):
     # Prepare run_str
     run_str = datetime.now().strftime('%Y%m%d%H%M')
 
-    initialise_print_logger('logs/execution-' + run_str + '.log')
+    initialise_print_logger('logs/prediction-' + run_str + '.log')
 
     print('Starting sharecast prediction:', run_str)
 
     # Load and divide data
     share_data = load_data(data_file)
     gc.collect()
+
+    print('Number of "NA" symbols:',
+          share_data[share_data['symbol'] == 'NA'].shape[0])
 
     # Divide data into symbols and general data for training an testing
     if predict_unlabelled:
@@ -135,6 +138,9 @@ def main(**kwargs):
 
     del share_data
     gc.collect()
+
+    print('Number of "NA" symbols:',
+          df_symbol_date[df_symbol_date['symbol'] == 'NA'].shape[0])
 
     # Retain model names for train and test
     print('Retaining model name data')
@@ -210,8 +216,7 @@ def main(**kwargs):
 
 if __name__ == "__main__":
 
-    main(data_file='./data/ml-20180714-processed.pkl.gz',
-         generate_labels=True,
+    main(data_file='./data/ml-20180922-labelled.pkl.gz',
          predict_unlabelled=False,
          output_preds=True,
          eval_results=True
