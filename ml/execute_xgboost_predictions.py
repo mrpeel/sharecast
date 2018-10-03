@@ -216,8 +216,8 @@ def main(**kwargs):
 
 if __name__ == "__main__":
 
-    main(data_file='./data/ml-20180922-labelled.pkl.gz',
-         predict_unlabelled=False,
+    main(data_file='./data/ml-20180922-unlabelled.pkl.gz',
+         predict_unlabelled=True,
          output_preds=True,
-         eval_results=True
+         eval_results=False
          )
