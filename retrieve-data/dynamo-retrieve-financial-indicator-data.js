@@ -67,7 +67,7 @@ let indicatorRetrievalValues = {
     dayLag: 1,
   },
   'GRCPAISAD': {
-    /* Commodities ]all bulk */
+    /* Commodities all bulk */
     url: 'RBA/I02.json',
     dataColumn: 16,
     monthLag: 1,
@@ -96,7 +96,7 @@ let indicatorRetrievalValues = {
   },
   '640106_A3597525W': {
     /* Australia CPI (inflation) monthly */
-    url: 'AUSBS/640106_A3597525W.json',
+    url: 'RATEINF/CPI_AUS.json',
     dataColumn: 1,
     monthLag: 1,
     dayLag: 1,
