@@ -29,7 +29,7 @@ const lambdaParamsRetrieveFunction = {
   Runtime: 'nodejs8.10 ',
   Description: 'Run single retrieve function for share data and store in dynamodb',
   MemorySize: 256,
-  Timeout: 300,
+  Timeout: 600,
   Publish: true,
   Code: {
     S3Bucket: 'cake-lambda-zips',
