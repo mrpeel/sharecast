@@ -1,29 +1,47 @@
 import pandas as pd
+import numpy as np
 from dateutil.parser import parse
 from print_logger import print
 
 
-def is_date(string):
+def is_date(value):
     """
-        Checks whether a string is a date by attempting to parse it.
+        Checks whether a value is a date by attempting to parse it.
     """
     try:
-        parse(string)
+        parse(str(value))
         return True
+    except:
+        return False
+
+
+def is_nat(value):
+    """
+        Checks whether a value is an NaT (not a time).
+    """
+    try:
+        if np.isnat(np.datetime64(str(value))):
+            return True
+        else:
+            return False
     except:
         return False
 
 
 def is_date_col(df_col: pd.Series):
     """
-        Checks whether the first 100 values in a column convert to dates.
+        Checks whether random 1000 values in a column convert to dates.
         If yes, returns that this is a date column.
     """
     date_col = False
-    # Retrieve first 100 values to check whether dates
-    top_vals = df_col[:100].values
+    # Retrieve a random sample of 1000 values to check whether dates
+    sample_size = 1000
+    if df_col.shape[0] < 1000:
+        sample_size = df_col.shape[0]
+
+    top_vals = df_col.sample(sample_size).values
     for val in top_vals:
-        if is_date(val):
+        if is_date(val) or is_nat(val):
             date_col = True
             break
 
@@ -56,25 +74,37 @@ def optimise_df(df: pd.Series):
     optimised_df = pd.DataFrame()
 
     for col in df.columns.values:
-        print('Field:', col, 'type:', df[col].dtype)
-        calulated_col_type = get_col_type(df[col])
+        existing_col_type = str(df[col].dtype)
+        print('Field:', col, 'type:', existing_col_type)
+        if col == 'symbol':
+            calculated_col_type = 'category'
+        else:
+            calculated_col_type = get_col_type(df[col])
 
-        if calulated_col_type == 'date':
+        if calculated_col_type == 'date':
             print('Coverting to date')
             optimised_df[col] = pd.to_datetime(df[col], errors='coerce')
-        elif calulated_col_type == 'category':
-            # fill missing values with NA
-            print('Filling missing values with NA')
-            df[col].fillna('NA', inplace=True)
-            print('Coverting to category')
-            optimised_df[col] = df[col].astype('category')
-        elif calulated_col_type == 'int8':
+        elif calculated_col_type == 'category' and existing_col_type != 'category':
+            # fill missing values with NA and convert
+            print('Filling missing values with NA and converting to category')
+            optimised_df[col] = df[col].fillna('NA').astype('category')
+        elif calculated_col_type == 'category' and existing_col_type == 'category':
+            # Check whether this category has missing values
+            print('Column is already category - checking for missing values with NA')
+            if df[col].isna().sum() > 0:
+                # Missing values found - add NA to category values
+                df[col].cat.add_categories('NA', inplace=True)
+                # Fill missing with NA
+                df[col].fillna('NA', inplace=True)
+
+            optimised_df[col] = df[col]
+        elif calculated_col_type == 'int8':
             print('Coverting to int8')
             optimised_df[col] = df[col].astype('int8', errors='ignore')
-        elif calulated_col_type == 'int32':
+        elif calculated_col_type == 'int32':
             print('Coverting to int32')
             optimised_df[col] = df[col].astype('int32', errors='ignore')
-        elif calulated_col_type == 'float32':
+        elif calculated_col_type == 'float32':
             print('Coverting to float32')
             optimised_df[col] = df[col].astype('float32', errors='ignore')
         else:

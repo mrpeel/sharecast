@@ -126,6 +126,27 @@ PAST_RESULTS_DATE_REF_COLUMNS = ['one_week_comparison_date', 'two_week_compariso
                                  'eight_week_comparison_date', 'twelve_week_comparison_date',
                                  'twenty_six_week_comparison_date', 'fifty_two_week_comparison_date']
 
+WHOLE_MARKET_COLUMNS = ['quoteDate', 'allordpreviousclose', 'allordchange', 'allorddayshigh', 'allorddayslow',
+                        'allordpercebtChangeFrom52WeekHigh', 'allordpercentChangeFrom52WeekLow', 'asxpreviousclose',
+                        'asxchange', 'asxdayshigh', 'asxdayslow', 'asxpercebtChangeFrom52WeekHigh',
+                        'asxpercentChangeFrom52WeekLow', '640106_A3597525W', 'FIRMMCRT', 'FXRUSD', 'GRCPAIAD',
+                        'GRCPAISAD', 'GRCPBCAD', 'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD', 'H01_GGDPCVGDP',
+                        'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP']
+
+SYMBOL_COPY_COLUMNS = ['adjustedPrice', 'previousClose', 'change', 'changeInPercent', '52WeekHigh', '52WeekLow',
+                       'changeFrom52WeekHigh', 'changeFrom52WeekLow', 'percebtChangeFrom52WeekHigh',
+                       'percentChangeFrom52WeekLow', 'Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume',
+                       'BookValuePerShareYear', 'CashPerShareYear', 'DPSRecentYear', 'EBITDMargin', 'EPS',
+                       'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',
+                       'LTDebtToEquityYear', 'MarketCap', 'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent',
+                       'OperatingMargin', 'PE', 'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM',
+                       'ReturnOnAssetsYear', 'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'ReturnOnEquityYear',
+                       'RevenueGrowthRate10Years', 'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter',
+                       'TotalDebtToAssetsYear', 'TotalDebtToEquityQuarter', 'TotalDebtToEquityYear', 'bookValue',
+                       'earningsPerShare', 'ebitda', 'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio',
+                       'pegRatio', 'pricePerBook', 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear',
+                       'pricePerSales']
+
 ALL_CONTINUOUS_COLUMNS = []
 ALL_CONTINUOUS_COLUMNS.extend(CONTINUOUS_COLUMNS)
 ALL_CONTINUOUS_COLUMNS.extend(PAST_RESULTS_CONTINUOUS_COLUMNS)
