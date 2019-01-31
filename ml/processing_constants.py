@@ -133,19 +133,20 @@ WHOLE_MARKET_COLUMNS = ['quoteDate', 'allordpreviousclose', 'allordchange', 'all
                         'GRCPAISAD', 'GRCPBCAD', 'GRCPBCSAD', 'GRCPBMAD', 'GRCPNRAD', 'GRCPRCAD', 'H01_GGDPCVGDP',
                         'H01_GGDPCVGDPFY', 'H05_GLFSEPTPOP']
 
-SYMBOL_COPY_COLUMNS = ['adjustedPrice', 'previousClose', 'change', 'changeInPercent', '52WeekHigh', '52WeekLow',
-                       'changeFrom52WeekHigh', 'changeFrom52WeekLow', 'percebtChangeFrom52WeekHigh',
-                       'percentChangeFrom52WeekLow', 'Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume',
-                       'BookValuePerShareYear', 'CashPerShareYear', 'DPSRecentYear', 'EBITDMargin', 'EPS',
-                       'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',
-                       'LTDebtToEquityYear', 'MarketCap', 'NetIncomeGrowthRate5Years', 'NetProfitMarginPercent',
-                       'OperatingMargin', 'PE', 'PriceToBook', 'ReturnOnAssets5Years', 'ReturnOnAssetsTTM',
-                       'ReturnOnAssetsYear', 'ReturnOnEquity5Years', 'ReturnOnEquityTTM', 'ReturnOnEquityYear',
-                       'RevenueGrowthRate10Years', 'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter',
-                       'TotalDebtToAssetsYear', 'TotalDebtToEquityQuarter', 'TotalDebtToEquityYear', 'bookValue',
-                       'earningsPerShare', 'ebitda', 'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio',
-                       'pegRatio', 'pricePerBook', 'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear',
-                       'pricePerSales']
+SYMBOL_COPY_COLUMNS = ['adjustedPrice', '52WeekHigh', '52WeekLow', 'changeFrom52WeekHigh', 'changeFrom52WeekLow',
+                       'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow', 'Price200DayAverage',
+                       'Price52WeekPercChange', 'AverageVolume', 'BookValuePerShareYear', 'CashPerShareYear',
+                       'DPSRecentYear', 'EBITDMargin', 'EPS', 'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD',
+                       'LTDebtToEquityQuarter', 'LTDebtToEquityYear', 'MarketCap', 'NetIncomeGrowthRate5Years',
+                       'NetProfitMarginPercent', 'OperatingMargin', 'PE', 'PriceToBook', 'ReturnOnAssets5Years',
+                       'ReturnOnAssetsTTM', 'ReturnOnAssetsYear', 'ReturnOnEquity5Years', 'ReturnOnEquityTTM',
+                       'ReturnOnEquityYear', 'RevenueGrowthRate10Years', 'RevenueGrowthRate5Years',
+                       'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear', 'TotalDebtToEquityQuarter',
+                       'TotalDebtToEquityYear', 'bookValue', 'earningsPerShare', 'ebitda', 'epsEstimateCurrentYear',
+                       'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook', 'pricePerEpsEstimateCurrentYear',
+                       'pricePerEpsEstimateNextYear', 'pricePerSales']
+
+SYMBOL_ZERO_COPY_COLUMNS = ['volume', 'change', 'changeInPercent']
 
 ALL_CONTINUOUS_COLUMNS = []
 ALL_CONTINUOUS_COLUMNS.extend(CONTINUOUS_COLUMNS)
@@ -159,6 +160,10 @@ ALL_CATEGORICAL_COLUMNS.extend(PAST_RESULTS_CATEGORICAL_COLUMNS)
 COLUMNS_TO_REMOVE = []
 COLUMNS_TO_REMOVE.extend(HIGH_NAN_COLUMNS)
 COLUMNS_TO_REMOVE.extend(PAST_RESULTS_DATE_REF_COLUMNS)
+
+ALL_MISSING_COLUMNS = []
+ALL_MISSING_COLUMNS.extend(WHOLE_MARKET_COLUMNS)
+ALL_MISSING_COLUMNS.extend(SYMBOL_COPY_COLUMNS)
 
 COLUMN_TYPES = {
     'symbol': 'category',

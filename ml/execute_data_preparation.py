@@ -6,7 +6,8 @@ import numba
 import pandas as pd
 import numpy as np
 from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_REF_COLUMNS
-from processing_constants import HIGH_NAN_COLUMNS, WHOLE_MARKET_COLUMNS, SYMBOL_COPY_COLUMNS
+from processing_constants import HIGH_NAN_COLUMNS, SYMBOL_COPY_COLUMNS, WHOLE_MARKET_COLUMNS
+from processing_constants import SYMBOL_ZERO_COPY_COLUMNS
 from optimise_dataframe import optimise_df
 from print_logger import initialise_print_logger, print
 
@@ -422,8 +423,8 @@ def fill_symbol_empty_days(df: pd.DataFrame, symbol: str, reference_whole_market
     check_for_null_symbols(symbol_df)
 
     # Keep reference data within symbol min and max
-    mask = (reference_whole_market_data['quoteDate'] > symbol_min_date) & (
-        reference_whole_market_data['quoteDate'] <= symbol_max_date)
+    mask = (reference_whole_market_data.index > symbol_min_date) & (
+        reference_whole_market_data.index <= symbol_max_date)
     symbol_reference_data = reference_whole_market_data.loc[mask]
     symbol_reference_data['qdIndex'] = symbol_reference_data['quoteDate']
     symbol_reference_data.set_index('qdIndex', inplace=True)
@@ -445,7 +446,6 @@ def fill_symbol_empty_days(df: pd.DataFrame, symbol: str, reference_whole_market
         # Construct a dict starting with the missing date
         new_row = {}
         new_row['symbol'] = symbol
-        new_row['volume'] = 0
 
         values_to_skip = ['Index', 'insertion_reference']
 
@@ -462,6 +462,13 @@ def fill_symbol_empty_days(df: pd.DataFrame, symbol: str, reference_whole_market
                 new_row[col_name] = lookup_row[col_name]
             else:
                 new_row[col_name] = np.nan
+
+        # Loop through possible column names and copy in values, else set null
+        for col_name in SYMBOL_ZERO_COPY_COLUMNS:
+            new_row[col_name] = 0
+
+        # Reset previousclose to be the same as adjustedprice
+        new_row['previousClose'] = new_row['adjustedPrice']
 
         merged_df = merged_df.append(new_row, ignore_index=True)
 
@@ -513,13 +520,17 @@ def process_dataset(df: pd.DataFrame):
 
     # Determine all possible dates for symbol records and the
     # overall min and max dates for all records
-    # all_possible_dates = df['quoteDate'].drop_duplicates()
+    # all_possible_dates = df['quoteDate'].dropna().drop_duplicates()
     # overall_min_date = all_possible_dates.min()[0]
     # overall_max_date = all_possible_dates.max()[0]
 
     # Retrieve a unique reference set of whole market data , e.g. all ords / asx
     # for each day with records
     reference_whole_market_data = df[WHOLE_MARKET_COLUMNS].drop_duplicates()
+    # Ensure there is only one record per day
+    reference_whole_market_data = reference_whole_market_data.groupby(
+        'quoteDate').first()
+    reference_whole_market_data['quoteDate'] = reference_whole_market_data.index
 
     # Create list for symbol results
     symbol_dfs = []
@@ -873,7 +884,7 @@ if __name__ == "__main__":
          base_path='data/companyQuotes-20190115-%03d.csv.gz',
          add_industry_categories=True,
          symbol_industry_path='data/symbol-industry-lookup.csv',
-         no_files=1,  # 32,
+         no_files=33,
          generate_labels=True,
          generate_label_weeks=8,
          reference_date='2019-01-12',
