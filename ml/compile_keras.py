@@ -2,6 +2,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.layers.advanced_activations import LeakyReLU, PReLU, ThresholdedReLU, ELU
 from keras import optimizers
+from AdamW import AdamW
 from stats_operations import k_mae_mape, k_mean_absolute_percentage_error
 from print_logger import print
 
@@ -19,9 +20,12 @@ def get_activation_layer(activation):
     return Activation(activation)
 
 
-def get_optimizer(name='Adadelta'):
+def get_optimizer(name='Adadelta', momentum=None, min_lr=0.0001, weight_decay=0.):
     if name == 'SGD':
-        return optimizers.SGD()  # clipnorm=1.)
+        # return optimizers.SGD()
+        return optimizers.SGD(lr=min_lr, momentum=momentum, decay=weight_decay, nesterov=True)
+    if name == 'AdamW':
+        return AdamW(weight_decay=weight_decay)
     if name == 'RMSprop':
         return optimizers.RMSprop()  # clipnorm=1.)
     if name == 'Adagrad':
@@ -49,11 +53,15 @@ def compile_keras_model(network, dimensions):
 
     """
     # Get our network parameters.
-    activation = network['activation']
-    optimizer = network['optimizer']
-    dropout = network['dropout']
-    kernel_initializer = network['kernel_initializer']
-    model_type = network['model_type']
+    activation = network.get('activation', 'relu')
+    optimizer = network.get('optimizer', 'Adam')
+    dropout = network.get('dropout', 0)
+    kernel_initializer = network.get('kernel_initializer')
+    model_type = network.get('model_type', 'mae')
+    momentum = network.get('momentum')
+    min_lr = network.get('min_lr', 0.0001)
+    max_lr = network.get('max_lr', 0.1)
+    weight_decay = network.get('weight_decay', 0.)
     num_classes = 0
 
     if model_type == "categorical_crossentropy":
@@ -92,7 +100,9 @@ def compile_keras_model(network, dimensions):
     if model_type == "categorical_crossentropy":
         model.add(
             Dense(num_classes, kernel_initializer=kernel_initializer, activation='softmax'))
-        model.compile(loss="categorical_crossentropy", optimizer=get_optimizer(optimizer),
+        model.compile(loss="categorical_crossentropy",
+                      optimizer=get_optimizer(
+                          optimizer, momentum, min_lr, weight_decay),
                       metrics=["categorical_accuracy"])
     else:
         model.add(
@@ -100,12 +110,18 @@ def compile_keras_model(network, dimensions):
 
         if model_type == "mape":
             model.compile(loss=k_mean_absolute_percentage_error,
-                          optimizer=get_optimizer(optimizer), metrics=['mae'])
+                          optimizer=get_optimizer(
+                              optimizer, momentum, min_lr, weight_decay),
+                          metrics=['mae'])
         elif model_type == "mae_mape":
-            model.compile(loss=k_mae_mape, optimizer=get_optimizer(
-                optimizer), metrics=['mae', k_mean_absolute_percentage_error])
+            model.compile(loss=k_mae_mape,
+                          optimizer=get_optimizer(
+                              optimizer, momentum, min_lr, weight_decay),
+                          metrics=['mae', k_mean_absolute_percentage_error])
         else:
-            model.compile(loss='mae', optimizer=get_optimizer(
-                optimizer), metrics=[k_mean_absolute_percentage_error])
+            model.compile(loss='mae',
+                          optimizer=get_optimizer(
+                              optimizer, momentum, min_lr, weight_decay),
+                          metrics=[k_mean_absolute_percentage_error])
 
     return model

@@ -407,7 +407,7 @@ def fill_symbol_empty_days(df: pd.DataFrame, symbol: str, reference_whole_market
 
         df: Pandas dataframe with all records
         symbol: string with symbol
-        reference_whole_market_data: Pandas dataframe with the unique reference data for each day 
+        reference_whole_market_data: Pandas dataframe with the unique reference data for each day
     """
     print('Fill empty days for symbol: ', symbol)
     t_1 = timer()

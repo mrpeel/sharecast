@@ -13,14 +13,14 @@ from sklearn.preprocessing import MinMaxScaler, Imputer
 from sklearn.model_selection import train_test_split
 
 from keras import Model
-from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint
+from keras.callbacks import EarlyStopping, CSVLogger, ModelCheckpoint, ReduceLROnPlateau
 
 from eval_results import eval_results, range_results
 from print_logger import print
 from stats_operations import safe_log, safe_exp
 from stats_operations import flatten_array
 
-from clr_callback import CyclicLR
+# from clr_callback import CyclicLR
 from compile_keras import compile_keras_model
 # import matplotlib.pyplot as plt
 
@@ -962,14 +962,18 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     network = {
         'hidden_layers': [5, 5, 5],
         'activation': 'relu',
-        'optimizer': 'Adagrad',
+        'optimizer': 'AdamW',
         'kernel_initializer': 'glorot_uniform',
         'batch_size': 256,
         'dropout': 0.05,
         'model_type': 'mape',
     }
 
+    num_samples = train_x.shape[0]
     dimensions = train_x.shape[1]
+    num_epochs = 500
+    
+    network['weight_decay'] = 0.005 * (network['batch_size'] / num_samples / num_epochs )**0.5
 
     p_model = compile_keras_model(network, dimensions)
 
@@ -977,8 +981,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     if use_previous_training_weights and Path('./weights/weights-1.hdf5').exists():
         p_model.load_weights('./weights/weights-1.hdf5')
 
-    # reduce_lr = ReduceLROnPlateau(
-    #     monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    reduce_lr = ReduceLROnPlateau(
+        monitor='val_loss', factor=0.3, verbose=1, patience=15, min_lr=1e-5)
     early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/actual-mape-training.log')
     checkpointer = ModelCheckpoint(
@@ -988,8 +992,8 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     array_index = np.arange(train_x.shape[0])
 
     # Vals *.85 (train / test split) / batch size * num epochs for cycle
-    step_size = math.ceil(array_index.shape[0] * .85 / 256) * 4
-    clr = CyclicLR(base_lr=0.001, max_lr=0.04, step_size=step_size)
+    # step_size = math.ceil(array_index.shape[0] * .85 / 256) * 4
+    # clr = CyclicLR(base_lr=0.001, max_lr=0.04, step_size=step_size)
     # Reshuffle index
     np.random.shuffle(array_index)
 
@@ -1001,10 +1005,9 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     p_model.fit(x_shuffled_train,
                 y_shuffled_train,
                 validation_split=0.15,
-                epochs=1000,
+                epochs=num_epochs,
                 batch_size=network['batch_size'],
-                callbacks=[  # reduce_lr,#
-                    early_stopping, csv_logger, checkpointer, clr],
+                callbacks=[reduce_lr, early_stopping, csv_logger, checkpointer],
                 verbose=0)
 
     p_model.load_weights('./weights/weights-1.hdf5')
@@ -1022,7 +1025,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     network = {
         'hidden_layers': [7, 7, 7, 7],
         'activation': 'relu',
-        'optimizer': 'Adamax',
+        'optimizer': 'AdamW',
         'kernel_initializer': 'normal',
         'dropout': 0.1,
         'batch_size': 512,
@@ -1030,7 +1033,11 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
         'int_layer': 30,
     }
 
+    num_samples = train_x.shape[0]
     dimensions = train_x.shape[1]
+    num_epochs = 500
+    
+    network['weight_decay'] = 0.005 * (network['batch_size'] / num_samples / num_epochs )**0.5
 
     model = compile_keras_model(network, dimensions)
 
@@ -1038,7 +1045,7 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     if use_previous_training_weights and Path('./weights/weights-2.hdf5').exists():
         model.load_weights('./weights/weights-2.hdf5')
 
-    # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, verbose=1, patience=3)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.3, verbose=1, patience=15, min_lr=1e-5)
     early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/log-training.log')
     checkpointer = ModelCheckpoint(
@@ -1049,9 +1056,9 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     # Reorder array - get array index
     array_index = np.arange(train_x.shape[0])
 
-    step_size = math.ceil(array_index.shape[0] * .85 / 512) * 100
-    clr = CyclicLR(base_lr=0.001, max_lr=0.04,
-                   step_size=step_size, mode='exp_range', gamma=0.96)
+    # step_size = math.ceil(array_index.shape[0] * .85 / 512) * 100
+    # clr = CyclicLR(base_lr=0.001, max_lr=0.04,
+    #                step_size=step_size, mode='exp_range', gamma=0.96)
 
     # Reshuffle index
     np.random.shuffle(array_index)
@@ -1064,10 +1071,9 @@ def train_keras_nn(df_all_train_x, df_all_train_y, df_all_train_actuals, df_all_
     model.fit(x_shuffled_train,
               y_shuffled_train,
               validation_split=0.15,
-              epochs=1000,
+              epochs=num_epochs,
               batch_size=network['batch_size'],
-              callbacks=[  # reduce_lr,
-                  early_stopping, checkpointer, csv_logger, clr],
+              callbacks=[reduce_lr, early_stopping, checkpointer, csv_logger],
               verbose=0)
 
     model.load_weights('./weights/weights-2.hdf5')
@@ -1119,27 +1125,32 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
     train_x_scaled = scaler.fit_transform(train_x)
     test_x_scaled = scaler.transform(test_x)
 
-    # reduce_lr = ReduceLROnPlateau(
-    #     monitor='val_loss', factor=0.2, verbose=1, patience=2)
+    reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.3, verbose=1, patience=15, min_lr=1e-5)
     early_stopping = EarlyStopping(monitor='val_loss', patience=30)
     csv_logger = CSVLogger('./logs/training.log')
     checkpointer = ModelCheckpoint(
         filepath='./weights/weights-3.hdf5', verbose=0, save_best_only=True)
     # Vals *.8 (train / test split) / batch size * num epochs for cycle
-    step_size = math.ceil(train_x_scaled.shape[0] * 0.8 / 1024) * 4
-    clr = CyclicLR(base_lr=0.001, max_lr=0.03, step_size=step_size)
+    # step_size = math.ceil(train_x_scaled.shape[0] * 0.8 / 1024) * 4
+    # clr = CyclicLR(base_lr=0.001, max_lr=0.03, step_size=step_size)
 
     dimensions = train_x.shape[1]
 
     network = {
         'activation': 'PReLU',
-        'optimizer': 'Nadam',
+        'optimizer': 'AdamW',
         'batch_size': 1024,
         'dropout': 0.05,
         'model_type': 'mae_mape',
         'kernel_initializer': 'normal',
         'hidden_layers': [5],
     }
+
+    num_samples = train_x.shape[0]
+    dimensions = train_x.shape[1]
+    num_epochs = 500
+    
+    network['weight_decay'] = 0.005 * (network['batch_size'] / num_samples / num_epochs )**0.5
 
     model = compile_keras_model(network, dimensions)
 
@@ -1155,11 +1166,10 @@ def train_deep_bagging(train_predictions, train_actuals, test_predictions,
     # history = model.fit(train_x_scaled, train_y,
     model.fit(train_x_scaled, train_y,
               batch_size=network['batch_size'],
-              epochs=2000,
+              epochs=num_epochs,
               verbose=0,
               validation_split=0.2,
-              callbacks=[csv_logger, clr,  # reduce_lr,
-                         early_stopping, checkpointer])
+              callbacks=[csv_logger, reduce_lr, early_stopping, checkpointer])
 
     print('\rResults')
 
@@ -1306,19 +1316,19 @@ def execute_train_test_predictions(df_all_train_x, train_x_model_names, train_x_
 
 def execute_model_predictions(df_x, x_model_names, x_gics_industry_groups, xgb_models, xgb_industry_models,
                               keras_models):
-    print('Executing xgb symbol predictions')
+    print('Executing xgb symbol predictions.  Number of rows:', len(df_x))
     xgb_predictions = execute_xgb_predictions(
         df_x, x_model_names, xgb_models, keras_models)
     gen_predictions = xgb_predictions['log_y_predictions']
     xgboost_keras_gen_predictions = xgb_predictions['keras_mae_predictions']
     xgboost_keras_log_predictions = xgb_predictions['keras_log_mae_predictions']
 
-    print('Executing xgb industry predictions')
+    print('Executing xgb industry predictions.  Number of rows:', len(df_x))
     xgb_industry_predictions = execute_xgb_predictions(df_x, x_gics_industry_groups, xgb_industry_models,
                                                        keras_models)
     gen_industry_predictions = xgb_industry_predictions['log_y_predictions']
 
-    print('Executing keras predictions')
+    print('Executing keras predictions.  Number of rows:', len(df_x))
     data_x = df_x.values
 
     keras_mape_predictions = keras_models['mape_model'].predict(data_x)
