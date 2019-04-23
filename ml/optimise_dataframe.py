@@ -65,7 +65,7 @@ def is_int8_col(df_col: pd.Series):
     return df_col.isin([0, 1]).all()
 
 
-def optimise_df(df: pd.Series):
+def optimise_df(df: pd.Series, verbose=False):
     """
         Works through the columns of a dataframe and optimises for memory where
         possible.
@@ -74,23 +74,29 @@ def optimise_df(df: pd.Series):
     optimised_df = pd.DataFrame()
 
     for col in df.columns.values:
+        print('Field:', col)
         existing_col_type = str(df[col].dtype)
-        print('Field:', col, 'type:', existing_col_type)
+        if verbose:
+            print('type:', existing_col_type)
+
         if col == 'symbol':
             calculated_col_type = 'category'
         else:
             calculated_col_type = get_col_type(df[col])
 
         if calculated_col_type == 'date':
-            print('Coverting to date')
+            if verbose:
+                print('Coverting to date')
             optimised_df[col] = pd.to_datetime(df[col], errors='coerce')
         elif calculated_col_type == 'category' and existing_col_type != 'category':
             # fill missing values with NA and convert
-            print('Filling missing values with NA and converting to category')
+            if verbose:
+                print('Filling missing values with NA and converting to category')
             optimised_df[col] = df[col].fillna('NA').astype('category')
         elif calculated_col_type == 'category' and existing_col_type == 'category':
             # Check whether this category has missing values
-            print('Column is already category - checking for missing values with NA')
+            if verbose:
+                print('Column is already category - checking for missing values with NA')
             if df[col].isna().sum() > 0:
                 # Missing values found - add NA to category values
                 df[col].cat.add_categories('NA', inplace=True)
@@ -99,16 +105,20 @@ def optimise_df(df: pd.Series):
 
             optimised_df[col] = df[col]
         elif calculated_col_type == 'int8':
-            print('Coverting to int8')
+            if verbose:
+                print('Coverting to int8')
             optimised_df[col] = df[col].astype('int8', errors='ignore')
         elif calculated_col_type == 'int32':
-            print('Coverting to int32')
+            if verbose:
+                print('Coverting to int32')
             optimised_df[col] = df[col].astype('int32', errors='ignore')
         elif calculated_col_type == 'float32':
-            print('Coverting to float32')
+            if verbose:
+                print('Coverting to float32')
             optimised_df[col] = df[col].astype('float32', errors='ignore')
         else:
-            print('Copying existing')
+            if verbose:
+                print('Copying existing')
             optimised_df[col] = df[col]
 
     return optimised_df

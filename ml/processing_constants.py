@@ -95,6 +95,17 @@ PAST_RESULTS_CATEGORICAL_COLUMNS = ['one_week_bollinger_type', 'one_week_bolling
                                     'twenty_six_week_bollinger_type', 'twenty_six_week_bollinger_prediction',
                                     'fifty_two_week_bollinger_type', 'fifty_two_week_bollinger_prediction']
 
+BOLLINGER_VALUE_COLUMNS = ['one_week_bollinger_type', 'two_week_bollinger_type', 'four_week_bollinger_type',
+                           'eight_week_bollinger_type', 'twelve_week_bollinger_type',
+                           'twenty_six_week_bollinger_type',
+                           'fifty_two_week_bollinger_type']
+
+BOLLINGER_PREDICTION_COLUMNS = ['one_week_bollinger_prediction', 'two_week_bollinger_prediction',
+                                'four_week_bollinger_prediction', 'eight_week_bollinger_prediction',
+                                'twelve_week_bollinger_prediction', 'twenty_six_week_bollinger_prediction',
+                                'fifty_two_week_bollinger_prediction']
+
+
 RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpreviousclose_T2_5P',
                      'asxpreviousclose_T6_10P', 'asxpreviousclose_T11_20P', 'asxpreviousclose_T1P',
                      'asxpreviousclose_T2_5P', 'asxpreviousclose_T6_10P', 'allordpreviousclose_T11_20P',
@@ -109,8 +120,7 @@ RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpre
                      'GRCPNRAD_T2_5P', 'GRCPNRAD_T6_10P', 'GRCPNRAD_T11_20P', 'GRCPRCAD_T1P', 'GRCPRCAD_T2_5P',
                      'GRCPRCAD_T6_10P', 'GRCPRCAD_T11_20P', 'H01_GGDPCVGDPFY_T1P', 'H01_GGDPCVGDPFY_T2_5P',
                      'H01_GGDPCVGDPFY_T6_10P', 'H01_GGDPCVGDPFY_T11_20P', 'H05_GLFSEPTPOP_T1P', 'H05_GLFSEPTPOP_T2_5P',
-                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P', 'future_eight_week_return_T1_10P',
-                     'future_eight_week_return_T1_20P', 'future_eight_week_return_T1_40P']
+                     'H05_GLFSEPTPOP_T6_10P', 'H05_GLFSEPTPOP_T11_20P']
 
 HIGH_NAN_COLUMNS = ['Price200DayAverage', 'Price52WeekPercChange', 'AverageVolume', 'EBITDMargin',
                     'EPSGrowthRate10Years', 'EPSGrowthRate5Years', 'IAD', 'LTDebtToEquityQuarter',
@@ -120,7 +130,7 @@ HIGH_NAN_COLUMNS = ['Price200DayAverage', 'Price52WeekPercChange', 'AverageVolum
                     'RevenueGrowthRate5Years', 'TotalDebtToAssetsQuarter', 'TotalDebtToAssetsYear',
                     'TotalDebtToEquityQuarter', 'bookValue', 'earningsPerShare', 'ebitda',
                     'epsEstimateCurrentYear', 'marketCapitalization', 'peRatio', 'pegRatio', 'pricePerBook',
-                    'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales']
+                    'pricePerEpsEstimateCurrentYear', 'pricePerEpsEstimateNextYear', 'pricePerSales', '_13']
 
 PAST_RESULTS_DATE_REF_COLUMNS = ['one_week_comparison_date', 'two_week_comparison_date', 'four_week_comparison_date',
                                  'eight_week_comparison_date', 'twelve_week_comparison_date',

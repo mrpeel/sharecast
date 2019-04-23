@@ -89,6 +89,8 @@ def convert_date(df, column_name):
     df[column_name + "_DAYOFWEEK"] = df[column_name +
                                         "_DAYOFWEEK"].astype('int32', errors='ignore')
 
+    return df
+
 
 
 
@@ -131,19 +133,19 @@ def load_data(file_name, **kwargs):
     df.drop(COLUMNS_TO_REMOVE, axis=1, inplace=True, errors='ignore')
 
     # Reset dividend date as a number
-    print('Making ex-dividend date a relative number')
-    df['exDividendRelative'] = df['exDividendDate'] - df['quoteDate']
+    # print('Making ex-dividend date a relative number')
+    # df['exDividendRelative'] = df['exDividendDate'] - df['quoteDate']
 
-    # convert string difference value to integer
-    df['exDividendRelative'] = df['exDividendRelative'].apply(
-        lambda x: np.nan if pd.isnull(x) else x.days)
-    # Make sure it is the minimum data type size
-    df.loc[:, 'exDividendRelative'] = df['exDividendRelative'].astype(
-        'int32', errors='ignore')
+    # # convert string difference value to integer
+    # df['exDividendRelative'] = df['exDividendRelative'].apply(
+    #     lambda x: np.nan if pd.isnull(x) else x.days)
+    # # Make sure it is the minimum data type size
+    # df.loc[:, 'exDividendRelative'] = df['exDividendRelative'].astype(
+    #     'int32', errors='ignore')
 
 
-    print('Converting quoteDate to numeric types')
-    convert_date(df, 'quoteDate')
+    # print('Converting quoteDate to numeric types')
+    # df = convert_date(df, 'quoteDate')
 
     # Remove date columns
     print('Removing date columns')

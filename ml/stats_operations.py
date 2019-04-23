@@ -1,7 +1,9 @@
 import numpy as np
 import numba
+import math
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.metrics import mean_absolute_error
+import tensorflow as tf
 from keras import backend as K
 from print_logger import print
 
@@ -19,8 +21,6 @@ def safe_log(input_array):
     return_vals[neg_mask] *= -1.
     return return_vals
 
-# @profile
-
 
 @numba.jit
 def safe_exp(input_array):
@@ -29,6 +29,68 @@ def safe_exp(input_array):
     return_vals = np.expm1(np.clip(np.absolute(return_vals), -7, 7))
     return_vals[neg_mask] *= -1.
     return return_vals
+
+
+@numba.jit
+def clipped_mape(y_true, y_pred):
+    """
+    Calculate clipped mean absolute percentage error(each diff clipped to max 200)
+
+    Args:
+        y_true - numpy array containing targets with shape (n_samples, n_targets)
+        y_pred - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+    # Reshape arrays to ensure clip and absolute won't chew through memory
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
+
+    diff = np.absolute((y_true - y_pred) /
+                       np.clip(np.absolute(y_true), .5, None))
+    return 100. * np.mean(np.clip(diff, None, 2.))
+
+
+@numba.jit
+def symmetrical_mape(y_true, y_pred):
+    """
+    Calculate symmetrical mean absolute percentage error
+
+    Args:
+        y_true - numpy array containing targets with shape (n_samples, n_targets)
+        y_pred - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
+    # return np.mean(100*2.0 * np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred))).item()
+    return 100./len(y_true) * np.sum(2. * np.abs(y_true - y_pred) / (np.abs(y_true) + np.abs(y_pred)))
+
+    # out = 0
+    # for i in range(y_true.shape[0]):
+    #     a = y_true[i]
+    #     b = math.fabs(y_pred[i])
+    #     c = a+b
+    #     if c == 0:
+    #         continue
+    #     out += math.fabs(a - b) / c
+    # out *= (200.0 / y_true.shape[0])
+    # return out
+
+
+@numba.jit
+def abs_err_p(y_true, y_pred, percentile):
+    """
+    Calculate the nth percentile absolute error
+
+    Args:
+        y_true - numpy array containing targets with shape (n_samples, n_targets)
+        y_pred - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+    # Reshape arrays to ensure clip and absolute won't chew through memory
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
+
+    diff = np.absolute(y_true - y_pred)
+    return np.percentile(diff, percentile)
 
 
 @numba.jit
@@ -100,11 +162,31 @@ def safe_mape(actual_y, prediction_y):
     prediction_y = prediction_y.reshape(prediction_y.shape[0], )
     # Calculate MAPE
     diff = np.absolute((actual_y - prediction_y) /
-                       np.clip(np.absolute(actual_y), 1., None))
+                       np.clip(np.absolute(actual_y), .25, None))
     return 100. * np.mean(diff)
 
 
+@numba.jit
+def safe_mape_p(y_true, y_pred, percentile):
+    """
+    Calculate the nth percentile absolute error
+
+    Args:
+        y_true - numpy array containing targets with shape (n_samples, n_targets)
+        y_pred - numpy array containing predictions with shape (n_samples, n_targets)
+    """
+    # Reshape arrays to ensure clip and absolute won't chew through memory
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
+
+    # Calculate MAPE
+    diff = np.absolute((y_true - y_pred) /
+                       np.clip(np.absolute(y_pred), .25, None))
+    return 100. * np.percentile(diff, percentile)
+
 # @profile
+
+
 @numba.jit
 def mape_eval(actual_y, eval_y):
     """
@@ -164,17 +246,67 @@ def sc_mean_absolute_percentage_error(y_true, y_pred):
     return 100. * K.mean(diff, axis=-1)
 
 
+@numba.jit
 def k_mae_mape(y_true, y_pred):
     diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
-                                            1.,
+                                            .25,
                                             None))
-    mape = 100. * K.mean(diff, axis=-1)
+    # mape = 100. * K.mean(diff, axis=-1)
+    mape = K.mean(diff, axis=-1)
     mae = K.mean(K.abs(y_true - y_pred), axis=-1)
     return mape * mae
 
 
+@numba.jit
 def k_mean_absolute_percentage_error(y_true, y_pred):
     diff = K.abs((y_true - y_pred) / K.clip(K.abs(y_true),
                                             1.,
                                             None))
     return 100. * K.mean(diff, axis=-1)
+
+
+@numba.jit
+def k_clipped_mape(y_true, y_pred):
+    """
+    Calculate clipped mean absolute percentage error(each diff clipped to max 200)
+
+    Args:
+        y_true - tensor containing targets with shape (n_samples, n_targets)
+        y_pred - tensor containing predictions with shape (n_samples, n_targets)
+    """
+
+    diff = K.abs((y_true - y_pred) /
+                 K.clip(K.abs(y_true), .5, None))
+    diff = K.clip(diff, 0., 2.)
+    return 100. * K.mean(diff, axis=-1)
+
+# @numba.jit
+
+
+def k_abs_err_p75(y_true, y_pred):
+    """
+    Calculate the 75th percentile absolute error
+
+    Args:
+        y_true - tensor containing targets with shape (n_samples, n_targets)
+        y_pred - tensor containing predictions with shape (n_samples, n_targets)
+    """
+    # Reshape arrays to ensure clip and absolute won't chew through memory
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
+
+    diff = np.absolute(y_true - y_pred)
+    return np.percentile(diff, 75)
+
+
+# @numba.jit
+def k_abs_err_p90(y_true, y_pred):
+    """
+    Calculate the 90th percentile absolute error
+
+    Args:
+        y_true - tensor containing targets with shape (n_samples, n_targets)
+        y_pred - tensor containing predictions with shape (n_samples, n_targets)
+    """
+    diff = K.abs(y_true - y_pred)
+    return np.percentile(diff, 90)
