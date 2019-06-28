@@ -1,3 +1,4 @@
+import glob
 import math
 import gc
 from timeit import default_timer as timer
@@ -5,9 +6,13 @@ from datetime import datetime, timedelta
 import numba
 import pandas as pd
 import numpy as np
-from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_REF_COLUMNS, HIGH_NAN_COLUMNS
+from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_REF_COLUMNS
+from processing_constants import HIGH_NAN_COLUMNS, SYMBOL_COPY_COLUMNS, WHOLE_MARKET_COLUMNS
+from processing_constants import SYMBOL_ZERO_COPY_COLUMNS
 from optimise_dataframe import optimise_df
 from print_logger import initialise_print_logger, print
+from ensemble_processing import convert_date
+from week_summary import return_week_summary
 
 # S3 copy command to retrieve data
 # aws s3 cp s3://{location} ./ --exclude "*" --include "companyQuotes-{DatePrefix}*" --recursive
@@ -179,7 +184,11 @@ def return_dividends(dividend_period_start: datetime, dividend_period_end: datet
     """
         Sums the dividends within the specified time period
     """
-    period_dividends = unique_dividends.loc[dividend_period_start: dividend_period_end]
+    if unique_dividends.size == 0:
+        return 0
+
+    period_dividends = unique_dividends.loc[str(
+        dividend_period_start): str(dividend_period_end)]
     dividends = period_dividends['exDividendPayout'].sum()
     if math.isnan(dividends):
         return 0
@@ -350,11 +359,13 @@ def transform_symbol_returns(df: pd.DataFrame, symbol: str):
     dividend_date_col = 'exDividendDate'
     dividend_payout_col = 'exDividendPayout'
 
-    print('Processing symbol: ', symbol)
+    print('Processing returns for: ', symbol)
     t_1 = timer()
 
     # Reduce the data to the supplied symbol
-    transformed_df = df.loc[df['symbol'] == symbol, :]
+    # transformed_df = df.loc[df['symbol'] == symbol, :]
+    transformed_df = df
+    # Ensure sorting is correct
     transformed_df.sort_values(by=['quoteDate'], inplace=True)
     # t2 = timer()
     # print('Reducing data to ' + symbol + ' took: ', t2 - t1)
@@ -369,8 +380,8 @@ def transform_symbol_returns(df: pd.DataFrame, symbol: str):
 
     # Create reference table of unique dividends
     unique_dividends = transformed_df[[
-        dividend_date_col, dividend_payout_col]].drop_duplicates()
-    unique_dividends.set_index(['exDividendDate'])
+        dividend_date_col, dividend_payout_col]].dropna().drop_duplicates()
+    unique_dividends.set_index(['exDividendDate'], inplace=True)
 
     # Add stats and return columns by num of weeks
     for week in return_weeks:
@@ -387,22 +398,119 @@ def transform_symbol_returns(df: pd.DataFrame, symbol: str):
     transformed_df = optimise_df(transformed_df)
 
     t_3 = timer()
-    print('Processing symbol ' + symbol + ' took:', t_3 - t_1)
+    print('Processing returns for symbol ' + symbol + ' took:', t_3 - t_1)
     return transformed_df
 
 
-def process_dataset(df: pd.DataFrame):
+@numba.jit
+def fill_symbol_empty_days(df: pd.DataFrame, symbol: str, reference_whole_market_data: pd.DataFrame):
+    """
+        Fills in gaps in symbol records.  Missing days are filled with the same price info 
+        as previous days, the correct market refernce data for the day and a volume of 0.
+
+        df: Pandas dataframe with all records
+        symbol: string with symbol
+        reference_whole_market_data: Pandas dataframe with the unique reference data for each day
+    """
+    print('Fill empty days for symbol: ', symbol)
+    t_1 = timer()
+
+    # Reduce the data to the supplied symbol
+    symbol_df = df.loc[df['symbol'] == symbol, :]
+    symbol_df.sort_values(by=['quoteDate'], inplace=True)
+    symbol_df['qdIndex'] = symbol_df['quoteDate']
+    symbol_df.set_index('qdIndex', inplace=True)
+    symbol_min_date = symbol_df['quoteDate'].min().to_datetime64()
+    symbol_max_date = symbol_df['quoteDate'].max().to_datetime64()
+
+    check_for_null_symbols(symbol_df)
+
+    # Keep reference data within symbol min and max
+    mask = (reference_whole_market_data.index > symbol_min_date) & (
+        reference_whole_market_data.index <= symbol_max_date)
+    symbol_reference_data = reference_whole_market_data.loc[mask]
+    symbol_reference_data['qdIndex'] = symbol_reference_data['quoteDate']
+    symbol_reference_data.set_index('qdIndex', inplace=True)
+
+    # Find missing days from reference set
+    missing_days = symbol_reference_data[~symbol_reference_data.index.isin(
+        symbol_df.index)]
+
+    # Set the symbol values as the base for the merged frame
+    merged_df = pd.DataFrame()
+    merged_df = merged_df.append(symbol_df)
+
+    # Find the correct references for each missing day
+    missing_days['insertion_reference'] = symbol_df.index.searchsorted(
+        missing_days.index) - 1
+
+    # Iterate through the missing days and fill in the symbol based columns
+    for row in missing_days.itertuples():
+        # Construct a dict starting with the missing date
+        new_row = {}
+        new_row['symbol'] = symbol
+
+        values_to_skip = ['Index', 'insertion_reference']
+
+        for row_name in row._fields:
+            # Check whether this field name should be skipped
+            if row_name not in values_to_skip:
+                new_row[row_name] = getattr(row, row_name)
+
+        lookup_row = symbol_df.iloc[row.insertion_reference]
+
+        # Loop through possible column names and copy in values, else set null
+        for col_name in SYMBOL_COPY_COLUMNS:
+            if col_name in lookup_row:
+                new_row[col_name] = lookup_row[col_name]
+            else:
+                new_row[col_name] = np.nan
+
+        # Loop through possible column names and copy in values, else set null
+        for col_name in SYMBOL_ZERO_COPY_COLUMNS:
+            new_row[col_name] = 0
+
+        # Reset previousclose to be the same as adjustedprice
+        new_row['previousClose'] = new_row['adjustedPrice']
+
+        merged_df = merged_df.append(new_row, ignore_index=True)
+
+    # Optimise the transformed data
+    merged_df = optimise_df(merged_df)
+
+    t_3 = timer()
+    print('Processing missing days for symbol ' + symbol + ' took:', t_3 - t_1)
+    return merged_df
+
+
+def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
     """
         Prepares a dataset for prediction by working through each symbol and adding
           returns and stats for each symbol and time period
+
+            df: dataframe with complete dataset
+            symbols_to_skip: list with any symbols to skip over processing
+            path: path to save symbol data sets
+            run_str: identifier for data run
     """
     print('Dropping unused columns and setting date/time types and index')
     columns_to_drop = OLD_RETURN_COLUMNS
     columns_to_drop.extend(HIGH_NAN_COLUMNS)
-    df.drop(columns_to_drop, axis=1, inplace=True)
+    df.drop(columns_to_drop, axis=1, inplace=True, errors='ignore')
     df['quoteDate'] = pd.to_datetime(df['quoteDate'], errors='coerce')
     df['exDividendDate'] = pd.to_datetime(
         df['exDividendDate'], errors='coerce')
+
+    print('Making ex-dividend date a relative number')
+    df['exDividendRelative'] = df['exDividendDate'] - df['quoteDate']
+
+    # convert string difference value to integer
+    df['exDividendRelative'] = df['exDividendRelative'].apply(
+        lambda x: np.nan if pd.isnull(x) else x.days)
+
+    # Make sure it is the minimum data type size
+    df.loc[:, 'exDividendRelative'] = df['exDividendRelative'].astype(
+        'int32', errors='ignore')
 
     zero_columns = ['change', 'changeInPercent', 'changeFrom52WeekHigh',
                     'changeFrom52WeekLow', 'percebtChangeFrom52WeekHigh', 'percentChangeFrom52WeekLow',
@@ -412,15 +520,22 @@ def process_dataset(df: pd.DataFrame):
     df[zero_columns].fillna(0, inplace=True)
 
     print('Fill missing adjustedPrice values')
-    df['adjustedPrice'] = df.apply(
-        lambda row: row['lastTradePriceOnly'] if np.isnan(
-            row['adjustedPrice']) else row['adjustedPrice'],
-        axis=1
-    )
+    # df['adjustedPrice'] = df.apply(
+    #     lambda row: row['lastTradePriceOnly'] if np.isnan(
+    #         row['adjustedPrice']) else row['adjustedPrice'],
+    #     axis=1
+    # )
+
+    df['adjustedPrice'].fillna(df['lastTradePriceOnly'])
 
     check_for_null_symbols(df)
 
     symbols = df['symbol'].drop_duplicates()
+
+    # Output symbol list to csv
+    symbol_list = symbols.dropna().to_frame()
+    symbol_list.to_csv(path + run_str + '-symbols-list.csv')
+    del symbol_list
 
     # ######## TEMP ###########
     # symbols = symbols.head(100)
@@ -429,46 +544,93 @@ def process_dataset(df: pd.DataFrame):
     num_symbols = symbols.shape[0]
     symbol_count = 0
 
-    # Create list for symbol results
-    symbol_dfs = []
+    # Determine all possible dates for symbol records and the
+    # overall min and max dates for all records
+    # all_possible_dates = df['quoteDate'].dropna().drop_duplicates()
+    # overall_min_date = all_possible_dates.min()[0]
+    # overall_max_date = all_possible_dates.max()[0]
+
+    # Retrieve a unique reference set of whole market data , e.g. all ords / asx
+    # for each day with records
+    reference_whole_market_data = df[WHOLE_MARKET_COLUMNS].drop_duplicates()
+    # Ensure there is only one record per day
+    reference_whole_market_data = reference_whole_market_data.groupby(
+        'quoteDate').first()
+    reference_whole_market_data['quoteDate'] = reference_whole_market_data.index
+
 
     s_1 = timer()
     for symbol in symbols:
-        print(80*'-')
-        symbol_df = transform_symbol_returns(df, symbol)
-
-        check_for_null_symbols(symbol_df)
-
-        # Add data frame into all results
-        symbol_dfs.append(symbol_df)
-
-        symbol_count = symbol_count + 1
-        # Every tenth symbol see how things are going
-        if symbol_count % 100 == 0:
-            s_2 = timer()
-            elapsed = s_2 - s_1
+        if symbol not in symbols_to_skip:
             print(80*'-')
-            print(str(symbol_count) + ' of ' + str(num_symbols) +
-                  ' completed.  Elapsed time: ' + str(elapsed))
-            #   ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
-            print(80 * '-')
+            symbol_df = fill_symbol_empty_days(
+                df, symbol, reference_whole_market_data)
 
-    print('Concatenating symbol dfs')
+            print(80*'-')
+            symbol_df = transform_symbol_returns(symbol_df, symbol)
 
-    # Create empty data frame
-    output_df = pd.concat(symbol_dfs)
+            check_for_null_symbols(symbol_df)
+
+            # Remove extra columns created during calculations
+            symbol_df.drop(PAST_RESULTS_DATE_REF_COLUMNS, axis=1, inplace=True, errors='ignore')
+
+            symbol_df = optimise_df(symbol_df)
+
+            # Save pickle data
+            symbol_df.to_pickle(path + 'ml-symbol-' + symbol + '-' + run_str + '.pkl.gz', compression='gzip')
+
+            weekly_symbol_df = return_week_summary(symbol_df)
+
+            weekly_symbol_df.to_pickle(path + 'ml-weekly-symbol-' + symbol + '-' + run_str + '.pkl.gz', compression='gzip')
+
+            symbol_count = symbol_count + 1
+            # Every tenth symbol see how things are going
+            if symbol_count % 100 == 0:
+                s_2 = timer()
+                elapsed = s_2 - s_1
+                print(80*'-')
+                print(str(symbol_count) + ' of ' + str(num_symbols) +
+                    ' completed.  Elapsed time: ' + str(elapsed))
+                #   ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
+                print(80 * '-')
+
+    print('Retrieving symbol dfs')
+    output_df = retrieve_symbol_dfs(path, run_str)
+
 
     print('Number of "NA" symbols in concatenated df:',
           output_df[output_df['symbol'] == 'NA'].shape[0])
 
-    output_df = optimise_df(output_df)
-
     print('Number of "NA" symbols in optimised df:',
           output_df[output_df['symbol'] == 'NA'].shape[0])
 
-    # Remove extra columns created during calculations
-    df.drop(PAST_RESULTS_DATE_REF_COLUMNS,
-            axis=1, inplace=True, errors='ignore')
+    
+    return output_df
+
+def retrieve_symbol_dfs(path, run_str):
+    """
+        Retrieves the infividual dataframes saved during pre-processing and returns them 
+    """
+    symbol_dfs = []
+
+    print('Checking for files from', path)
+    # Return files in path
+    file_list = glob.glob(path + 'ml-symbol-*' + run_str + '.pkl.gz')
+
+    # load each model set
+    for file_name in file_list:
+        # retrieve data frame and append to list
+        symbol_df = pd.read_pickle(file_name, compression='gzip')
+        symbol_df = optimise_df(symbol_df)
+
+        symbol_dfs.append(symbol_df)
+
+    print('Concatenating symbol dfs')
+    # Create empty data frame
+    output_df = pd.concat(symbol_dfs)
+
+    print('Optimising symbol dfs')
+    output_df = optimise_df(output_df)
 
     return output_df
 
@@ -481,6 +643,17 @@ def append_industry_categories(df: pd.DataFrame, catgories_df: pd.DataFrame):
     print('Adding industry categories to data set')
     output_df = df.merge(catgories_df, left_on='symbol',
                          right_on='symbol', how='left')
+    
+    category_cols = catgories_df.columns.values
+
+    print('Checking for any null columns')
+    has_nulls = output_df[category_cols].isnull().any().any()
+    if has_nulls:
+        print('WARNING - Found nulls vals')
+        print(output_df[output_df[category_cols].isnull().any(axis=1)])
+        raise('Symbols missing matching category records')
+    else:
+        print('No nulls found')
 
     return output_df
 
@@ -662,6 +835,29 @@ def check_for_null_symbols(df):
     else:
         print('Symbol column not found')
 
+def return_existing_symbol_list(path, run_str):
+    """Returns any existing file for the symbol / run_str combination in a set path
+       Arguments:
+        path
+        run_str
+    """
+    existing_symbol_list = []
+
+    print('Checking for files from', path)
+    # Return files in path
+    file_list = glob.glob(path + 'ml-symbol-*' + run_str + '.pkl.gz')
+
+    # load each model set
+    for file_name in file_list:
+        # remove leading path and trailing file extension
+        symbol = file_name.replace(
+            path, '').replace('ml-symbol-', '').replace('-' + run_str + '.pkl.gz', '')
+
+        # create model property and load model set into it
+        existing_symbol_list.append(symbol)
+
+    return existing_symbol_list
+
 
 def main(**kwargs):
     """Runs the process of loading, pre-processing and generating labels for the raw sharecast data
@@ -680,6 +876,8 @@ def main(**kwargs):
         reference_date=None
         unlabelled_data_file=None
         labelled_data_file=None
+        skip_existing_symbols=False
+        existing_symbols_path='data/'
     """
 
     run_str = kwargs.get('run_str', None)
@@ -692,6 +890,8 @@ def main(**kwargs):
     generate_tminus_labels = kwargs.get('generate_tminus_labels', True)
     generate_label_weeks = kwargs.get('generate_label_weeks', None)
     reference_date = kwargs.get('reference_date', None)
+    skip_existing_symbols = kwargs.get('reference_date', False)
+    existing_symbols_path = kwargs.get('existing_symbols_path', 'data/')
 
     initialise_print_logger('logs/data-preparation-' +
                             datetime.now().strftime('%Y%m%d%H%M') + '.log')
@@ -719,6 +919,11 @@ def main(**kwargs):
 
     print(df['symbol'].unique())
 
+    symbols_to_skip = []
+    # if skip existing symbols, check for existing symbols in data location and add to list
+    if skip_existing_symbols:
+        symbols_to_skip = return_existing_symbol_list(existing_symbols_path, run_str)
+
     # Load the industry-symbol values
     if add_industry_categories:
         categories_df = pd.read_csv(symbol_industry_path)
@@ -728,7 +933,7 @@ def main(**kwargs):
 
     # Processing data
     print('Processing returns and recurrent columns for each symbol')
-    processed_data = process_dataset(df)
+    processed_data = process_dataset(df, symbols_to_skip, existing_symbols_path, run_str)
 
     check_for_null_symbols(processed_data)
 
@@ -770,16 +975,18 @@ def main(**kwargs):
 
 if __name__ == "__main__":
     # run_str = datetime.now().strftime('%Y%m%d')
-    RUN_STR = '20180922'
+    RUN_STR = '20190416'
 
     main(run_str=RUN_STR,
          load_individual_data_files=False,
-         base_path='data/companyQuotes-20180922-%03d.csv.gz',
+         base_path='data/companyQuotes-20190416-%03d.csv.gz',
          add_industry_categories=True,
          symbol_industry_path='data/symbol-industry-lookup.csv',
-         no_files=64,
+         no_files=32,
          generate_labels=True,
          generate_label_weeks=8,
-         reference_date='2018-09-08',
-         generate_tminus_labels=True
+         reference_date='2019-04-13',
+         generate_tminus_labels=True,
+         skip_existing_symbols = True,
+         existing_symbols_path = 'data/symbols/'
          )

@@ -143,7 +143,7 @@ def main(**kwargs):
           df_symbol_date[df_symbol_date['symbol'] == 'NA'].shape[0])
 
     # Retain model names for train and test
-    print('Retaining model name data')
+    print('Retaining model name data.  Number of rows:', len(df_all_x))
     model_names = df_all_x['model'].values
     gics_sectors = df_all_x['GICSSector'].values
     gics_industry_groups = df_all_x['GICSIndustryGroup'].values
@@ -164,11 +164,11 @@ def main(**kwargs):
     imputer = load('models/imputer.pkl.gz')
     scaler = load('models/scaler.pkl.gz')
 
-    print('Executing pre-processing')
+    print('Executing pre-processing.  Number of rows:', len(df_all_x))
     # Execute pre-processing
     df_all_x = execute_preprocessor(df_all_x, symbol_encoder, imputer, scaler)
 
-    print('Loading keras models')
+    print('Loading keras models.  Number of rows:', len(df_all_x))
     # Load keras models
     keras_models = {
         'mape_model': load_model('models/keras-mape-model.h5', custom_objects={
@@ -216,8 +216,8 @@ def main(**kwargs):
 
 if __name__ == "__main__":
 
-    main(data_file='./data/ml-20180922-unlabelled.pkl.gz',
-         predict_unlabelled=True,
+    main(data_file='./data/ml-20190115-labelled.pkl.gz',
+         predict_unlabelled=False,
          output_preds=True,
-         eval_results=False
+         eval_results=True
          )

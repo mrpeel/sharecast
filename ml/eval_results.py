@@ -1,30 +1,30 @@
 import pandas as pd
 import numpy as np
+from numba import jit
+import math
 from sklearn.metrics import mean_absolute_error, explained_variance_score, r2_score, median_absolute_error
 from print_logger import print
 
-# @profile
 
-
-def safe_mape(actual_y, prediction_y):
+@jit
+def safe_mape(y_true, y_pred):
     """
     Calculate mean absolute percentage error
 
     Args:
-        actual_y - numpy array containing targets with shape (n_samples, n_targets)
-        prediction_y - numpy array containing predictions with shape (n_samples, n_targets)
+        y_true - numpy array containing targets with shape (n_samples, n_targets)
+        y_pred - numpy array containing predictions with shape (n_samples, n_targets)
     """
     # Reshape arrays to ensure clip and absolute won't chew through memory
-    prediction_y = prediction_y.reshape(prediction_y.shape[0], 1)
-    actual_y = actual_y.reshape(actual_y.shape[0], 1)
+    y_pred = y_pred.reshape(y_pred.shape[0], 1)
+    y_true = y_true.reshape(y_true.shape[0], 1)
 
-    diff = np.absolute((actual_y - prediction_y) /
-                       np.clip(np.absolute(actual_y), 1., None))
+    diff = np.absolute((y_true - y_pred) /
+                       np.clip(np.absolute(y_true), 1., None))
     return 100. * np.mean(diff)
 
-# @profile
 
-
+@jit
 def range_results(predictions, actuals):
     """
     :param predictions: a dictionary with values {
@@ -110,6 +110,7 @@ def range_results(predictions, actuals):
 # @profile
 
 
+@jit
 def eval_results(predictions):
     """
     :param predictions: a dictionary with values {
