@@ -107,12 +107,10 @@ BOLLINGER_PREDICTION_COLUMNS = ['one_week_bollinger_prediction', 'two_week_bolli
 
 
 RECURRENT_COLUMNS = ['asxpreviousclose_T11_20P', 'asxpreviousclose_T1P', 'asxpreviousclose_T2_5P',
-                     'asxpreviousclose_T6_10P', 'asxpreviousclose_T11_20P', 'asxpreviousclose_T1P',
-                     'asxpreviousclose_T2_5P', 'asxpreviousclose_T6_10P', 'allordpreviousclose_T11_20P',
-                     'allordpreviousclose_T1P', 'allordpreviousclose_T2_5P', 'allordpreviousclose_T6_10P',
-                     'adjustedPrice_T11_20P', 'adjustedPrice_T1P', 'adjustedPrice_T2_5P', 'adjustedPrice_T6_10P',
-                     'FIRMMCRT_T11_20P', 'FIRMMCRT_T1P', 'FIRMMCRT_T2_5P', 'FIRMMCRT_T6_10P', 'FXRUSD_T11_20P',
-                     'FXRUSD_T1P', 'FXRUSD_T2_5P', 'FXRUSD_T6_10P', 'GRCPAIAD_T11_20P', 'GRCPAIAD_T1P',
+                     'asxpreviousclose_T6_10P', 'allordpreviousclose_T1P', 'allordpreviousclose_T2_5P',
+                     'allordpreviousclose_T6_10P', 'adjustedPrice_T11_20P', 'adjustedPrice_T1P', 'adjustedPrice_T2_5P',
+                     'adjustedPrice_T6_10P', 'FIRMMCRT_T11_20P', 'FIRMMCRT_T1P', 'FIRMMCRT_T2_5P', 'FIRMMCRT_T6_10P',
+                     'FXRUSD_T11_20P', 'FXRUSD_T1P', 'FXRUSD_T2_5P', 'FXRUSD_T6_10P', 'GRCPAIAD_T11_20P', 'GRCPAIAD_T1P',
                      'GRCPAIAD_T2_5P', 'GRCPAIAD_T6_10P', 'GRCPAISAD_T1P', 'GRCPAISAD_T2_5P', 'GRCPAISAD_T6_10P',
                      'GRCPAISAD_T11_20P', 'GRCPBCAD_T1P', 'GRCPBCAD_T2_5P', 'GRCPBCAD_T6_10P', 'GRCPBCAD_T11_20P',
                      'GRCPBCSAD_T1P', 'GRCPBCSAD_T2_5P', 'GRCPBCSAD_T6_10P', 'GRCPBCSAD_T11_20P',

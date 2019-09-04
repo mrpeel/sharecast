@@ -74,7 +74,8 @@ def optimise_df(df: pd.Series, verbose=False):
     optimised_df = pd.DataFrame()
 
     for col in df.columns.values:
-        print('Field:', col)
+        if verbose:
+            print('Field:', col)
         existing_col_type = str(df[col].dtype)
         if verbose:
             print('type:', existing_col_type)
