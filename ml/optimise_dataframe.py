@@ -88,7 +88,8 @@ def optimise_df(df: pd.Series, verbose=False):
         if calculated_col_type == 'date':
             if verbose:
                 print('Coverting to date')
-            optimised_df[col] = pd.to_datetime(df[col], errors='coerce')
+            optimised_df[col] = pd.to_datetime(
+                df[col], errors='coerce', cache=False)
         elif calculated_col_type == 'category' and existing_col_type != 'category':
             # fill missing values with NA and convert
             if verbose:

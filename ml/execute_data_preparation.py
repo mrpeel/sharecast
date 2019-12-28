@@ -10,8 +10,7 @@ from processing_constants import LABEL_COLUMN, RETURN_COLUMN, PAST_RESULTS_DATE_
 from processing_constants import HIGH_NAN_COLUMNS, SYMBOL_COPY_COLUMNS, WHOLE_MARKET_COLUMNS
 from processing_constants import SYMBOL_ZERO_COPY_COLUMNS
 from optimise_dataframe import optimise_df
-from print_logger import initialise_print_logger, print
-from ensemble_processing import convert_date
+# from print_logger import initialise_print_logger, print
 from week_summary import return_week_summary
 
 # S3 copy command to retrieve data
@@ -562,7 +561,8 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
     s_1 = timer()
     for symbol in symbols:
         if symbol not in symbols_to_skip:
-            print(80*'-')
+            symbol_count = symbol_count + 1
+            print(30*'-', f' symbol {str(symbol_count)} of {str(num_symbols)} ', 30*'-')
             symbol_df = fill_symbol_empty_days(
                 df, symbol, reference_whole_market_data)
 
@@ -583,16 +583,12 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
 
             weekly_symbol_df.to_pickle(path + 'ml-weekly-symbol-' + symbol + '-' + run_str + '.pkl.gz', compression='gzip')
 
-            symbol_count = symbol_count + 1
             # Every tenth symbol see how things are going
             if symbol_count % 100 == 0:
                 s_2 = timer()
                 elapsed = s_2 - s_1
                 print(80*'-')
-                print(str(symbol_count) + ' of ' + str(num_symbols) +
-                    ' completed.  Elapsed time: ' + str(elapsed))
-                #   ' completed.  Elapsed time: ' + str(datetime.timedelta(seconds=elapsed)))
-                print(80 * '-')
+                print(f'{str(symbol_count)} of {str(num_symbols)} completed.  Elapsed time: {convert_elapsed_seconds(elapsed)}')
 
     print('Retrieving symbol dfs')
     output_df = retrieve_symbol_dfs(path, run_str)
@@ -859,7 +855,7 @@ def return_existing_symbol_list(path, run_str):
     return existing_symbol_list
 
 
-def main(**kwargs):
+def exec_data_prep(**kwargs):
     """Runs the process of loading, pre-processing and generating labels for the raw sharecast data
        Arguments:
         run_str=None
@@ -878,6 +874,7 @@ def main(**kwargs):
         labelled_data_file=None
         skip_existing_symbols=False
         existing_symbols_path='data/'
+        save_data_path='data/'
     """
 
     run_str = kwargs.get('run_str', None)
@@ -892,9 +889,10 @@ def main(**kwargs):
     reference_date = kwargs.get('reference_date', None)
     skip_existing_symbols = kwargs.get('reference_date', False)
     existing_symbols_path = kwargs.get('existing_symbols_path', 'data/')
+    save_data_path = kwargs.get('save_data_path', 'data/')
 
-    initialise_print_logger('logs/data-preparation-' +
-                            datetime.now().strftime('%Y%m%d%H%M') + '.log')
+    # initialise_print_logger('logs/data-preparation-' +
+    #                         datetime.now().strftime('%Y%m%d%H%M') + '.log')
 
     # Check whether to load individual files or an aggregated file
     if load_individual_data_files:
@@ -906,14 +904,14 @@ def main(**kwargs):
         df = optimise_df(df)
         print('Saving data')
         df.to_pickle(
-            'data/ml-' + run_str + '-data.pkl.gz', compression='gzip')
+            save_data_path + 'ml-' + run_str + '-data.pkl.gz', compression='gzip')
         l_2 = timer()
         print('Loading and saving individual data took:', l_2 - l_1)
     else:
         print('Loading aggregated data files')
         l_1 = timer()
         df = pd.read_pickle(
-            'data/ml-' + run_str + '-data.pkl.gz', compression='gzip')
+            save_data_path + 'ml-' + run_str + '-data.pkl.gz', compression='gzip')
         l_2 = timer()
         print('Loading aggregated data file took:', l_2 - l_1)
 
@@ -954,39 +952,48 @@ def main(**kwargs):
         labelled_df, unlabelled_df = divide_labelled_unlabelled(
             processed_data, generate_label_weeks, reference_date)
 
-        labelled_file_name = 'data/ml-' + run_str + '-labelled.pkl.gz'
+        labelled_file_name = save_data_path + 'ml-' + run_str + '-labelled.pkl.gz'
         print('Saving labelled data to:', labelled_file_name)
         labelled_df.to_pickle(labelled_file_name, compression='gzip')
 
-        unlabelled_file_name = 'data/ml-' + run_str + '-unlabelled.pkl.gz'
+        unlabelled_file_name = save_data_path + 'ml-' + run_str + '-unlabelled.pkl.gz'
         print('Saving processed data to:', unlabelled_file_name)
         unlabelled_df.to_pickle(unlabelled_file_name, compression='gzip')
 
     check_for_null_symbols(processed_data)
 
     gc.collect()
-    proc_file_name = 'data/ml-' + run_str + '-processed.pkl.gz'
+    proc_file_name = save_data_path + 'ml-' + run_str + '-processed.pkl.gz'
     print('Saving processed data to:', proc_file_name)
     processed_data.to_pickle(proc_file_name, compression='gzip')
 
     print(80*'-')
     print('Data processing finished')
 
+def main(**kwargs):
+    exec_data_prep(**kwargs)
+
+def convert_elapsed_seconds(num_seconds):
+    hours, min_seconds = divmod(num_seconds, (60*60))
+    minutes, seconds = divmod(min_seconds, 60)
+
+    return f'{int(hours)}h {int(minutes)}m {int(seconds)}s'
 
 if __name__ == "__main__":
     # run_str = datetime.now().strftime('%Y%m%d')
-    RUN_STR = '20190416'
+    RUN_STR = '20191221'
 
     main(run_str=RUN_STR,
          load_individual_data_files=False,
-         base_path='data/companyQuotes-20190416-%03d.csv.gz',
+         base_path='data/companyQuotes-20191221-%03d.csv.gz',
          add_industry_categories=True,
          symbol_industry_path='data/symbol-industry-lookup.csv',
-         no_files=32,
+         no_files=33,
          generate_labels=True,
          generate_label_weeks=8,
-         reference_date='2019-04-13',
+         reference_date='2019-12-21',
          generate_tminus_labels=True,
-         skip_existing_symbols = True,
-         existing_symbols_path = 'data/symbols/'
+         skip_existing_symbols=False,
+         existing_symbols_path='data/symbols/',
+         save_data_path='data/'
          )
