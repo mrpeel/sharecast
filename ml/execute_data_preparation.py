@@ -215,13 +215,9 @@ def calculate_dividend_returns(num_weeks: int, df: pd.DataFrame,
     dividend_dates['dividend_period_end'] = ref_vals_df.index
 
     # Iterate through rows and add vals to dividend list
-    # z1 = timer()
     for row in list(zip(dividend_dates['dividend_period_start'], dividend_dates['dividend_period_end'])):
         dividends = return_dividends(row[0], row[1], unique_dividends)
         dividend_column.append(dividends)
-
-    # z2 = timer()
-    # print('Calculating all dividends took: ', z2 - z1)
 
     transformed_df = df
     transformed_df[prefix + '_week_dividend_value'] = dividend_column
@@ -293,31 +289,22 @@ def add_stats_and_returns(num_weeks: int, df: pd.DataFrame, price_col: str,
 
     # Set prefix for week
     prefix = return_prefix(num_weeks)
-    # t1 = timer()
 
     stats_df = df
 
     # Add stats cols
     stats_df = calculate_week_stats(num_weeks, stats_df, price_col)
-    # t4 = timer()
-    # print('Calculate weekly stats took: ', t4 - t1)
 
     # Calculate price returns
     stats_df = calculate_week_price_return(num_weeks, stats_df, price_col)
-    # t5 = timer()
-    # print('Calculate weekly price return took: ', t5 - t4)
 
     # Calculate dividend returns
     stats_df = calculate_dividend_returns(num_weeks, stats_df, price_col, dividend_date_col, dividend_payout_col,
                                           unique_dividends)
-    # t6 = timer()
-    # print('Calculate dividend return took: ', t6 - t5)
 
     # Add in total period returns
     stats_df[prefix + '_week_total_return'] = stats_df[prefix + '_week_dividend_return'] + stats_df[
         prefix + '_week_price_return']
-    # t7 = timer()
-    # print('Calculate total return took: ', t7 - t6)
 
     return stats_df
 
@@ -362,20 +349,15 @@ def transform_symbol_returns(df: pd.DataFrame, symbol: str):
     t_1 = timer()
 
     # Reduce the data to the supplied symbol
-    # transformed_df = df.loc[df['symbol'] == symbol, :]
     transformed_df = df
     # Ensure sorting is correct
     transformed_df.sort_values(by=['quoteDate'], inplace=True)
-    # t2 = timer()
-    # print('Reducing data to ' + symbol + ' took: ', t2 - t1)
 
     check_for_null_symbols(transformed_df)
 
     # Set the date index for the data frame
     transformed_df[date_ref_col] = transformed_df[date_col]
     transformed_df = transformed_df.set_index(date_ref_col)
-    # t2a = timer()
-    # print('Setting index for ' + symbol + ' took: ', t2a - t2)
 
     # Create reference table of unique dividends
     unique_dividends = transformed_df[[
@@ -519,12 +501,6 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
     df[zero_columns].fillna(0, inplace=True)
 
     print('Fill missing adjustedPrice values')
-    # df['adjustedPrice'] = df.apply(
-    #     lambda row: row['lastTradePriceOnly'] if np.isnan(
-    #         row['adjustedPrice']) else row['adjustedPrice'],
-    #     axis=1
-    # )
-
     df['adjustedPrice'].fillna(df['lastTradePriceOnly'])
 
     check_for_null_symbols(df)
@@ -536,18 +512,8 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
     symbol_list.to_csv(path + run_str + '-symbols-list.csv')
     del symbol_list
 
-    # ######## TEMP ###########
-    # symbols = symbols.head(100)
-    # ########################
-
     num_symbols = symbols.shape[0]
     symbol_count = 0
-
-    # Determine all possible dates for symbol records and the
-    # overall min and max dates for all records
-    # all_possible_dates = df['quoteDate'].dropna().drop_duplicates()
-    # overall_min_date = all_possible_dates.min()[0]
-    # overall_max_date = all_possible_dates.max()[0]
 
     # Retrieve a unique reference set of whole market data , e.g. all ords / asx
     # for each day with records
@@ -562,7 +528,7 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
     for symbol in symbols:
         if symbol not in symbols_to_skip:
             symbol_count = symbol_count + 1
-            print(30*'-', f' symbol {str(symbol_count)} of {str(num_symbols)} ', 30*'-')
+            print(15*'-', datetime.now().strftime('%Y-%m-%d %H:%M'), f' - symbol {str(symbol_count)} of {str(num_symbols)} ', 15*'-')
             symbol_df = fill_symbol_empty_days(
                 df, symbol, reference_whole_market_data)
 
@@ -589,6 +555,8 @@ def process_dataset(df: pd.DataFrame, symbols_to_skip, path, run_str):
                 elapsed = s_2 - s_1
                 print(80*'-')
                 print(f'{str(symbol_count)} of {str(num_symbols)} completed.  Elapsed time: {convert_elapsed_seconds(elapsed)}')
+                predicted_completion = (num_symbols - symbol_count) / symbol_count * elapsed
+                print(f'Predicted time to completion: {convert_elapsed_seconds(predicted_completion)}')
 
     print('Retrieving symbol dfs')
     output_df = retrieve_symbol_dfs(path, run_str)
@@ -637,8 +605,7 @@ def append_industry_categories(df: pd.DataFrame, catgories_df: pd.DataFrame):
     """
 
     print('Adding industry categories to data set')
-    output_df = df.merge(catgories_df, left_on='symbol',
-                         right_on='symbol', how='left')
+    output_df = df.merge(catgories_df, left_on='symbol', right_on='symbol', how='left')
     
     category_cols = catgories_df.columns.values
 
@@ -727,12 +694,6 @@ def generate_label_column(df, num_weeks, reference_date, date_col):
 
     # Process data set to remove records which are too recent to have a future value
 
-    # Ensure reference is a date/time
-    # converted_ref_date = datetime.strptime(reference_date, '%Y-%m-%d')
-
-    # filter dataframe
-    # output_df = output_df.loc[output_df[LABEL_COLUMN +
-    #                                     '_date'] <= converted_ref_date]
     # Remove extra column with future date reference
     output_df.drop([LABEL_COLUMN + '_date'], axis=1, inplace=True)
 
@@ -980,7 +941,6 @@ def convert_elapsed_seconds(num_seconds):
     return f'{int(hours)}h {int(minutes)}m {int(seconds)}s'
 
 if __name__ == "__main__":
-    # run_str = datetime.now().strftime('%Y%m%d')
     RUN_STR = '20191221'
 
     main(run_str=RUN_STR,
