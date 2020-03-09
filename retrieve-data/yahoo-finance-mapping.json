@@ -88,6 +88,9 @@
         "revenueGrowth": "financialData.revenueGrowth",
         "grossMargins": "financialData.grossMargins",
         "ebitdaMargins": "financialData.ebitdaMargins",
-        "operatingMargins": "financialData.operatingMargins"
+        "operatingMargins": "financialData.operatingMargins",
+        "revenue": "financialData.totalRevenue",
+        "cash": "financialData.totalCash",
+        "debt": "financialData.totalDebt"
     }
 }
