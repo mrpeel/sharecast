@@ -7,20 +7,20 @@ const del = require('del');
 const awsLambda = require('gulp-aws-lambda');
 const credentials = require('./credentials/aws.json');
 
-// const lambdaParamsRetrieveDaily = {
-//   FunctionName: 'retrieveShareData',
-//   Handler: 'index.dailyHandler',
-//   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-//   Runtime: 'nodejs12.',
-//   Description: 'Retrieve share data and store in dynamodb',
-//   MemorySize: 256,
-//   Timeout: 300,
-//   Publish: true,
-//   Code: {
-//     S3Bucket: 'cake-lambda-zips',
-//     S3Key: 'retrieve-share-data.zip',
-//   },
-// };
+const lambdaParamsRetrieveDaily = {
+  FunctionName: 'retrieveShareData',
+  Handler: 'index.dailyHandler',
+  Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
+  Runtime: 'nodejs12.',
+  Description: 'Retrieve share data and store in dynamodb',
+  MemorySize: 256,
+  Timeout: 900,
+  Publish: true,
+  Code: {
+    S3Bucket: 'cake-lambda-zips',
+    S3Key: 'retrieve-share-data.zip',
+  },
+};
 
 const lambdaParamsRetrieveFunction = {
   FunctionName: 'retrieveFunction',
@@ -29,7 +29,7 @@ const lambdaParamsRetrieveFunction = {
   Runtime: 'nodejs12.',
   Description: 'Run single retrieve function for share data and store in dynamodb',
   MemorySize: 256,
-  Timeout: 600,
+  Timeout: 900,
   Publish: true,
   Code: {
     S3Bucket: 'cake-lambda-zips',
@@ -45,7 +45,7 @@ const lambdaParamsCheckAdjustedPrices = {
   Runtime: 'nodejs12.',
   Description: 'Check for prices which have been adjusted in the last 8 days',
   MemorySize: 256,
-  Timeout: 300,
+  Timeout: 900,
   Publish: true,
   Code: {
     S3Bucket: 'cake-lambda-zips',
@@ -60,7 +60,7 @@ const lambdaParamsReloadQuote = {
   Runtime: 'nodejs12.',
   Description: 'Reload quotes for identified symbols and date periods',
   MemorySize: 256,
-  Timeout: 300,
+  Timeout: 900,
   Publish: true,
   Code: {
     S3Bucket: 'cake-lambda-zips',

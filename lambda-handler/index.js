@@ -31,100 +31,36 @@ let retrievalHandler = async function(event, context) {
         console.log('Executing retrieve company quotes - phase 1');
         executionResult = await retrieval.executeCompanyQuoteRetrieval({
           startRec: 0,
-          endRec: 199,
+          endRec: 599,
         });
         break;
 
       case 'executeCompanyQuoteRetrieval2':
         console.log('Executing retrieve company quotes - phase 2');
         executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 200,
-          endRec: 399,
+          startRec: 600,
+          endRec: 1199,
         });
         break;
 
       case 'executeCompanyQuoteRetrieval3':
         console.log('Executing retrieve company quotes - phase 3');
         executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 400,
-          endRec: 599,
+          startRec: 1200,
+          endRec: 1799,
         });
         break;
 
       case 'executeCompanyQuoteRetrieval4':
         console.log('Executing retrieve company quotes - phase 4');
         executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 600,
-          endRec: 799,
+          startRec: 1800,
+          endRec: 2399,
         });
         break;
 
       case 'executeCompanyQuoteRetrieval5':
         console.log('Executing retrieve company quotes - phase 5');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 800,
-          endRec: 999,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval6':
-        console.log('Executing retrieve company quotes - phase 6');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1000,
-          endRec: 1199,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval7':
-        console.log('Executing retrieve company quotes - phase 7');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1200,
-          endRec: 1399,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval8':
-        console.log('Executing retrieve company quotes - phase 8');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1400,
-          endRec: 1599,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval9':
-        console.log('Executing retrieve company quotes - phase 9');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1600,
-          endRec: 1799,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval10':
-        console.log('Executing retrieve company quotes - phase 10');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 1800,
-          endRec: 1999,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval11':
-        console.log('Executing retrieve company quotes - phase 11');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 2000,
-          endRec: 2199,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval12':
-        console.log('Executing retrieve company quotes - phase 12');
-        executionResult = await retrieval.executeCompanyQuoteRetrieval({
-          startRec: 2200,
-          endRec: 2399,
-        });
-        break;
-
-      case 'executeCompanyQuoteRetrieval13':
-        console.log('Executing retrieve company quotes - phase 13');
         executionResult = await retrieval.executeCompanyQuoteRetrieval({
           startRec: 2400,
         });
