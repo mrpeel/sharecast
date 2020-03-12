@@ -73,14 +73,14 @@ let textResponses = [];
 // let preppedUrl = queryUrl.replace('##field_name##', 'earnings_per_share');
 
 
-let retrieveCompanies = asyncify(function() {
+let retrieveCompanies = asyncfunction() {
   return new Promise(function(resolve, reject) {
     let resultFields = ['symbol', 'name'];
     let resultData = [];
 
     Object.keys(fields).forEach((lookupField) => {
       // fetchRequests.push(fetch(baseUrl + fields[lookupField] + suffixUrl));
-      awaitify(fetch(baseUrl + fields[lookupField] + suffixUrl)
+      awaitfetch(baseUrl + fields[lookupField] + suffixUrl)
         .then((response) => {
           return response.text();
         })
@@ -185,7 +185,7 @@ let retrieveCompanies = asyncify(function() {
  *      ...
  *    }
  */
-let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
+let returnCompanyMetricValuesForDate = asyncfunction(symbol, valueDate) {
   return new Promise(function(resolve, reject) {
     if (!valueDate || !utils.isDate(valueDate)) {
       throw new Error('valueDate supplied is invalid: ' + valueDate);
@@ -195,9 +195,9 @@ let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
     try {
       let metricValues = {};
       // Open DB connection
-      connection = awaitify(dbConn.connectToDb(host, username, password, db));
+      connection = awaitdbConn.connectToDb(host, username, password, db));
 
-      let result = awaitify(dbConn.selectQuery(connection,
+      let result = awaitdbConn.selectQuery(connection,
         'SELECT * ' +
         'FROM `sharecast`.`company_metrics` ' +
         'WHERE `CompanySymbol` = \'' + symbol + '\' ' +
@@ -222,15 +222,15 @@ let returnCompanyMetricValuesForDate = asyncify(function(symbol, valueDate) {
   });
 });
 
-let returnAllCompanyMetricsValues = asyncify(function() {
+let returnAllCompanyMetricsValues = asyncfunction() {
   return new Promise(function(resolve, reject) {
     let connection;
     try {
       let metricsValues = [];
       // Open DB connection
-      connection = awaitify(dbConn.connectToDb(host, username, password, db));
+      connection = awaitdbConn.connectToDb(host, username, password, db));
 
-      let result = awaitify(dbConn.selectQuery(connection,
+      let result = awaitdbConn.selectQuery(connection,
         'SELECT * ' +
         'FROM `sharecast`.`company_metrics` ' +
         'ORDER BY `MetricsDate` desc; '
@@ -262,7 +262,7 @@ let returnAllCompanyMetricsValues = asyncify(function() {
  *      ...
  *    }
  */
-let insertCompanyMetricsValue = asyncify(function(metricValue) {
+let insertCompanyMetricsValue = asyncfunction(metricValue) {
   let connection;
 
   if (!metricValue['symbol'] || !metricValue['metrics-date']) {
@@ -272,10 +272,10 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
   }
 
   try {
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = awaitdbConn.connectToDb(host, username, password, db));
 
     // Check that this value does not exists
-    let existingValue = awaitify(dbConn.selectQuery(connection,
+    let existingValue = awaitdbConn.selectQuery(connection,
       'SELECT `CompanySymbol` ' +
       'FROM `sharecast`.`company_metrics` ' +
       'WHERE `CompanySymbol` = \'' + metricValue['symbol'] + '\' ' +
@@ -291,7 +291,7 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
       metricValue['Id'] = 'Me' + metricValue['symbol'] +
       metricValue['metrics-date'].replace('-', '');
 
-      awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
+      awaitdbConn.executeQuery(connection, 'INSERT INTO ' +
         '`company_metrics` ' +
         '(`Id`, ' +
         '`CompanySymbol`, ' +
@@ -412,9 +412,9 @@ let insertCompanyMetricsValue = asyncify(function(metricValue) {
 /**
  * Retrieves and processes each company metric information
  */
-let updateCompanyMetrics = asyncify(function() {
+let updateCompanyMetrics = asyncfunction() {
   try {
-    let metricsData = awaitify(retrieveCompanies());
+    let metricsData = awaitretrieveCompanies());
 
     // console.log(metricsData);
 
@@ -422,7 +422,7 @@ let updateCompanyMetrics = asyncify(function() {
       companyMetricsRecord['metrics-date'] = utils.returnDateAsString(
         Date.now());
 
-      awaitify(insertCompanyMetricsValue(companyMetricsRecord));
+      awaitinsertCompanyMetricsValue(companyMetricsRecord));
     });
   } catch (err) {
     console.log(err);

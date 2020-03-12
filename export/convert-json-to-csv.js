@@ -1,8 +1,6 @@
 'use strict';
 
 const aws = require('aws-sdk');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 const json2csv = require('json2csv');
 
 aws.config.update({
@@ -64,17 +62,17 @@ let retrieveJSONFile = function(bucket, fileName) {
   });
 };
 
-let convertJSONToCSV = asyncify(function() {
+let convertJSONToCSV = async function() {
   let bucket = 'sharecast-exports';
   let fieldsFile = '2007-20082017-04-03-fields.json';
   let dataFile = '2007-20082017-04-03.json';
   let csvFile = '2007-2008-2017-04-03.csv';
 
-  let fieldsSring = awaitify(retrieveJSONFile(bucket, fieldsFile));
+  let fieldsSring = await retrieveJSONFile(bucket, fieldsFile);
   let jsonFields = JSON.parse(fieldsSring);
   jsonFields.csvFields.sort();
 
-  let dataString = awaitify(retrieveJSONFile(bucket, dataFile));
+  let dataString = await retrieveJSONFile(bucket, dataFile);
   let jsonData = JSON.parse(dataString);
 
   let csvOutput = json2csv({

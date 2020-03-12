@@ -1,8 +1,6 @@
 'use strict';
 
 const aws = require('aws-sdk');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 const json2csv = require('json2csv');
 
 aws.config.update({
@@ -45,7 +43,7 @@ aws.config.loadFromPath('../credentials/aws.json');
 let dynamo = new aws.DynamoDB();
 let dynamoDb = new aws.DynamoDB.DocumentClient();
 
-let exportHandler = asyncify(function() {
+let exportHandler = async function() {
   try {
     let tableName = 'companyQuotes';
     let csvData = [];
@@ -97,7 +95,7 @@ let exportHandler = asyncify(function() {
     };
 
     // describe the table and write metadata to the backup
-    let table = awaitify(describeTable(tableName));
+    let table = await describeTable(tableName);
 
     // limit the the number or reads to match our capacity
     params.Limit = table.ProvisionedThroughput.ReadCapacityUnits;
@@ -109,7 +107,7 @@ let exportHandler = asyncify(function() {
   } catch (err) {
     console.error(err);
   }
-});
+};
 
 let describeTable = function(tableName) {
   return new Promise(function(resolve, reject) {

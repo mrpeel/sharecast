@@ -130,7 +130,7 @@ let indicatorRetrievalValues = {
  *      value: value
  *    }]
  */
-let retrieveQuandlIndicator = asyncify(function(indicatorDetails) {
+let retrieveQuandlIndicator = asyncfunction(indicatorDetails) {
   return new Promise(function(resolve, reject) {
     let indicatorData = [];
 
@@ -161,7 +161,7 @@ let retrieveQuandlIndicator = asyncify(function(indicatorDetails) {
  * Returns a list of financial indicators
  * @return {Array}  list of indicator codes to retrieve
  */
-let getIndicatorList = asyncify(function() {
+let getIndicatorList = asyncfunction() {
   return Object.keys(indicatorRetrievalValues);
 });
 
@@ -174,7 +174,7 @@ let getIndicatorList = asyncify(function() {
  *      start-date: startDate,
  *    }
  */
-let getIndicatorRequestDates = asyncify(function(indicatorIds) {
+let getIndicatorRequestDates = asyncfunction(indicatorIds) {
   if (!indicatorIds) {
     throw new Error('No indicators supplied: ');
   }
@@ -184,13 +184,13 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
     let indicatorDates = [];
 
     // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = awaitdbConn.connectToDb(host, username, password, db));
 
     for (let c = 0; c < indicatorIds.length; c++) {
       // Prepare and insert row
       let indicatorId = indicatorIds[c];
       let indicatorDate;
-      let result = awaitify(dbConn.selectQuery(connection,
+      let result = awaitdbConn.selectQuery(connection,
         'SELECT `ValueDate` ' +
         'FROM `sharecast`.`financial_indicator_values` ' +
         'WHERE `IndicatorSymbol` = \'' + indicatorId + '\' ' +
@@ -233,7 +233,7 @@ let getIndicatorRequestDates = asyncify(function(indicatorIds) {
  *      ...
  *    }
  */
-let returnIndicatorValuesForDate = asyncify(function(valueDate) {
+let returnIndicatorValuesForDate = asyncfunction(valueDate) {
   if (!valueDate || !utils.isDate(valueDate)) {
     throw new Error('valueDate supplied is invalid: ' + valueDate);
   }
@@ -241,15 +241,15 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
   let connection;
   try {
     let indicatorValues = {};
-    let indicatorIds = awaitify(getIndicatorList());
+    let indicatorIds = awaitgetIndicatorList());
 
     // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = awaitdbConn.connectToDb(host, username, password, db));
 
     for (let c = 0; c < indicatorIds.length; c++) {
       // Prepare and insert row
       let indicatorId = indicatorIds[c];
-      let result = awaitify(dbConn.selectQuery(connection,
+      let result = awaitdbConn.selectQuery(connection,
         'SELECT `Value` ' +
         'FROM `sharecast`.`financial_indicator_values` ' +
         'WHERE `IndicatorSymbol` = \'' + indicatorId + '\' ' +
@@ -275,10 +275,10 @@ let returnIndicatorValuesForDate = asyncify(function(valueDate) {
 /**
  * Retrieves and processes each financial indicator to look up new values
  */
-let updateIndicatorValues = asyncify(function() {
+let updateIndicatorValues = asyncfunction() {
   try {
-    let indicatorIds = awaitify(getIndicatorList());
-    let indicatorDates = awaitify(getIndicatorRequestDates(indicatorIds));
+    let indicatorIds = awaitgetIndicatorList());
+    let indicatorDates = awaitgetIndicatorRequestDates(indicatorIds));
 
     indicatorDates.forEach((indicatorDate) => {
       let retrievalDetails = {};
@@ -289,12 +289,12 @@ let updateIndicatorValues = asyncify(function() {
       + urlSuffix + dateParameter + indicatorDate['start-date'];
       retrievalDetails.dataColumn = indicatorRetrievalValues[indicatorId]
         .dataColumn;
-      let indicatorResults = awaitify(
+      let indicatorResults = await
         retrieveQuandlIndicator(retrievalDetails));
 
       // Insert the value in the db
       indicatorResults.forEach((indicatorResult) => {
-        awaitify(insertIndicatorValue(indicatorResult));
+        awaitinsertIndicatorValue(indicatorResult));
       });
     });
   } catch (err) {
@@ -311,7 +311,7 @@ let updateIndicatorValues = asyncify(function() {
  *      value: value,
  *    }
  */
-let insertIndicatorValue = asyncify(function(indicatorValue) {
+let insertIndicatorValue = asyncfunction(indicatorValue) {
   let connection;
 
   if (!indicatorValue['indicatorId'] || !indicatorValue['value-date'] ||
@@ -322,7 +322,7 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
   }
 
   try {
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = awaitdbConn.connectToDb(host, username, password, db));
 
     indicatorValue['year-month'] = indicatorValue['value-date']
       .substring(0, 7)
@@ -332,7 +332,7 @@ let insertIndicatorValue = asyncify(function(indicatorValue) {
     indicatorValue['value-date'].replace('-', '');
 
 
-    awaitify(dbConn.executeQuery(connection, 'INSERT INTO ' +
+    awaitdbConn.executeQuery(connection, 'INSERT INTO ' +
       '`sharecast`.`financial_indicator_values` ' +
       '(`Id`, ' +
       '`IndicatorSymbol`, ' +

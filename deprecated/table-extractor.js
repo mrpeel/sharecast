@@ -140,7 +140,7 @@ let writeJSON = function(jsonContent) {
 };
 
 
-let runExtraction = asyncify(function() {
+let runExtraction = asyncfunction() {
   // Generate list of comapny html files
   let symbolVals = [];
   symbols.companies.forEach((company) => {
@@ -152,7 +152,7 @@ let runExtraction = asyncify(function() {
 
 
   symbolVals.forEach((symbolVal) => {
-    awaitify(extractHTML('../data/html/' + symbolVal + '.htm')
+    awaitextractHTML('../data/html/' + symbolVal + '.htm')
       .then((html) => {
         return parseHTML(html);
       })

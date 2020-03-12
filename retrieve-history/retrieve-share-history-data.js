@@ -120,18 +120,18 @@ let retrieveHistory = function(symbol, startDate, endDate, interval) {
 };*/
 
 
-/* let processIndexHistoryResults = asyncify(function(results) {
+/* let processIndexHistoryResults = asyncfunction(results) {
   if (results) {
     Object.keys(results).forEach(function(symbolResults) {
       // Multiple  symbols returned
       results[symbolResults].forEach(function(indResult) {
-        awaitify(processIndexHistoryResult(indResult));
+        awaitprocessIndexHistoryResult(indResult));
       });
     });
   }
 }); */
 
-/* let processIndexHistoryResult = asyncify(function(result) {
+/* let processIndexHistoryResult = asyncfunction(result) {
   result.lastTradeDate = utils.returnDateAsString(result.date);
   // Convert yahoo symbol to generic symbol
   result.symbol = symbolLookup[result.symbol];
@@ -144,7 +144,7 @@ let retrieveHistory = function(symbol, startDate, endDate, interval) {
     result[field] = utils.checkForNumber(result[field]);
   });
   // Insert result in dynamodb
-  awaitify(shareRetrieve.writeIndexQuote(result));
+  awaitshareRetrieve.writeIndexQuote(result));
 }); */
 
 /*
@@ -192,8 +192,8 @@ for (companyCounter = 0; companyCounter < companies.length;
 } */
 
 
-/* let getDividendHistory = asyncify(function() {
-  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+/* let getDividendHistory = asyncfunction() {
+  let symbolResult = awaitshareRetrieve.setupSymbols());
 
   let symbolLookup = symbolResult.symbolLookup;
   let indexLookup = symbolResult.indexLookup;
@@ -216,10 +216,10 @@ for (companyCounter = 0; companyCounter < companies.length;
 
 
     console.log('Processing companyCounter: ' + internalCounter);
-    // awaitify(retrieveHistory(companySymbols,
+    // awaitretrieveHistory(companySymbols,
     //   '2006-01-01', '2017-01-29', 'd')
     try {
-      let results = awaitify(retrieveDividendHistory(companySymbols,
+      let results = awaitretrieveDividendHistory(companySymbols,
         '2006-01-01', '2017-01-29'));
       // Reset fields for companies
       let data = [];
@@ -240,7 +240,7 @@ for (companyCounter = 0; companyCounter < companies.length;
           // console.log(dividendRecord);
           insertDetails.values = dividendRecord;
 
-          awaitify(dynamodb.insertRecord(insertDetails));
+          awaitdynamodb.insertRecord(insertDetails));
         });
       } else {
         console.log('No history data to save');
@@ -300,8 +300,8 @@ for (companyCounter = 0; companyCounter < companies.length;
     console.log(err);
   }); */
 
-/* let getIndexHistory = asyncify(function() {
-  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+/* let getIndexHistory = asyncfunction() {
+  let symbolResult = awaitshareRetrieve.setupSymbols());
 
   let symbolLookup = symbolResult.symbolLookup;
   let indexLookup = symbolResult.indexLookup;
@@ -310,19 +310,19 @@ for (companyCounter = 0; companyCounter < companies.length;
   let indices = symbolResult.indices;
   let companies = symbolResult.companies;
 
-  let results = awaitify(retrieveHistory(indices,
+  let results = awaitretrieveHistory(indices,
     '2006-07-01', '2011-12-31', 'd'));
 
   processIndexHistoryResults(results);
 }); */
 
-let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
+let get52WeekResults = asyncfunction(symbolGroup, symbolLookup,
   referenceDate) {
   let historyResults = {};
   let endDate = utils.dateAdd(referenceDate, 'days', -1);
   let startDate = utils.dateAdd(referenceDate, 'years', -1);
 
-  let results = awaitify(retrieveHistory(symbolGroup,
+  let results = awaitretrieveHistory(symbolGroup,
     startDate, endDate, 'd'));
 
   /* let queryDetails = {
@@ -339,7 +339,7 @@ let get52WeekResults = asyncify(function(symbolGroup, symbolLookup,
 
   symbolGroup.forEach((symbol) => {
     queryDetails.expressionAttributeValues[':symbol'] = symbolLookup[symbol];
-    let queryResults = awaitify(dynamodb.queryTable(queryDetails));
+    let queryResults = awaitdynamodb.queryTable(queryDetails));
     queryResults.forEach((result) => {
       let symbol = result.symbol;
       let adjustedPrice = result.adjustedPrice;
@@ -385,7 +385,7 @@ let setLastCompany = function(companySymbol) {
 };
 
 
-let getCompanyHistory = asyncify(function() {
+let getCompanyHistory = asyncfunction() {
   let currentCompany;
   try {
     dynamodb.setLocalAccessConfig();
@@ -416,7 +416,7 @@ let getCompanyHistory = asyncify(function() {
 
     symbolGroups.forEach((symbolGroup) => {
       let t0 = new Date();
-      let results = awaitify(retrieveHistory(symbolGroup,
+      let results = awaitretrieveHistory(symbolGroup,
         '2007-07-01', '2017-02-03', 'd'));
       let t1 = new Date();
       console.warn('Retrieve data took ' +
@@ -429,13 +429,13 @@ let getCompanyHistory = asyncify(function() {
       insert = [];
       bollingerLastValues = {};
 
-      historyReference = awaitify(get52WeekResults(symbolGroup, symbolLookup,
+      historyReference = awaitget52WeekResults(symbolGroup, symbolLookup,
         '2007-07-01'));
 
-      dividends = awaitify(getDividendsforDate(symbolGroup, symbolLookup,
+      dividends = awaitgetDividendsforDate(symbolGroup, symbolLookup,
         '2006-07-01', '2017-02-03'));
 
-      awaitify(processCompanyHistoryResults(results, symbolLookup));
+      awaitprocessCompanyHistoryResults(results, symbolLookup));
 
     /* let t2 = new Date();
     console.warn('Process history results took ' +
@@ -460,7 +460,7 @@ let getCompanyHistory = asyncify(function() {
     });
   } catch (err) {
     try {
-      awaitify(
+      await
         sns.publishMsg(snsArn,
           'getCompanyHistory failed.  Error: ' + JSON.stringify(err),
           'getCompanyHistory failed'));
@@ -471,7 +471,7 @@ let getCompanyHistory = asyncify(function() {
   }
 });
 
-let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
+let processCompanyHistoryResults = asyncfunction(results, symbolLookup) {
   if (results) {
     /*    // Check if multi-dimensional
         if (Array.isArray(results)) {
@@ -479,7 +479,7 @@ let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
           results.forEach((indResult) => {
             Object.keys(indResult).forEach(function(symbolResults) {
               if (indResult[symbolResults].close) {
-                awaitify(processCompanyHistoryResult(indResult[symbolResults],
+                awaitprocessCompanyHistoryResult(indResult[symbolResults],
                   symbolLookup));
               }
             });
@@ -491,7 +491,7 @@ let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
       if (Array.isArray(currentResults)) {
         currentResults.forEach((indResult) => {
           if (indResult.close) {
-            let timings = awaitify(processCompanyHistoryResult(indResult,
+            let timings = awaitprocessCompanyHistoryResult(indResult,
               symbolLookup));
 
             prepValues.push(timings.prepValues);
@@ -505,7 +505,7 @@ let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
         /* Single symbol returned - check whether this is a normal record,
             i.e. has Close val */
         if (results[symbolResults].close) {
-          awaitify(processCompanyHistoryResult(results[symbolResults],
+          awaitprocessCompanyHistoryResult(results[symbolResults],
             symbolLookup));
         }
       }
@@ -514,7 +514,7 @@ let processCompanyHistoryResults = asyncify(function(results, symbolLookup) {
 // }
 });
 
-let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
+let processCompanyHistoryResult = asyncfunction(result, symbolLookup) {
   // overwrite standard console log
   // console.log = function() {};
   let t0 = new Date();
@@ -525,7 +525,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
     // Sleep for 5 minutes if in exclusion zone
     console.log(moment().tz('Australia/Sydney').format(),
       ': pausing for five minutes');
-    awaitify(utils.sleep(5 * 60 * 1000));
+    awaitutils.sleep(5 * 60 * 1000));
   }
 
   // Set the current company being worked on
@@ -679,7 +679,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   // Get index values for date
   if (!indexValsLookup[result.lastTradeDate]) {
-    let indexValRetrieve = awaitify(
+    let indexValRetrieve = await
       shareRetrieve.returnIndexDataForDate(result.lastTradeDate));
     indexValsLookup[result.lastTradeDate] = indexValRetrieve;
   }
@@ -700,7 +700,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
   // Get financial indicator values for date
   if (!fiValsLookup[result.lastTradeDate]) {
-    let fiValsRetrieve = awaitify(
+    let fiValsRetrieve = await
       fiRetrieve.returnIndicatorValuesForDate(result.lastTradeDate));
     fiValsLookup[result.lastTradeDate] = fiValsRetrieve;
   }
@@ -721,7 +721,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 
 
   // Get metric values for date
-  let metricsVals = awaitify(
+  let metricsVals = await
     metricsRetrieve.returnCompanyMetricValuesForDate(result.symbol,
       result.lastTradeDate));
 
@@ -738,13 +738,13 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
   timings.metrics = utils.dateDiff(t3, t4, 'milliseconds');
 
   // Insert result in dynamodb
-  let insertResult = awaitify(writeCompanyQuoteData(result));
+  let insertResult = awaitwriteCompanyQuoteData(result));
 
   // Check whether it was inserted
   if (insertResult.result !== 'skipped') {
     /* Calculate and update total return and risk adjusted return
       for 1, 2, 4, 8, 12, 26, 52 weeks */
-    awaitify(processRollups.updateReturns(
+    awaitprocessRollups.updateReturns(
       result.symbol,
       result.quoteDate,
       result.adjustedPrice,
@@ -776,7 +776,7 @@ let processCompanyHistoryResult = asyncify(function(result, symbolLookup) {
 *           },
 *   }
 */
-let getDividendsforDate = asyncify(function(symbolGroup, symbolLookup,
+let getDividendsforDate = asyncfunction(symbolGroup, symbolLookup,
   startDate, endDate) {
   if (!symbolGroup) {
     console.error('getDividendsforDate error: no symbolGroup supplied');
@@ -803,7 +803,7 @@ let getDividendsforDate = asyncify(function(symbolGroup, symbolLookup,
   // let dividendEndDate = utils.returnDateAsString(retrievalDate);
   // let dividendStartDate = utils.dateAdd(dividendEndDate, 'years', -2);
   // dividendStartDate = utils.dateAdd(dividendStartDate, 'days', 1);
-  let dividendRetrieval = awaitify(shareRetrieve.retrieveDividends(symbolGroup,
+  let dividendRetrieval = awaitshareRetrieve.retrieveDividends(symbolGroup,
     startDate, endDate));
 
   // Convert dividend results array to results object
@@ -966,7 +966,7 @@ Current
 }
 */
 
-/* let fixIndexHistory = asyncify(function() {
+/* let fixIndexHistory = asyncfunction() {
   let symbol = 'ASX';
   let queryDetails = {
     tableName: 'indexQuotes',
@@ -984,7 +984,7 @@ Current
   };
 
 
-  let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+  let indexQuotes = awaitdynamodb.queryTable(queryDetails));
 
   indexQuotes.forEach((indexQuote) => {
     // Set up the key: symbol and quoteDate
@@ -1010,14 +1010,14 @@ Current
     updateDetails.expressionAttributeValues = expressionAttributeValues;
 
     try {
-      awaitify(dynamodb.updateRecord(updateDetails));
+      awaitdynamodb.updateRecord(updateDetails));
     } catch (err) {
       console.log(err);
     }
   });
 }); */
 
-/* let addYearResultsToIndexHistory = asyncify(function() {
+/* let addYearResultsToIndexHistory = asyncfunction() {
   let symbols = ['ALLORD', 'ASX'];
 
   symbols.forEach((symbol) => {
@@ -1037,7 +1037,7 @@ Current
     };
 
 
-    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+    let indexQuotes = awaitdynamodb.queryTable(queryDetails));
 
     indexQuotes.forEach((indexQuote) => {
       // Set up the key: symbol and quoteDate
@@ -1062,7 +1062,7 @@ Current
         projectionExpression: 'previousClose',
       };
 
-      let quotesYear = awaitify(dynamodb.queryTable(query2Details));
+      let quotesYear = awaitdynamodb.queryTable(query2Details));
 
       if (quotesYear.length) {
         let valArray = [];
@@ -1107,7 +1107,7 @@ Current
         updateDetails.expressionAttributeNames = expressionAttributeNames;
 
         try {
-          awaitify(dynamodb.updateRecord(updateDetails));
+          awaitdynamodb.updateRecord(updateDetails));
         } catch (err) {
           console.log(err);
         }
@@ -1117,7 +1117,7 @@ Current
 }); */
 
 
-/* let addDailyChangeToIndexHistory = asyncify(function() {
+/* let addDailyChangeToIndexHistory = asyncfunction() {
   let symbols = ['ALLORD', 'ASX'];
 
   symbols.forEach((symbol) => {
@@ -1138,7 +1138,7 @@ Current
     };
 
 
-    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+    let indexQuotes = awaitdynamodb.queryTable(queryDetails));
 
     indexQuotes.forEach((indexQuote) => {
       // Set up the key: symbol and quoteDate
@@ -1162,7 +1162,7 @@ Current
         projectionExpression: 'previousClose',
       };
 
-      let yesterdayQuote = awaitify(dynamodb.queryTable(query2Details));
+      let yesterdayQuote = awaitdynamodb.queryTable(query2Details));
 
       if (yesterdayQuote.length) {
         let previousValue = yesterdayQuote[0]['previousClose'];
@@ -1188,7 +1188,7 @@ Current
         updateDetails.expressionAttributeNames = expressionAttributeNames;
 
         try {
-          awaitify(dynamodb.updateRecord(updateDetails));
+          awaitdynamodb.updateRecord(updateDetails));
         } catch (err) {
           console.log(err);
         }
@@ -1197,11 +1197,11 @@ Current
   });
 }); */
 
-/* let fixCompaniesList = asyncify(function() {
+/* let fixCompaniesList = asyncfunction() {
   let currentCompanySymbols = [];
   let companiesToRemove = [];
   let currentMetricsCompanies = [];
-  let symbolResult = awaitify(shareRetrieve.setupSymbols());
+  let symbolResult = awaitshareRetrieve.setupSymbols());
 
   let symbolLookup = symbolResult.symbolLookup;
   let indexLookup = symbolResult.indexLookup;
@@ -1214,7 +1214,7 @@ Current
     currentCompanySymbols.push(companyLookup[companyKey]);
   });
 
-  let allCompanyMetrics = awaitify(metricsRetrieve.retrieveCompanies());
+  let allCompanyMetrics = awaitmetricsRetrieve.retrieveCompanies());
 
   allCompanyMetrics.forEach((companyMetric) => {
     currentMetricsCompanies.push(companyMetric['symbol']);
@@ -1229,7 +1229,7 @@ Current
   utils.writeJSONfile(companiesToRemove, '../data/companies-to-remove.json');
 });
 
-let verifyCompaniesList = asyncify(function() {
+let verifyCompaniesList = asyncfunction() {
   let queryDetails = {
     tableName: 'companyQuotes',
     keyConditionExpression: 'symbol = :symbol and ' +
@@ -1244,7 +1244,7 @@ let verifyCompaniesList = asyncify(function() {
 
   jsonCompanies.forEach((symbol) => {
     queryDetails['expressionAttributeValues'][':symbol'] = symbol;
-    let indexQuotes = awaitify(dynamodb.queryTable(queryDetails));
+    let indexQuotes = awaitdynamodb.queryTable(queryDetails));
 
     // if no records, then verify that this should be removed
     if (!indexQuotes.length) {
@@ -1256,7 +1256,7 @@ let verifyCompaniesList = asyncify(function() {
 });
 
 
-let removeCompanies = asyncify(function() {
+let removeCompanies = asyncfunction() {
   let deleteDetails = {
     tableName: 'companies',
   };
@@ -1266,11 +1266,11 @@ let removeCompanies = asyncify(function() {
       'symbol': symbol,
     };
 
-    awaitify(dynamodb.deleteRecord(deleteDetails));
+    awaitdynamodb.deleteRecord(deleteDetails));
   });
 });
 
-let removeMetrics = asyncify(function() {
+let removeMetrics = asyncfunction() {
   let deleteDetails = {
     tableName: 'companyMetrics',
   };
@@ -1288,7 +1288,7 @@ let removeMetrics = asyncify(function() {
   jsonCompanies.forEach((symbol) => {
     queryDetails['expressionAttributeValues'][':symbol'] = symbol;
 
-    let queryResults = awaitify(dynamodb.queryTable(queryDetails));
+    let queryResults = awaitdynamodb.queryTable(queryDetails));
 
     queryResults.forEach((result) => {
       deleteDetails.key = {
@@ -1296,7 +1296,7 @@ let removeMetrics = asyncify(function() {
         'metricsDate': result['metricsDate'],
       };
 
-      awaitify(dynamodb.deleteRecord(deleteDetails));
+      awaitdynamodb.deleteRecord(deleteDetails));
     });
   });
 }); */
@@ -1306,7 +1306,7 @@ let removeMetrics = asyncify(function() {
 *     adjustedPrice, and checks and removes any invalid values.
 * @param {Object} quoteData - the company quote to write
 */
-let writeCompanyQuoteData = asyncify(function(quoteData) {
+let writeCompanyQuoteData = asyncfunction(quoteData) {
   // If unexpected r3cords come back with no trade data, skop them
   if (!quoteData['lastTradeDate']) {
     return;
@@ -1371,7 +1371,7 @@ let writeCompanyQuoteData = asyncify(function(quoteData) {
     upsertDetails.expressionAttributeValues = expressionAttributeValues;
     upsertDetails.expressionAttributeNames = expressionAttributeNames;
 
-    return awaitify(dynamodb.updateRecord(upsertDetails));
+    return awaitdynamodb.updateRecord(upsertDetails));
   }
 });
 

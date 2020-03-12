@@ -2,8 +2,6 @@
 
 const aws = require('aws-sdk');
 const ReadableStream = require('./readable-stream');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 
 aws.config.update({
   region: 'ap-southeast-2',
@@ -35,7 +33,7 @@ let writeJSONFile = function(jsonData, bucket, fileName) {
   });
 };
 
-let exportHandler = asyncify(function() {
+let exportHandler = async function() {
   try {
     let tableName = 'companyQuotes';
     let dataStream = new ReadableStream();
@@ -128,7 +126,7 @@ let exportHandler = asyncify(function() {
     };
 
     // describe the table and write metadata to the backup
-    let table = awaitify(describeTable(tableName));
+    let table = await describeTable(tableName);
 
     // limit the the number or reads to match our capacity
     params.Limit = table.ProvisionedThroughput.ReadCapacityUnits;
@@ -143,7 +141,7 @@ let exportHandler = asyncify(function() {
   } catch (err) {
     console.error(err);
   }
-});
+};
 
 let describeTable = function(tableName) {
   return new Promise(function(resolve, reject) {

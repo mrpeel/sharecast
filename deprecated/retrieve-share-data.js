@@ -132,10 +132,10 @@ let resultData = [];
 let indexData = [];
 let maxResultDate = '';
 
-let setupSymbols = asyncify(function() {
+let setupSymbols = asyncfunction() {
   try {
-    let indexValues = awaitify(utils.getIndices());
-    let companyValues = awaitify(utils.getCompanies());
+    let indexValues = awaitutils.getIndices());
+    let companyValues = awaitutils.getCompanies());
 
     indexValues.forEach((indexValue) => {
       console.log(indexValue);
@@ -217,11 +217,11 @@ let processResult = function(result) {
   }
 };
 
-let writeIndexResults = asyncify(function(indexData) {
+let writeIndexResults = asyncfunction(indexData) {
   let connection;
   try {
     // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = awaitdbConn.connectToDb(host, username, password, db));
 
     for (let c = 0; c < indexData.length; c++) {
       // Prepare and insert row
@@ -229,7 +229,7 @@ let writeIndexResults = asyncify(function(indexData) {
       let quoteDate = utils.returnDateAsString(indexRow['lastTradeDate']);
       let yearMonth = quoteDate.substring(0, 7).replace('-', '');
       let quoteId = 'In' + indexRow['symbol'] + quoteDate.replace('-', '');
-      awaitify(dbConn.executeQuery(connection,
+      awaitdbConn.executeQuery(connection,
         'INSERT INTO `sharecast`.`index_quotes`' +
         '(`Id`,' +
         '`IndexSymbol`,' +
@@ -384,7 +384,7 @@ let addAppendDataToRows = function(dataVals) {
  *    fields: updated fields list array
  *    }
  */
-let addMetricDataToRows = asyncify(function(dataVals) {
+let addMetricDataToRows = asyncfunction(dataVals) {
   return new Promise(function(resolve, reject) {
     try {
       let wkData = dataVals;
@@ -418,7 +418,7 @@ let addMetricDataToRows = asyncify(function(dataVals) {
       for (let c = 0; c < wkData.data.length; c++) {
         let companSymbol = wkData.data[c]['symbol'];
 
-        awaitify(
+        await
           metrics.returnCompanyMetricValuesForDate(
             companSymbol, utils.returnDateAsString(Date.now()))
             .then((meVal) => {
@@ -482,18 +482,18 @@ let addMetricDataToRows = asyncify(function(dataVals) {
   });
 });
 
-let executeRetrieval = asyncify(function() {
+let executeRetrieval = asyncfunction() {
   let dataToAppend = {};
   let indexDataToAppend = {};
-  awaitify(setupSymbols());
-  lastResultDate = awaitify(utils.getLastRetrievalDate());
+  awaitsetupSymbols());
+  lastResultDate = awaitutils.getLastRetrievalDate());
 
-  awaitify(finIndicators.updateIndicatorValues());
+  awaitfinIndicators.updateIndicatorValues());
 
-  awaitify(metrics.updateCompanyMetrics());
+  awaitmetrics.updateCompanyMetrics());
 
   let todayString = utils.returnDateAsString(Date.now());
-  let financialIndicatos = awaitify(finIndicators
+  let financialIndicatos = awaitfinIndicators
     .returnIndicatorValuesForDate(todayString));
 
   retrieveSnapshot(indices, indiceFieldsToRetrieve)

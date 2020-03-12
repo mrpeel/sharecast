@@ -6,23 +6,23 @@ const symbols = require('../retrieve-data/dynamo-symbols');
 const dynamodb = require('../retrieve-data/dynamodb');
 const maintRecords = require('./maint-symbols.json');
 
-let cleanupOldSymbols = asyncify(function () {
+let cleanupOldSymbols = asyncfunction () {
   // Prep local access
   dynamodb.setLocalAccessConfig();
   // Execute delete
   maintRecords.symbolsToRemove.forEach((symbol) => {
     // Execute delete
-    awaitify(symbols.removeCompany(symbol));
+    awaitsymbols.removeCompany(symbol));
   });
 });
 
-let addNewCompanies = asyncify(function () {
+let addNewCompanies = asyncfunction () {
   // Prep local access
   dynamodb.setLocalAccessConfig();
   // Execute adds
   maintRecords.symbolsToAdd.forEach((symbolRecord) => {
     // Execute delete
-    awaitify(symbols.addCompany(symbolRecord));
+    awaitsymbols.addCompany(symbolRecord));
   });
 });
 

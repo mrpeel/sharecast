@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "asyncawait": "^1.0.7",
     "aws-sdk": "^2.290.0",
     "json2csv": "^3.11.5",
     "moment": "^2.22.2",

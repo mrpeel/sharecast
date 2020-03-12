@@ -7,8 +7,6 @@ const retrieveShareData = require('./dynamo-retrieve-share-data');
 const companyHistory = require('../data/company-history.json');
 const historyTranslation = require('./history-translation.json');
 // const dbConn = require('./mysql-connection');
-const asyncify = require('asyncawait/async');
-const awaitify = require('asyncawait/await');
 /* const credentials = require('../credentials/credentials.json');
 const host = credentials.host;
 const db = credentials.db;
@@ -74,22 +72,22 @@ let retrieveCsv = function(filePath) {
   });
 };
 
-let readAndInsertIndexHistory = asyncify(function() {
+let readAndInsertIndexHistory = async function() {
   let connection;
   try {
     let csvFilePath = '../data/indice-history-2017-01-31.csv';
-    let csvData = awaitify(retrieveCsv(csvFilePath));
+    let csvData = await retrieveCsv(csvFilePath));
     // console.log(csvData);
 
     // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = await dbConn.connectToDb(host, username, password, db);
 
     for (let c = 0; c < csvData.length; c++) {
       // Prepare and insert row
       let csvRow = csvData[c];
       let quoteDate = utils.returnDateAsString(csvRow['date']);
       let yearMonth = quoteDate.substring(0, 7).replace('-', '');
-      awaitify(dbConn.executeQuery(connection,
+      await dbConn.executeQuery(connection,
         'INSERT INTO `sharecast`.`index_quotes`' +
         '(`index_symbol`,' +
         '`quote_date`,' +
@@ -105,7 +103,7 @@ let readAndInsertIndexHistory = asyncify(function() {
         '' + csvRow['open'] + ',' +
         '' + csvRow['low'] + ',' +
         '' + csvRow['high'] +
-        ');'));
+        ');');
     }
   } catch (err) {
     console.log(err);
@@ -114,19 +112,19 @@ let readAndInsertIndexHistory = asyncify(function() {
       dbConn.closeConnection(connection);
     }
   }
-});
+};
 
-let testMe = asyncify(function() {
+let testMe = async function() {
   let connection;
   let rows;
   try {
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
-    rows = awaitify(dbConn.selectQuery(connection, 'SELECT last_retrieval_date '
-      + 'FROM `sharecast`.`last_retrieval_date` LIMIT 1;'));
+    connection = await dbConn.connectToDb(host, username, password, db);
+    rows = await dbConn.selectQuery(connection, 'SELECT last_retrieval_date '
+      + 'FROM `sharecast`.`last_retrieval_date` LIMIT 1;');
     console.log(rows);
-    awaitify(dbConn.executeQuery(connection, 'UPDATE ' +
+    await dbConn.executeQuery(connection, 'UPDATE ' +
       '`sharecast`.`last_retrieval_date` SET last_retrieval_date = ' +
-      '\'2017-02-02\' WHERE last_retrieval_date = \'2017-02-01\';'));
+      '\'2017-02-02\' WHERE last_retrieval_date = \'2017-02-01\';');
   } catch (err) {
     console.log(err);
   } finally {
@@ -134,9 +132,9 @@ let testMe = asyncify(function() {
       dbConn.closeConnection(connection);
     }
   }
-});
+};
 
-let readAndInsertDividendHistory = asyncify(function() {
+let readAndInsertDividendHistory = async function() {
   let connection;
   for (companyCounter = 0; companyCounter <= 3030; companyCounter += 10) {
     let csvFileName = 'companies-dividend-history-' + companyCounter +
@@ -145,18 +143,18 @@ let readAndInsertDividendHistory = asyncify(function() {
     if (utils.doesDataFileExist(csvFileName)) {
       try {
         let csvFilePath = '../data/' + csvFileName;
-        let csvData = awaitify(retrieveCsv(csvFilePath));
+        let csvData = await retrieveCsv(csvFilePath);
         // console.log(csvData);
 
         // Open DB connection
-        connection = awaitify(dbConn.connectToDb(host, username, password, db));
+        connection = await dbConn.connectToDb(host, username, password, db);
 
         for (let c = 0; c < csvData.length; c++) {
           // Prepare and insert row
           let csvRow = csvData[c];
           let dividendDate = utils.returnDateAsString(csvRow['date']);
 
-          awaitify(dbConn.executeQuery(connection,
+          await dbConn.executeQuery(connection,
             'INSERT INTO `sharecast`.`dividend_history` ' +
             '(`company_symbol`, ' +
             '`dividend_date`, ' +
@@ -165,7 +163,7 @@ let readAndInsertDividendHistory = asyncify(function() {
             '(\'' + csvRow['symbol'] + '\',' +
             '\'' + dividendDate + '\',' +
             +csvRow['dividends'] +
-            ');'));
+            ');');
         }
       } catch (err) {
         console.log(err);
@@ -180,7 +178,7 @@ let readAndInsertDividendHistory = asyncify(function() {
   }
 });
 
-/* let readAndInsertMetrics = asyncify(function() {
+/* let readAndInsertMetrics = async function() {
   let csvFileName = 'company-metrics-2017-01-26.csv';
   let csvFileName2 = 'company-metrics-2017-01-25.csv';
   let companyEps = {};
@@ -189,7 +187,7 @@ let readAndInsertDividendHistory = asyncify(function() {
     utils.doesDataFileExist(csvFileName2)) {
     try {
       let csvFilePath = '../data/' + csvFileName;
-      let metricsValues = awaitify(retrieveCsv(csvFilePath));
+      let metricsValues = await retrieveCsv(csvFilePath));
 
       metricsValues.forEach((metricValue) => {
         metricValue['metricsDate'] = '2017-01-26';
@@ -214,11 +212,11 @@ let readAndInsertDividendHistory = asyncify(function() {
 
         // console.log(metricValue);
 
-        awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+        await dynamoMetrics.insertCompanyMetricsValue(metricValue));
       });
 
       csvFilePath = '../data/' + csvFileName2;
-      metricsValues = awaitify(retrieveCsv(csvFilePath));
+      metricsValues = await retrieveCsv(csvFilePath));
 
       metricsValues.forEach((metricValue) => {
         metricValue['metricsDate'] = '2017-01-25';
@@ -243,7 +241,7 @@ let readAndInsertDividendHistory = asyncify(function() {
 
         // console.log(metricValue);
 
-        awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+        await dynamoMetrics.insertCompanyMetricsValue(metricValue));
       });
     } catch (err) {
       console.log(err);
@@ -251,9 +249,9 @@ let readAndInsertDividendHistory = asyncify(function() {
   }
 }); */
 
-let extractAndInsertMetrics = asyncify(function() {
+let extractAndInsertMetrics = async function() {
   try {
-    let metricsValues = awaitify(metrics.returnAllCompanyMetricsValues());
+    let metricsValues = await metrics.returnAllCompanyMetricsValues();
 
     metricsValues.forEach((metricValue) => {
       metricValue['symbol'] = metricValue['CompanySymbol'];
@@ -286,15 +284,15 @@ let extractAndInsertMetrics = asyncify(function() {
 
       // console.log(metricValue);
 
-      awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+      await dynamoMetrics.insertCompanyMetricsValue(metricValue);
     });
   } catch (err) {
     console.log(err);
   }
-});
+};
 
 
-let extractAndInsertIndexHistory = asyncify(function() {
+let extractAndInsertIndexHistory = async function() {
   let connection;
   let insertDetails = {
     tableName: 'indexQuotes',
@@ -306,10 +304,10 @@ let extractAndInsertIndexHistory = asyncify(function() {
 
   try {
     // Open DB connection
-    connection = awaitify(dbConn.connectToDb(host, username, password, db));
+    connection = await dbConn.connectToDb(host, username, password, db);
 
-    let results = awaitify(dbConn.selectQuery(connection,
-      'SELECT * FROM `sharecast`.`index_quotes`;'));
+    let results = await dbConn.selectQuery(connection,
+      'SELECT * FROM `sharecast`.`index_quotes`;');
 
     if (results.length) {
       results.forEach((indexValue) => {
@@ -347,7 +345,7 @@ let extractAndInsertIndexHistory = asyncify(function() {
         // console.log(indexValue);
         insertDetails.values = indexValue;
 
-        awaitify(dynamodb.insertRecord(insertDetails));
+        await dynamodb.insertRecord(insertDetails);
       });
     }
   } catch (err) {
@@ -357,10 +355,10 @@ let extractAndInsertIndexHistory = asyncify(function() {
       dbConn.closeConnection(connection);
     }
   }
-});
+};
 
 
-let openAndInsertIndexHistory = asyncify(function() {
+let openAndInsertIndexHistory = async function() {
   let insertDetails = {
     tableName: 'indexQuotes',
     values: {},
@@ -375,7 +373,7 @@ let openAndInsertIndexHistory = asyncify(function() {
     if (utils.doesDataFileExist(csvFileName)) {
       try {
         let csvFilePath = '../data/' + csvFileName;
-        let indexValues = awaitify(retrieveCsv(csvFilePath));
+        let indexValues = await retrieveCsv(csvFilePath);
 
         indexValues.forEach((indexValue) => {
           indexValue['quoteDate'] = utils.returnDateAsString(
@@ -400,16 +398,16 @@ let openAndInsertIndexHistory = asyncify(function() {
           // console.log(indexValue);
           insertDetails.values = indexValue;
 
-          awaitify(dynamodb.insertRecord(insertDetails));
+          await dynamodb.insertRecord(insertDetails);
         });
       } catch (err) {
         console.log(err);
       }
     }
   });
-});
+};
 
-let openAndInsertCompanyQuotes = asyncify(function() {
+let openAndInsertCompanyQuotes = async function() {
   let insertDetails = {
     tableName: 'companyQuotes',
     values: {},
@@ -430,7 +428,7 @@ let openAndInsertCompanyQuotes = asyncify(function() {
     if (utils.doesDataFileExist(csvFileName)) {
       try {
         let csvFilePath = '../data/' + csvFileName;
-        let quoteValues = awaitify(retrieveCsv(csvFilePath));
+        let quoteValues = await retrieveCsv(csvFilePath);
 
         quoteValues.forEach((quoteValue) => {
           quoteValue['quoteDate'] = utils.returnDateAsString(
@@ -454,7 +452,7 @@ let openAndInsertCompanyQuotes = asyncify(function() {
 
           insertDetails.values = quoteValue;
 
-          awaitify(dynamodb.insertRecord(insertDetails));
+          await dynamodb.insertRecord(insertDetails);
         // Pause to prevent exceeding write capacity
         });
       } catch (err) {
@@ -462,10 +460,10 @@ let openAndInsertCompanyQuotes = asyncify(function() {
       }
     }
   });
-});
+};
 
 
-let extractAndInsertCompanyHistory = asyncify(function() {
+let extractAndInsertCompanyHistory = async function() {
   let queryDetails = {
     tableName: 'companyMetrics',
     limit: 1,
@@ -527,7 +525,7 @@ let extractAndInsertCompanyHistory = asyncify(function() {
           ':metricsDate': baseDate,
         };
 
-        let result = awaitify(dynamodb.queryTable(queryDetails));
+        let result = await dynamodb.queryTable(queryDetails);
 
         // Check if we have a result within the time period
         if (result.length === 0 || result[0]['metricsDate'] > metricsEndDate) {
@@ -540,7 +538,7 @@ let extractAndInsertCompanyHistory = asyncify(function() {
           };
           queryDetails.reverseOrder = true;
 
-          result = awaitify(dynamodb.queryTable(queryDetails));
+          result = await dynamodb.queryTable(queryDetails);
         }
 
         // Check if we have a result within the time period
@@ -580,7 +578,7 @@ let extractAndInsertCompanyHistory = asyncify(function() {
             updateDetails.expressionAttributeNames = expressionAttributeNames;
 
             updateCounter++;
-            awaitify(dynamodb.updateRecord(updateDetails));
+            await dynamodb.updateRecord(updateDetails);
           }
         } else {
           // Check that the object has some values to insert
@@ -599,14 +597,14 @@ let extractAndInsertCompanyHistory = asyncify(function() {
             metricValue['symbol'] = company;
 
             insertCounter++;
-            awaitify(dynamoMetrics.insertCompanyMetricsValue(metricValue));
+            await dynamoMetrics.insertCompanyMetricsValue(metricValue);
           }
         }
 
       // console.log(metricValue);
       /* Make sure can't exceed 5 writes per second - put latency is around 15
          milliseconds  */
-      // awaitify(utils.sleep(175));
+      // await utils.sleep(175));
       });
     });
 
@@ -615,10 +613,10 @@ let extractAndInsertCompanyHistory = asyncify(function() {
   } catch (err) {
     console.log(err);
   }
-});
+};
 
 
-let addMetricsToDividends = asyncify(function() {
+let addMetricsToDividends = async function() {
   let scanDetails = {
     tableName: 'companyMetrics',
     filterExpression: 'attribute_exists(DividendPerShare) and ' +
@@ -638,7 +636,7 @@ let addMetricsToDividends = asyncify(function() {
       'metricsDate < :metricsDate',
   };
 
-  let dividendRecords = awaitify(dynamodb.scanTable(scanDetails));
+  let dividendRecords = await dynamodb.scanTable(scanDetails);
 
   dividendRecords.forEach((dividendRecord) => {
     /* Work through each record, try to find preceding record with
@@ -665,7 +663,7 @@ let addMetricsToDividends = asyncify(function() {
     };
 
     // Execute the query
-    let queryResult = awaitify(dynamodb.queryTable(queryDetails));
+    let queryResult = await dynamodb.queryTable(queryDetails);
 
     if (queryResult.length) {
       let copyFromRecord = queryResult[0];
@@ -692,12 +690,12 @@ let addMetricsToDividends = asyncify(function() {
     updateDetails.expressionAttributeValues = expressionAttributeValues;
     updateDetails.expressionAttributeNames = expressionAttributeNames;
 
-    awaitify(dynamodb.updateRecord(updateDetails));
+    await dynamodb.updateRecord(updateDetails);
   });
 });
 
 
-let calculateYearDividends = asyncify(function() {
+let calculateYearDividends = async function() {
   let scanDetails = {
     tableName: 'companyMetrics',
     filterExpression: 'attribute_exists(DividendPerShare) and ' +
@@ -717,7 +715,7 @@ let calculateYearDividends = asyncify(function() {
       'metricsDate between :metricsStartDate and :metricsEndDate',
   };
 
-  let dividendRecords = awaitify(dynamodb.scanTable(scanDetails));
+  let dividendRecords = await dynamodb.scanTable(scanDetails);
 
   dividendRecords.forEach((dividendRecord) => {
     /* Work through each record, try to find preceding record with
@@ -743,7 +741,7 @@ let calculateYearDividends = asyncify(function() {
     };
 
     // Execute the query
-    let queryResult = awaitify(dynamodb.queryTable(queryDetails));
+    let queryResult = await dynamodb.queryTable(queryDetails);
 
     if (queryResult.length) {
       let yearDividends = 0;
@@ -764,18 +762,18 @@ let calculateYearDividends = asyncify(function() {
       updateDetails.expressionAttributeValues = expressionAttributeValues;
       updateDetails.expressionAttributeNames = expressionAttributeNames;
 
-      awaitify(dynamodb.updateRecord(updateDetails));
+      await dynamodb.updateRecord(updateDetails);
     }
   });
-});
+};
 
-let fixMissingMetrics = asyncify(function() {
+let fixMissingMetrics = async function() {
   let missingDates = ['2017-02-16', '2017-02-17'];
 
   missingDates.forEach((missingDate) => {
-    awaitify(retrieveShareData.updateQuotesWithMetrics(missingDate));
+    await retrieveShareData.updateQuotesWithMetrics(missingDate);
   });
-});
+};
 
 // readAndInsertIndexHistory();
 
