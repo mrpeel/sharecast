@@ -2,7 +2,7 @@
 
 const AWS = require('aws-sdk');
 const moment = require('moment-timezone');
-let maxExecutionTime = 300;
+let maxExecutionTime = 900;
 
 // Set the base retry to wait 500ms
 AWS.config.update({

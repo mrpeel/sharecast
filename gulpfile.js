@@ -11,7 +11,7 @@ const lambdaParamsRetrieveDaily = {
   FunctionName: 'retrieveShareData',
   Handler: 'index.dailyHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs12.',
+  Runtime: 'nodejs12.x',
   Description: 'Retrieve share data and store in dynamodb',
   MemorySize: 256,
   Timeout: 900,
@@ -26,7 +26,7 @@ const lambdaParamsRetrieveFunction = {
   FunctionName: 'retrieveFunction',
   Handler: 'index.retrievalHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs12.',
+  Runtime: 'nodejs12.x',
   Description: 'Run single retrieve function for share data and store in dynamodb',
   MemorySize: 256,
   Timeout: 900,
@@ -42,7 +42,7 @@ const lambdaParamsCheckAdjustedPrices = {
   FunctionName: 'checkForAdjustments',
   Handler: 'index.checkForAdjustmentsHandler',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs12.',
+  Runtime: 'nodejs12.x',
   Description: 'Check for prices which have been adjusted in the last 8 days',
   MemorySize: 256,
   Timeout: 900,
@@ -57,7 +57,7 @@ const lambdaParamsReloadQuote = {
   FunctionName: 'reloadQuote',
   Handler: 'index.reloadQuote',
   Role: 'arn:aws:iam::815588223950:role/lambda_write_dynamo',
-  Runtime: 'nodejs12.',
+  Runtime: 'nodejs12.x',
   Description: 'Reload quotes for identified symbols and date periods',
   MemorySize: 256,
   Timeout: 900,
@@ -108,7 +108,7 @@ gulp.task('install_dependencies', gulp.series('credentials', function() {
 gulp.task('deploy', gulp.series('install_dependencies', function(done) {
   gulp.src(['dist/**/*'])
     .pipe(zip('retrieve-share-data.zip'))
-    // .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
+    .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveDaily))
     .pipe(awsLambda(awsCredentials, lambdaParamsRetrieveFunction))
     .pipe(awsLambda(awsCredentials, lambdaParamsCheckAdjustedPrices))
     .pipe(awsLambda(awsCredentials, lambdaParamsReloadQuote));
