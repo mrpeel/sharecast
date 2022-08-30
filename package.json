@@ -3,7 +3,7 @@
     "aws-sdk": "^2.639.0",
     "json2csv": "^3.11.5",
     "moment": "^2.22.2",
-    "moment-timezone": "^0.5.21",
+    "moment-timezone": "^0.5.35",
     "node-fetch": "^1.7.3"
   },
   "devDependencies": {
